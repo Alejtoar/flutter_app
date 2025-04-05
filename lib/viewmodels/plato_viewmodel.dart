@@ -4,6 +4,15 @@ import '../models/intermedio_requerido.dart';
 import '../services/plato_service.dart';
 
 class PlatoViewModel with ChangeNotifier {
+  bool _mostrarInactivos = false;
+  bool get mostrarInactivos => _mostrarInactivos;
+
+  void setMostrarInactivos(bool value) {
+    _mostrarInactivos = value;
+    cargarPlatos();
+    notifyListeners();
+  }
+
   final PlatoService _service;
   List<Plato> _platos = [];
   bool _loading = false;

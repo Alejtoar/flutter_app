@@ -9,6 +9,7 @@ class IntermedioRequerido {
   final double cantidad;
   final String? instruccionesEspeciales;
   final DateTime fechaCreacion;
+  final int orden;
 
   const IntermedioRequerido({
     this.id,
@@ -18,6 +19,7 @@ class IntermedioRequerido {
     required this.cantidad,
     this.instruccionesEspeciales,
     required this.fechaCreacion,
+    required this.orden,
   });
 
   // Factory constructor con validación
@@ -29,6 +31,7 @@ class IntermedioRequerido {
     required double cantidad,
     String? instruccionesEspeciales,
     DateTime? fechaCreacion,
+    int orden = 0,
   }) {
     if (intermedioId.isEmpty) throw ArgumentError('ID de intermedio requerido');
     if (codigo.isEmpty) throw ArgumentError('Código requerido');
@@ -43,6 +46,7 @@ class IntermedioRequerido {
       cantidad: cantidad,
       instruccionesEspeciales: instruccionesEspeciales,
       fechaCreacion: fechaCreacion ?? DateTime.now(),
+      orden: orden,
     );
   }
 
@@ -62,6 +66,7 @@ class IntermedioRequerido {
       cantidad: (data['cantidad'] ?? 0).toDouble(),
       instruccionesEspeciales: data['instruccionesEspeciales'],
       fechaCreacion: (data['fechaCreacion'] as Timestamp?)?.toDate(),
+      orden: data['orden'] ?? 0,
     );
   }
 
@@ -75,6 +80,7 @@ class IntermedioRequerido {
       if (instruccionesEspeciales != null)
         'instruccionesEspeciales': instruccionesEspeciales,
       'fechaCreacion': Timestamp.fromDate(fechaCreacion),
+      'orden': orden,
     };
   }
 
@@ -85,7 +91,8 @@ class IntermedioRequerido {
     String? codigo,
     String? nombre,
     double? cantidad,
-    String? instruccionesEspeciales, required int orden,
+    String? instruccionesEspeciales,
+    int? orden,
   }) {
     return IntermedioRequerido(
       id: id ?? this.id,
@@ -95,6 +102,7 @@ class IntermedioRequerido {
       cantidad: cantidad ?? this.cantidad,
       instruccionesEspeciales: instruccionesEspeciales ?? this.instruccionesEspeciales,
       fechaCreacion: fechaCreacion,
+      orden: orden ?? this.orden,
     );
   }
 
@@ -111,6 +119,6 @@ class IntermedioRequerido {
 
   @override
   String toString() {
-    return 'IntermedioRequerido(intermedioId: $intermedioId, nombre: $nombre, cantidad: $cantidad)';
+    return 'IntermedioRequerido(intermedioId: $intermedioId, nombre: $nombre, cantidad: $cantidad, orden: $orden)';
   }
 }
