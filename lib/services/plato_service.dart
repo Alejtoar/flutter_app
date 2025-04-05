@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/plato.dart';
+import '../models/intermedio_requerido.dart';
 
 class PlatoService {
   final FirebaseFirestore _db;
@@ -45,18 +46,17 @@ class PlatoService {
 
   Future<List<Plato>> buscarPlatos(String query) async {
     try {
-      final nombreQuery = _db.collection(_coleccion)
+      final querySnapshot = await _db.collection(_coleccion)
           .where('nombre', isGreaterThanOrEqualTo: query)
-          .where('nombre', isLessThan: query + 'z')
-          .where('activo', isEqualTo: true);
+          .where('nombre', isLessThan: '${query}z')
+          .where('activo', isEqualTo: true)
+          .get();
 
-      final codigoQuery = _db.collection(_coleccion)
+      final querySnapshotCodigo = await _db.collection(_coleccion)
           .where('codigo', isGreaterThanOrEqualTo: query)
-          .where('codigo', isLessThan: query + 'z')
-          .where('activo', isEqualTo: true);
-
-      final querySnapshot = await nombreQuery.get();
-      final querySnapshotCodigo = await codigoQuery.get();
+          .where('codigo', isLessThan: '${query}z')
+          .where('activo', isEqualTo: true)
+          .get();
 
       final resultados = <Plato>{};
       for (var doc in querySnapshot.docs) {
@@ -101,19 +101,6 @@ class PlatoService {
           .orderBy('nombre')
           .get();
 
-      return querySnapshot.docs.map((doc) => Plato.fromFirestore(doc)).toList();
-    } on FirebaseException catch (e) {
-      throw _handleFirestoreError(e);
-    }
-  }
-
-  Future<List<Plato>> obtenerPlatosPorTipo(String tipo) async {
-    try {
-      final query = _db.collection(_coleccion)
-          .where('tipo', isEqualTo: tipo)
-          .orderBy('nombre', descending: false);
-
-      final querySnapshot = await query.get();
       return querySnapshot.docs.map((doc) => Plato.fromFirestore(doc)).toList();
     } on FirebaseException catch (e) {
       throw _handleFirestoreError(e);

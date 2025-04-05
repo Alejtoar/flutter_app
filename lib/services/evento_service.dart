@@ -7,7 +7,40 @@ class EventoService {
 
   EventoService({FirebaseFirestore? db}) : _db = db ?? FirebaseFirestore.instance;
 
-
+  Evento _fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    
+    return Evento(
+      id: doc.id,
+      codigo: data['codigo'] ?? '',
+      nombreCliente: data['nombreCliente'] ?? '',
+      telefono: data['telefono'] ?? '',
+      correo: data['correo'] ?? '',
+      fecha: (data['fecha'] as Timestamp).toDate(),
+      ubicacion: data['ubicacion'] ?? '',
+      numeroInvitados: data['numeroInvitados'] ?? 0,
+      platos: (data['platos'] as List<dynamic>? ?? [])
+          .map((p) => PlatoEvento.fromMap(p as Map<String, dynamic>))
+          .toList(),
+      tipoEvento: TipoEvento.values.firstWhere(
+        (e) => e.toString() == data['tipoEvento'],
+        orElse: () => TipoEvento.inmediato,
+      ),
+      estado: EstadoEvento.values.firstWhere(
+        (e) => e.toString() == data['estado'],
+        orElse: () => EstadoEvento.cotizado,
+      ),
+      presupuestoTotal: (data['presupuestoTotal'] ?? 0).toDouble(),
+      costoTotal: (data['costoTotal'] ?? 0).toDouble(),
+      requisitosEspeciales: Map<String, dynamic>.from(data['requisitosEspeciales'] ?? {}),
+      fechaCotizacion: (data['fechaCotizacion'] as Timestamp).toDate(),
+      fechaConfirmacion: (data['fechaConfirmacion'] as Timestamp?)?.toDate(),
+      fechaCreacion: (data['fechaCreacion'] as Timestamp).toDate(),
+      fechaActualizacion: (data['fechaActualizacion'] as Timestamp).toDate(),
+      requiereInventario: data['requiereInventario'] ?? false,
+      comentariosLogistica: data['comentariosLogistica'],
+    );
+  }
 
   Future<Evento> crearEvento(Evento evento) async {
     try {
@@ -59,19 +92,6 @@ class EventoService {
     }
   }
 
-  Future<List<Evento>> obtenerEventosPorEstado(EstadoEvento estado) async {
-    try {
-      final query = _db.collection(_coleccion)
-          .where('estado', isEqualTo: estado.toString())
-          .orderBy('fechaCreacion', descending: true);
-
-      final querySnapshot = await query.get();
-      return querySnapshot.docs.map((doc) => Evento.fromFirestore(doc)).toList();
-    } on FirebaseException catch (e) {
-      throw _handleFirestoreError(e);
-    }
-  }
-
   Future<void> actualizarEvento(Evento evento) async {
     try {
       if (evento.id == null) throw Exception('ID de evento no válido');
@@ -107,16 +127,15 @@ class EventoService {
   Future<List<Evento>> buscarEventos(String query) async {
     try {
       // Búsqueda por código o nombre del cliente
-      final codigoQuery = _db.collection(_coleccion)
+      final querySnapshot = await _db.collection(_coleccion)
           .where('codigo', isGreaterThanOrEqualTo: query)
-          .where('codigo', isLessThan: query + 'z');
+          .where('codigo', isLessThan: '${query}z')
+          .get();
 
-      final nombreQuery = _db.collection(_coleccion)
+      final querySnapshotNombre = await _db.collection(_coleccion)
           .where('nombreCliente', isGreaterThanOrEqualTo: query)
-          .where('nombreCliente', isLessThan: query + 'z');
-
-      final querySnapshot = await codigoQuery.get();
-      final querySnapshotNombre = await nombreQuery.get();
+          .where('nombreCliente', isLessThan: '${query}z')
+          .get();
 
       final resultados = <Evento>{};
       for (var doc in querySnapshot.docs) {

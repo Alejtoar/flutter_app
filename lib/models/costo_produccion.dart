@@ -155,11 +155,13 @@ class CostoProduccion {
 
   // Métodos de análisis
   Map<String, double> get distribucionCostos {
-    if (costoTotal <= 0) return {
+    if (costoTotal <= 0) {
+      return {
       'directo': 0,
       'indirecto': 0,
       'adicional': 0
     };
+    }
 
     return {
       'directo': (costoDirecto / costoTotal) * 100,

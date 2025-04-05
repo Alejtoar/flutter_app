@@ -17,7 +17,10 @@ class EventoViewModel with ChangeNotifier {
   String? get error => _error;
   Evento? get eventoSeleccionado => _eventoSeleccionado;
 
-  EventoViewModel(this._service);
+  EventoViewModel(this._service) {
+    cargarEventos();
+    cargarEventosUrgentes();
+  }
 
   // Cargar eventos con filtros
   Future<void> cargarEventos({

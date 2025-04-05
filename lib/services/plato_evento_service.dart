@@ -73,13 +73,13 @@ class PlatoEventoService {
           .doc(eventoId)
           .collection(_coleccion)
           .where('nombre', isGreaterThanOrEqualTo: query)
-          .where('nombre', isLessThan: query + 'z');
+          .where('nombre', isLessThan: '${query}z');
 
       Query<Map<String, dynamic>> codigoQuery = _db.collection('eventos')
           .doc(eventoId)
           .collection(_coleccion)
           .where('codigo', isGreaterThanOrEqualTo: query)
-          .where('codigo', isLessThan: query + 'z');
+          .where('codigo', isLessThan: '${query}z');
 
       final querySnapshotNombre = await nombreQuery.get();
       final querySnapshotCodigo = await codigoQuery.get();

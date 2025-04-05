@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/plato.dart';
+import '../models/intermedio_requerido.dart';
 import '../services/plato_service.dart';
 
 class PlatoViewModel with ChangeNotifier {
@@ -8,7 +9,7 @@ class PlatoViewModel with ChangeNotifier {
   bool _loading = false;
   String? _error;
   Plato? _platoSeleccionado;
-  Map<String, List<Plato>> _platosPorCategoria = {};
+  final Map<String, List<Plato>> _platosPorCategoria = {};
 
   // Getters
   List<Plato> get platos => _platos;
@@ -17,7 +18,29 @@ class PlatoViewModel with ChangeNotifier {
   Plato? get platoSeleccionado => _platoSeleccionado;
   Map<String, List<Plato>> get platosPorCategoria => _platosPorCategoria;
 
-  PlatoViewModel(this._service);
+  // Getters adicionales para la UI
+  List<String> get categorias => Plato.categoriasDisponibles.keys.toList();
+
+  List<IntermedioRequerido> getIntermediosRequeridos(String platoId) {
+    final plato = _platos.firstWhere((p) => p.id == platoId);
+    return plato.intermedios;
+  }
+
+  Map<String, double> getCostoProduccion(String platoId) {
+    final plato = _platos.firstWhere((p) => p.id == platoId);
+    // TODO: Implementar cálculo real de costos
+    return {
+      'costoDirecto': 100.0,
+      'costoIndirecto': 20.0,
+      'costoAdicional': 10.0,
+      'costoTotal': plato.costoTotal,
+      'precioVenta': plato.precioVenta,
+    };
+  }
+
+  PlatoViewModel(this._service) {
+    cargarPlatos();
+  }
 
   // Cargar todos los platos
   Future<void> cargarPlatos({bool? activo}) async {

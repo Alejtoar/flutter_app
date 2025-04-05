@@ -32,7 +32,7 @@ class InsumoUtilizadoViewModel with ChangeNotifier {
   Future<double> calcularCostoTotal() async {
     _setLoading(true);
     try {
-      final costo = await _service.calcularCostoTotal(_insumosUtilizados);
+      final costo = _service.calcularCostoTotal(_insumosUtilizados);
       _error = null;
       return costo;
     } catch (e) {

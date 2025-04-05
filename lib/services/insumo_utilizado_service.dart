@@ -26,7 +26,7 @@ class InsumoUtilizadoService {
         .get();
 
     for (final doc in intermedios.docs) {
-      final data = doc.data() as Map<String, dynamic>;
+      final data = doc.data();
       final insumos = List<Map<String, dynamic>>.from(data['insumos'] ?? []);
       
       final nuevosInsumos = insumos.map((insumo) {
@@ -54,7 +54,7 @@ class InsumoUtilizadoService {
         .get();
 
     for (final doc in platos.docs) {
-      final data = doc.data() as Map<String, dynamic>;
+      final data = doc.data();
       final intermediosPlato = List<Map<String, dynamic>>.from(data['intermedios'] ?? []);
       
       final nuevosIntermedios = await Future.wait(intermediosPlato.map((intermedio) async {

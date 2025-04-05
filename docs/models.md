@@ -1,17 +1,35 @@
 # Modelos
 
-## IntermedioRequerido
+## Modelos Principales
 
-Representa un ingrediente intermedio requerido para la preparación de un plato.
+### 1. Plato
+```dart
+class Plato {
+  String id;
+  String nombre;
+  String descripcion;
+  double costoTotal;
+  double precioVenta;
+  List<String> categorias;
+  List<IntermedioRequerido> intermedios;
+  bool activo;
+}
+```
+**Descripción**: Representa un plato del menú con su información básica, costos y componentes.
 
-### Atributos
-- `id` (String?, opcional): Identificador único del documento en Firestore
-- `intermedioId` (String): ID del ingrediente intermedio base
-- `codigo` (String): Código identificador
-- `nombre` (String): Nombre del ingrediente intermedio
-- `cantidad` (double): Cantidad requerida
-- `instruccionesEspeciales` (String?, opcional): Instrucciones especiales para la preparación
-- `fechaCreacion` (DateTime): Fecha de creación del registro
+### 2. Evento
+```dart
+class Evento {
+  String id;
+  String nombre;
+  DateTime fecha;
+  TipoEvento tipo;
+  EstadoEvento estado;
+  List<String> platosId;
+  Map<String, dynamic> detalles;
+}
+```
+**Descripción**: Gestiona eventos y reservaciones del restaurante.
 - `orden` (int): Orden de presentación/preparación
 
 ### Métodos

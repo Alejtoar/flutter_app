@@ -1,14 +1,46 @@
-# Servicios
+# Servicios de la Aplicación
 
-## IntermedioRequeridoService
+## Servicios Principales
 
-Servicio que maneja las operaciones CRUD y la lógica de negocio para los intermedios requeridos en Firestore.
+### 1. PlatoService
+```dart
+class PlatoService {
+  Future<List<Plato>> obtenerTodos({bool? activo});
+  Future<Plato> obtenerPlato(String id);
+  Future<Plato> crearPlato(Plato plato);
+  Future<void> actualizarPlato(Plato plato);
+  Future<void> desactivarPlato(String id);
+  Future<List<Plato>> buscarPlatos(String query);
+}
+```
+**Descripción**: Gestiona todas las operaciones CRUD relacionadas con platos.
 
-### Dependencias
-- `FirebaseFirestore`: Para operaciones con la base de datos
-- `IntermedioService`: Para validar la existencia de intermedios base
+### 2. EventoService
+```dart
+class EventoService {
+  Future<List<Evento>> obtenerEventos({
+    DateTime? fechaInicio,
+    DateTime? fechaFin,
+    TipoEvento? tipo,
+    EstadoEvento? estado,
+  });
+  Future<Evento> obtenerEvento(String id);
+  Future<void> crearEvento(Evento evento);
+  Future<void> actualizarEvento(Evento evento);
+  Future<void> confirmarEvento(String id, DateTime fecha);
+}
+```
+**Descripción**: Maneja la gestión de eventos y reservaciones.
 
-### Colección
+### 3. CostoProduccionService
+```dart
+class CostoProduccionService {
+  Future<CostoProduccion> calcularCosto(String platoId);
+  Future<void> actualizarCostos(String platoId, Map<String, double> costos);
+  Future<List<CostoProduccion>> obtenerHistorial(String platoId);
+}
+```
+**Descripción**: Calcula y gestiona los costos de producción.
 - `intermedios_requeridos`: Colección en Firestore donde se almacenan los documentos
 
 ### Métodos
