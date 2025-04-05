@@ -132,8 +132,17 @@ class InsumoUtilizado {
     );
   }
 
+  // Métodos de cálculo
+  double get costoTotal => cantidad * precioUnitario;
+  double get costoPorUnidad => precioUnitario;
+  
+  // Formateo de valores
+  String get cantidadFormateada => '${cantidad.toStringAsFixed(2)} $unidad';
+  String get costoTotalFormateado => 'USD ${costoTotal.toStringAsFixed(2)}';
+  String get costoPorUnidadFormateado => 'USD ${costoPorUnidad.toStringAsFixed(2)}/$unidad';
+
   @override
   String toString() {
-    return 'InsumoUtilizado(insumoId: $insumoId, nombre: $nombre, cantidad: $cantidad $unidad)';
+    return 'InsumoUtilizado(insumoId: $insumoId, nombre: $nombre, cantidad: $cantidadFormateada, costo: $costoTotalFormateado)';
   }
 }

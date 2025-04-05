@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:golo_app/models/intermedio_requerido.dart';
 
+
+
 class Plato {
   // 1. Campos del modelo
   final String? id;
@@ -126,7 +128,7 @@ class Plato {
     final data = doc.data() as Map<String, dynamic>;
     
     final intermediosData = List<Map<String, dynamic>>.from(data['intermedios'] ?? []);
-    final intermedios = intermediosData.map((i) => IntermedioRequerido.fromFirestore(i)).toList();
+    final intermedios = intermediosData.map((i) => IntermedioRequerido.fromMap(i)).toList();
 
     return Plato.crear(
       id: doc.id,

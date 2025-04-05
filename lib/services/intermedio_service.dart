@@ -75,19 +75,38 @@ class IntermedioService {
     double? reduccionPorcentaje,
     String? receta,
     String? instrucciones,
+    required int tiempoPreparacionMinutos,
+    required double rendimientoFinal,
+    String? versionReceta,
   }) async {
     // Validación de insumos
     final insumosCompletos = await _validarYObtenerInsumos(insumosData);
+
+    // Validar categorías
+    for (final categoria in categorias) {
+      if (!Intermedio.categoriasDisponibles.containsKey(categoria)) {
+        throw ArgumentError('Categoría no válida: $categoria');
+      }
+    }
+
+    // Obtener reducción por defecto si no se especifica
+    double reduccionFinal = reduccionPorcentaje ?? 0.0;
+    if (reduccionFinal == 0.0 && categorias.isNotEmpty) {
+      reduccionFinal = Intermedio.categoriasDisponibles[categorias.first]!['reduccionDefault'];
+    }
 
     // Crear intermedio con validación incorporada
     final intermedio = Intermedio.crear(
       codigo: await _generarCodigo(),
       nombre: nombre,
       categorias: categorias,
-      reduccionPorcentaje: reduccionPorcentaje,
+      reduccionPorcentaje: reduccionFinal,
       receta: receta ?? '',
       instrucciones: instrucciones ?? '',
       insumos: insumosCompletos,
+      tiempoPreparacionMinutos: tiempoPreparacionMinutos,
+      rendimientoFinal: rendimientoFinal,
+      versionReceta: versionReceta ?? '1.0',
     );
 
     return intermedio;
@@ -106,17 +125,35 @@ class IntermedioService {
       throw Exception('Algunos insumos no fueron encontrados');
     }
 
-    return insumosData.map((data) {
+    double costoTotal = 0.0;
+    final insumosUtilizados = <InsumoUtilizado>[];
+
+    for (final data in insumosData) {
       final insumo = insumos.firstWhere((i) => i.id == data['insumoId']);
-      return InsumoUtilizado.crear(
+      final cantidad = (data['cantidad'] ?? 0).toDouble();
+      
+      if (cantidad <= 0) {
+        throw ArgumentError('La cantidad debe ser mayor a 0 para ${insumo.nombre}');
+      }
+
+      final insumoUtilizado = InsumoUtilizado.crear(
         insumoId: insumo.id!,
         codigo: insumo.codigo,
         nombre: insumo.nombre,
         unidad: insumo.unidad,
-        cantidad: (data['cantidad'] ?? 0).toDouble(),
+        cantidad: cantidad,
         precioUnitario: insumo.precioUnitario,
       );
-    }).toList();
+
+      costoTotal += insumoUtilizado.costoTotal;
+      insumosUtilizados.add(insumoUtilizado);
+    }
+
+    if (costoTotal <= 0) {
+      throw ArgumentError('El costo total de los insumos debe ser mayor a 0');
+    }
+
+    return insumosUtilizados;
   }
 
   Future<String> _generarCodigo() async {

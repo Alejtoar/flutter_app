@@ -52,6 +52,9 @@ class IntermedioViewModel with ChangeNotifier {
     double? reduccionPorcentaje,
     String? receta,
     String? instrucciones,
+    required int tiempoPreparacionMinutos,
+    required double rendimientoFinal,
+    String? versionReceta,
   }) async {
     _setLoading(true);
     try {
@@ -62,6 +65,9 @@ class IntermedioViewModel with ChangeNotifier {
         reduccionPorcentaje: reduccionPorcentaje,
         receta: receta,
         instrucciones: instrucciones,
+        tiempoPreparacionMinutos: tiempoPreparacionMinutos,
+        rendimientoFinal: rendimientoFinal,
+        versionReceta: versionReceta,
       );
       
       await _service.crearIntermedio(intermedio);

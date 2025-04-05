@@ -13,6 +13,9 @@ class Intermedio {
   final String receta;
   final String instrucciones;
   final List<InsumoUtilizado> insumos;
+  final int tiempoPreparacionMinutos;
+  final double rendimientoFinal; // en gramos o mililitros
+  final String versionReceta;
   final DateTime fechaCreacion;
   final DateTime fechaActualizacion;
   final bool activo;
@@ -61,6 +64,9 @@ class Intermedio {
     required this.receta,
     required this.instrucciones,
     required this.insumos,
+    required this.tiempoPreparacionMinutos,
+    required this.rendimientoFinal,
+    required this.versionReceta,
     required this.fechaCreacion,
     required this.fechaActualizacion,
     this.activo = true,
@@ -76,6 +82,9 @@ class Intermedio {
     String receta = '',
     String instrucciones = '',
     required List<InsumoUtilizado> insumos,
+    required int tiempoPreparacionMinutos,
+    required double rendimientoFinal,
+    String versionReceta = '1.0',
     DateTime? fechaCreacion,
     DateTime? fechaActualizacion,
     bool activo = true,
@@ -104,6 +113,14 @@ class Intermedio {
       errors.add('Debe agregar al menos un insumo');
     }
 
+    if (tiempoPreparacionMinutos <= 0) {
+      errors.add('El tiempo de preparación debe ser positivo');
+    }
+
+    if (rendimientoFinal <= 0) {
+      errors.add('El rendimiento final debe ser positivo');
+    }
+
     // Asignar reducción porcentual por defecto según categoría principal
     final reduccionDefault = categoriasDisponibles[categorias.first]?['reduccionDefault'] ?? 0.0;
     final reduccionFinal = reduccionPorcentaje ?? reduccionDefault;
@@ -126,6 +143,9 @@ class Intermedio {
       receta: receta,
       instrucciones: instrucciones,
       insumos: insumos,
+      tiempoPreparacionMinutos: tiempoPreparacionMinutos,
+      rendimientoFinal: rendimientoFinal,
+      versionReceta: versionReceta,
       fechaCreacion: fechaCreacion ?? ahora,
       fechaActualizacion: fechaActualizacion ?? ahora,
       activo: activo,
@@ -148,6 +168,9 @@ class Intermedio {
       receta: data['receta'] ?? '',
       instrucciones: data['instrucciones'] ?? '',
       insumos: insumos,
+      tiempoPreparacionMinutos: data['tiempoPreparacionMinutos'] ?? 0,
+      rendimientoFinal: (data['rendimientoFinal'] ?? 0).toDouble(),
+      versionReceta: data['versionReceta'] ?? '1.0',
       fechaCreacion: (data['fechaCreacion'] as Timestamp?)?.toDate(),
       fechaActualizacion: (data['fechaActualizacion'] as Timestamp?)?.toDate(),
       activo: data['activo'] ?? true,
@@ -164,6 +187,9 @@ class Intermedio {
       'receta': receta,
       'instrucciones': instrucciones,
       'insumos': insumos.map((i) => i.toFirestore()).toList(),
+      'tiempoPreparacionMinutos': tiempoPreparacionMinutos,
+      'rendimientoFinal': rendimientoFinal,
+      'versionReceta': versionReceta,
       'fechaCreacion': Timestamp.fromDate(fechaCreacion),
       'fechaActualizacion': Timestamp.fromDate(fechaActualizacion),
       'activo': activo,
@@ -180,6 +206,9 @@ class Intermedio {
     String? receta,
     String? instrucciones,
     List<InsumoUtilizado>? insumos,
+    int? tiempoPreparacionMinutos,
+    double? rendimientoFinal,
+    String? versionReceta,
     DateTime? fechaActualizacion,
     bool? activo,
   }) {
@@ -192,6 +221,9 @@ class Intermedio {
       receta: receta ?? this.receta,
       instrucciones: instrucciones ?? this.instrucciones,
       insumos: insumos ?? this.insumos,
+      tiempoPreparacionMinutos: tiempoPreparacionMinutos ?? this.tiempoPreparacionMinutos,
+      rendimientoFinal: rendimientoFinal ?? this.rendimientoFinal,
+      versionReceta: versionReceta ?? this.versionReceta,
       fechaCreacion: fechaCreacion,
       fechaActualizacion: fechaActualizacion ?? DateTime.now(),
       activo: activo ?? this.activo,
