@@ -1,148 +1,104 @@
+// insumo_utilizado.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// Representa la relación entre un intermedio y un insumo,
+/// conteniendo solo datos específicos de esta relación
 class InsumoUtilizado {
-  final String insumoId;
-  final String codigo;
-  final String nombre;
-  final String unidad;
-  final double cantidad;
-  final double precioUnitario; // Snapshot del precio al momento de creación
-  final DateTime fechaCreacion;
-  final DateTime? fechaActualizacion;
+  final String? id;
+  final String insumoId; // Referencia al insumo
+  final String intermedioId; // Referencia al intermedio
+  final double cantidad; // Cantidad utilizada en esta relación
 
   const InsumoUtilizado({
+    this.id,
     required this.insumoId,
-    required this.codigo,
-    required this.nombre,
-    required this.unidad,
+    required this.intermedioId,
     required this.cantidad,
-    required this.precioUnitario,
-    required this.fechaCreacion,
-    this.fechaActualizacion,
   });
 
-  // Factory constructor con validación
-  factory InsumoUtilizado.crear({
+  factory InsumoUtilizado.fromMap(Map<String, dynamic> data) {
+    return InsumoUtilizado(
+      id: data['id'] as String?,
+      insumoId: data['insumoId'] as String,
+      intermedioId: data['intermedioId'] as String,
+      cantidad: (data['cantidad'] as num).toDouble(),
+    );
+  }
+
+  /// Factory para crear desde Firestore
+  factory InsumoUtilizado.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return InsumoUtilizado(
+      id: doc.id,
+      insumoId: data['insumoId'] as String,
+      intermedioId: data['intermedioId'] as String,
+      cantidad: (data['cantidad'] as num).toDouble(),
+    );
+  }
+
+  /// Este metodo es para servicios
+  static Future<InsumoUtilizado> crearValidado({
     required String insumoId,
-    required String codigo,
-    required String nombre,
-    required String unidad,
+    required String intermedioId,
     required double cantidad,
-    required double precioUnitario,
-    DateTime? fechaCreacion,
-  }) {
-    // Validación de campos
-    final errors = <String>[];
+    required String insumosCollection,
+  }) async {
+    final doc = await FirebaseFirestore.instance
+        .collection(insumosCollection)
+        .doc(insumoId)
+        .get();
 
-    if (insumoId.isEmpty) errors.add('El ID del insumo es requerido');
-    if (codigo.isEmpty) errors.add('El código del insumo es requerido');
-    if (nombre.isEmpty) errors.add('El nombre del insumo es requerido');
-    if (unidad.isEmpty) errors.add('La unidad es requerida');
-    if (cantidad <= 0) errors.add('La cantidad debe ser mayor que cero');
-    if (precioUnitario < 0) errors.add('El precio no puede ser negativo');
-
-    if (errors.isNotEmpty) {
-      throw ArgumentError(errors.join('\n'));
+    if (!doc.exists) {
+      throw ArgumentError('El insumo $insumoId no existe');
     }
 
-    final ahora = DateTime.now();
     return InsumoUtilizado(
       insumoId: insumoId,
-      codigo: codigo,
-      nombre: nombre,
-      unidad: unidad,
+      intermedioId: intermedioId,
       cantidad: cantidad,
-      precioUnitario: precioUnitario,
-      fechaCreacion: fechaCreacion ?? ahora,
     );
   }
 
-  // Factory constructor para Firestore
-  factory InsumoUtilizado.fromFirestore(Map<String, dynamic> data) {
-    return InsumoUtilizado.crear(
-      insumoId: data['insumoId'] ?? '',
-      codigo: data['codigo'] ?? '',
-      nombre: data['nombre'] ?? '',
-      unidad: data['unidad'] ?? 'unidad',
-      cantidad: (data['cantidad'] ?? 0).toDouble(),
-      precioUnitario: (data['precioUnitario'] ?? 0).toDouble(),
-      fechaCreacion: (data['fechaCreacion'] as Timestamp?)?.toDate(),
-    );
-  }
-
-  // Conversión a Firestore
+  /// Conversión para Firestore
   Map<String, dynamic> toFirestore() {
     return {
+      'id': id,
       'insumoId': insumoId,
-      'codigo': codigo,
-      'nombre': nombre,
-      'unidad': unidad,
+      'intermedioId': intermedioId,
       'cantidad': cantidad,
-      'precioUnitario': precioUnitario,
-      'fechaCreacion': Timestamp.fromDate(fechaCreacion),
-      if (fechaActualizacion != null)
-        'fechaActualizacion': Timestamp.fromDate(fechaActualizacion!),
     };
   }
 
-  // Método copyWith para actualizaciones
+  /// Método para actualizaciones parciales
   InsumoUtilizado copyWith({
+    String? id,
     String? insumoId,
-    String? codigo,
-    String? nombre,
-    String? unidad,
+    String? intermedioId,
     double? cantidad,
-    double? precioUnitario,
-    DateTime? fechaActualizacion,
   }) {
     return InsumoUtilizado(
+      id: id ?? this.id,
       insumoId: insumoId ?? this.insumoId,
-      codigo: codigo ?? this.codigo,
-      nombre: nombre ?? this.nombre,
-      unidad: unidad ?? this.unidad,
+      intermedioId: intermedioId ?? this.intermedioId,
       cantidad: cantidad ?? this.cantidad,
-      precioUnitario: precioUnitario ?? this.precioUnitario,
-      fechaCreacion: fechaCreacion,
-      fechaActualizacion: fechaActualizacion ?? this.fechaActualizacion,
     );
   }
 
-  // Métodos para comparación
   @override
   bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    return other is InsumoUtilizado &&
+    return identical(this, other) ||
+        other is InsumoUtilizado &&
+        other.id == id &&
         other.insumoId == insumoId &&
-        other.codigo == codigo &&
-        other.nombre == nombre &&
-        other.unidad == unidad &&
-        other.cantidad == cantidad &&
-        other.precioUnitario == precioUnitario;
+        other.intermedioId == intermedioId &&
+        other.cantidad == cantidad;
   }
 
   @override
-  int get hashCode {
-    return Object.hash(
-      insumoId,
-      codigo,
-      nombre,
-      unidad,
-      cantidad,
-      precioUnitario,
-    );
-  }
-
-  // Métodos de cálculo
-  double get costoTotal => cantidad * precioUnitario;
-  double get costoPorUnidad => precioUnitario;
-  
-  // Formateo de valores
-  String get cantidadFormateada => '${cantidad.toStringAsFixed(2)} $unidad';
-  String get costoTotalFormateado => 'USD ${costoTotal.toStringAsFixed(2)}';
-  String get costoPorUnidadFormateado => 'USD ${costoPorUnidad.toStringAsFixed(2)}/$unidad';
+  int get hashCode => Object.hash(id, insumoId, intermedioId, cantidad);
 
   @override
   String toString() {
-    return 'InsumoUtilizado(insumoId: $insumoId, nombre: $nombre, cantidad: $cantidadFormateada, costo: $costoTotalFormateado)';
+    return 'InsumoUtilizado(id: $id, insumoId: $insumoId, intermedioId: $intermedioId, cantidad: $cantidad)';
   }
 }

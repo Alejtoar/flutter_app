@@ -128,6 +128,14 @@ class PlatoService {
     }
   }
 
+  Future<void> eliminarPlato(String id) async {
+    try {
+      await _db.collection(_coleccion).doc(id).delete();
+    } on FirebaseException catch (e) {
+      throw _handleFirestoreError(e);
+    }
+  }
+
   Exception _handleFirestoreError(FirebaseException e) {
     switch (e.code) {
       case 'permission-denied':

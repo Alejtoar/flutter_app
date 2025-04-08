@@ -8,6 +8,7 @@ class InsumoUtilizadoService {
   final InsumoService _insumoService;
   final String _coleccionIntermedios = 'intermedios';
   final String _coleccionPlatos = 'platos';
+  final String _coleccionInsumosUtilizados = 'insumos_utilizados';
 
   InsumoUtilizadoService({
     FirebaseFirestore? db,
@@ -88,6 +89,23 @@ class InsumoUtilizadoService {
       });
     }
 
+    // Buscar en insumos utilizados
+    final insumosUtilizados = await _db.collection(_coleccionInsumosUtilizados)
+        .where('insumoId', isEqualTo: insumoId)
+        .get();
+
+    for (final doc in insumosUtilizados.docs) {
+      final data = doc.data();
+      final insumoUtilizado = InsumoUtilizado.fromFirestore(doc);
+      
+      batch.update(doc.reference, {
+        'nombre': insumoActual.nombre,
+        'unidad': insumoActual.unidad,
+        'precioUnitario': insumoActual.precioUnitario,
+        'fechaActualizacion': FieldValue.serverTimestamp(),
+      });
+    }
+
     await batch.commit();
   }
 
@@ -121,7 +139,7 @@ class InsumoUtilizadoService {
       
       return InsumoUtilizado.crear(
         insumoId: insumo.id!,
-        codigo: insumo.codigo,
+        intermedioId: data['intermedioId'],
         nombre: insumo.nombre,
         unidad: insumo.unidad,
         cantidad: (data['cantidad'] ?? 0).toDouble(),
@@ -167,5 +185,95 @@ class InsumoUtilizadoService {
     }
 
     await batch.commit();
+  }
+
+  Future<InsumoUtilizado> crearInsumoUtilizado({
+    required String insumoId,
+    required String intermedioId,
+    required double cantidad,
+  }) async {
+    try {
+      final insumoUtilizado = InsumoUtilizado(
+        insumoId: insumoId,
+        intermedioId: intermedioId,
+        cantidad: cantidad,
+      );
+      
+      await _db.collection(_coleccionInsumosUtilizados).add(insumoUtilizado.toFirestore());
+      return insumoUtilizado;
+    } catch (e) {
+      if (e is FirebaseException) {
+        if (e.code == 'permission-denied') {
+          throw Exception('No tienes permiso para crear insumos utilizados');
+        }
+      }
+      throw Exception('Error al crear insumo utilizado: ${e.toString()}');
+    }
+  }
+
+  Future<void> actualizarInsumoUtilizado(InsumoUtilizado insumoUtilizado) async {
+    try {
+      await _db.collection(_coleccionInsumosUtilizados)
+          .where('insumoId', isEqualTo: insumoUtilizado.insumoId)
+          .where('intermedioId', isEqualTo: insumoUtilizado.intermedioId)
+          .get()
+          .then((query) {
+            if (query.docs.isNotEmpty) {
+              query.docs.first.reference.update(insumoUtilizado.toFirestore());
+            }
+          });
+    } catch (e) {
+      if (e is FirebaseException) {
+        if (e.code == 'permission-denied') {
+          throw Exception('No tienes permiso para actualizar insumos utilizados');
+        }
+      }
+      throw Exception('Error al actualizar insumo utilizado: ${e.toString()}');
+    }
+  }
+
+  Future<void> eliminarInsumoUtilizado(String id) async {
+    try {
+      await _db.collection(_coleccionInsumosUtilizados).doc(id).delete();
+    } catch (e) {
+      if (e is FirebaseException) {
+        if (e.code == 'permission-denied') {
+          throw Exception('No tienes permiso para eliminar insumos utilizados');
+        }
+      }
+      throw Exception('Error al eliminar insumo utilizado: ${e.toString()}');
+    }
+  }
+
+  Future<List<InsumoUtilizado>> obtenerInsumosUtilizadosPorIntermedio(String intermedioId) async {
+    try {
+      final query = await _db.collection(_coleccionInsumosUtilizados)
+          .where('intermedioId', isEqualTo: intermedioId)
+          .get();
+      return query.docs.map((doc) => InsumoUtilizado.fromFirestore(doc)).toList();
+    } catch (e) {
+      if (e is FirebaseException) {
+        if (e.code == 'permission-denied') {
+          throw Exception('No tienes permiso para ver insumos utilizados');
+        }
+      }
+      throw Exception('Error al obtener insumos utilizados: ${e.toString()}');
+    }
+  }
+
+  Future<List<InsumoUtilizado>> obtenerInsumosUtilizadosPorInsumo(String insumoId) async {
+    try {
+      final query = await _db.collection(_coleccionInsumosUtilizados)
+          .where('insumoId', isEqualTo: insumoId)
+          .get();
+      return query.docs.map((doc) => InsumoUtilizado.fromFirestore(doc)).toList();
+    } catch (e) {
+      if (e is FirebaseException) {
+        if (e.code == 'permission-denied') {
+          throw Exception('No tienes permiso para ver insumos utilizados');
+        }
+      }
+      throw Exception('Error al obtener insumos utilizados: ${e.toString()}');
+    }
   }
 }

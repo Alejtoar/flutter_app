@@ -1,3 +1,5 @@
+
+// insumo.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Insumo {
@@ -76,6 +78,21 @@ class Insumo {
       activo: data['activo'] ?? true,
     );
   }
+
+  factory Insumo.fromMap(Map<String, dynamic> data) {
+    return Insumo.crear(
+      id: data['id'] ?? '',
+      codigo: data['codigo'] ?? '',
+      nombre: data['nombre'] ?? '',
+      unidad: data['unidad'] ?? 'unidad',
+      precioUnitario: (data['precioUnitario'] ?? 0).toDouble(),
+      proveedorId: data['proveedorId'] ?? '',
+      fechaCreacion: (data['fechaCreacion'] as Timestamp?)?.toDate(),
+      fechaActualizacion: (data['fechaActualizacion'] as Timestamp?)?.toDate(),
+      activo: data['activo'] ?? true,
+    );
+  }
+
 
   // 5. Método de validación estático privado
   static void _validarCampos({

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models/plato.dart';
-import '../models/intermedio_requerido.dart';
 import '../services/plato_service.dart';
 
 class PlatoViewModel with ChangeNotifier {
@@ -29,23 +28,6 @@ class PlatoViewModel with ChangeNotifier {
 
   // Getters adicionales para la UI
   List<String> get categorias => Plato.categoriasDisponibles.keys.toList();
-
-  List<IntermedioRequerido> getIntermediosRequeridos(String platoId) {
-    final plato = _platos.firstWhere((p) => p.id == platoId);
-    return plato.intermedios;
-  }
-
-  Map<String, double> getCostoProduccion(String platoId) {
-    final plato = _platos.firstWhere((p) => p.id == platoId);
-    // TODO: Implementar cálculo real de costos
-    return {
-      'costoDirecto': 100.0,
-      'costoIndirecto': 20.0,
-      'costoAdicional': 10.0,
-      'costoTotal': plato.costoTotal,
-      'precioVenta': plato.precioVenta,
-    };
-  }
 
   PlatoViewModel(this._service) {
     cargarPlatos();
@@ -159,26 +141,14 @@ class PlatoViewModel with ChangeNotifier {
     }
   }
 
-  // Actualizar costos
-  Future<bool> actualizarCostos(String id, double nuevoCosto, double nuevoPrecio) async {
-    _setLoading(true);
-    try {
-      await _service.actualizarCostos(id, nuevoCosto, nuevoPrecio);
-      await cargarPlato(id);
-      final index = _platos.indexWhere((p) => p.id == id);
-      if (index != -1 && _platoSeleccionado != null) {
-        _platos[index] = _platoSeleccionado!;
-        _actualizarPlatoEnCategorias(_platoSeleccionado!);
-      }
-      _error = null;
-      notifyListeners();
-      return true;
-    } catch (e) {
-      _error = e.toString();
-      return false;
-    } finally {
-      _setLoading(false);
+  // Eliminar plato
+  Future<void> eliminarPlato(String id) async {
+    await _service.eliminarPlato(id);
+    _platos.removeWhere((plato) => plato.id == id);
+    if (_platoSeleccionado != null && _platoSeleccionado!.id == id) {
+      _platoSeleccionado = null;
     }
+    notifyListeners();
   }
 
   // Búsqueda de platos
@@ -208,6 +178,11 @@ class PlatoViewModel with ChangeNotifier {
       _error = e.toString();
       return '';
     }
+  }
+
+  // Obtener platos
+  Stream<List<Plato>> obtenerPlatos() {
+    return _service.obtenerPlatos();
   }
 
   // Helpers

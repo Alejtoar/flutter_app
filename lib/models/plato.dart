@@ -1,9 +1,6 @@
 // plato.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:golo_app/models/intermedio_requerido.dart';
-
-
 
 class Plato {
   // 1. Campos del modelo
@@ -14,12 +11,9 @@ class Plato {
   final int porcionesMinimas;
   final String receta;
   final String descripcion;
-  final List<IntermedioRequerido> intermedios;
-  final DateTime fechaCreacion;
-  final DateTime fechaActualizacion;
+  final DateTime? fechaCreacion;
+  final DateTime? fechaActualizacion;
   final bool activo;
-  final double precioVenta;
-  final double costoTotal;
 
   // 2. Categorías predefinidas con sus propiedades
   static Map<String, Map<String, dynamic>> categoriasDisponibles = {
@@ -64,12 +58,9 @@ class Plato {
     required this.porcionesMinimas,
     required this.receta,
     this.descripcion = '',
-    required this.intermedios,
-    required this.fechaCreacion,
-    required this.fechaActualizacion,
+    this.fechaCreacion,
+    this.fechaActualizacion,
     this.activo = true,
-    this.precioVenta = 0.0,
-    this.costoTotal = 0.0,
   });
 
   // 4. Factory constructor con validación
@@ -81,12 +72,9 @@ class Plato {
     required int porcionesMinimas,
     String receta = '',
     String descripcion = '',
-    required List<IntermedioRequerido> intermedios,
     DateTime? fechaCreacion,
     DateTime? fechaActualizacion,
     bool activo = true,
-    double precioVenta = 0.0,
-    double costoTotal = 0.0,
   }) {
     // Validación de campos básicos
     final errors = <String>[];
@@ -108,11 +96,6 @@ class Plato {
       }
     }
 
-    // Validación de intermedios
-    if (intermedios.isEmpty) {
-      errors.add('Debe agregar al menos un intermedio');
-    }
-
     if (errors.isNotEmpty) {
       throw ArgumentError(errors.join('\n'));
     }
@@ -126,38 +109,49 @@ class Plato {
       porcionesMinimas: porcionesMinimas,
       receta: receta,
       descripcion: descripcion,
-      intermedios: intermedios,
       fechaCreacion: fechaCreacion ?? ahora,
       fechaActualizacion: fechaActualizacion ?? ahora,
       activo: activo,
-      precioVenta: precioVenta,
-      costoTotal: costoTotal,
     );
   }
 
   // 5. Factory constructor para Firestore
   factory Plato.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
-    
-    final intermediosData = data['intermedios'] as List<dynamic>? ?? [];
-    final intermedios = intermediosData
-        .map((i) => IntermedioRequerido.fromMap(i as Map<String, dynamic>))
-        .toList();
-
-    return Plato.crear(
+    return Plato(
       id: doc.id,
-      codigo: data['codigo'] ?? '',
-      nombre: data['nombre'] ?? '',
-      categorias: List<String>.from(data['categorias'] ?? ['plato_fuerte']),
-      porcionesMinimas: (data['porcionesMinimas'] ?? 1).toInt(),
-      receta: data['receta'] ?? '',
-      descripcion: data['descripcion'] ?? '',
-      intermedios: intermedios,
-      fechaCreacion: (data['fechaCreacion'] as Timestamp?)?.toDate(),
-      fechaActualizacion: (data['fechaActualizacion'] as Timestamp?)?.toDate(),
-      activo: data['activo'] ?? true,
-      precioVenta: (data['precioVenta'] ?? 0.0).toDouble(),
-      costoTotal: (data['costoTotal'] ?? 0.0).toDouble(),
+      codigo: data['codigo'] as String,
+      nombre: data['nombre'] as String,
+      categorias: List<String>.from(data['categorias']),
+      porcionesMinimas: data['porcionesMinimas'] as int,
+      receta: data['receta'] as String,
+      descripcion: data['descripcion'] as String,
+      fechaCreacion: data['fechaCreacion'] != null
+          ? (data['fechaCreacion'] as Timestamp).toDate()
+          : null,
+      fechaActualizacion: data['fechaActualizacion'] != null
+          ? (data['fechaActualizacion'] as Timestamp).toDate()
+          : null,
+      activo: data['activo'] as bool,
+    );
+  }
+
+  factory Plato.fromMap(Map<String, dynamic> data) {
+    return Plato(
+      id: data['id'] as String?,
+      codigo: data['codigo'] as String,
+      nombre: data['nombre'] as String,
+      categorias: List<String>.from(data['categorias']),
+      porcionesMinimas: data['porcionesMinimas'] as int,
+      receta: data['receta'] as String,
+      descripcion: data['descripcion'] as String,
+      fechaCreacion: data['fechaCreacion'] != null
+          ? (data['fechaCreacion'] as Timestamp).toDate()
+          : null,
+      fechaActualizacion: data['fechaActualizacion'] != null
+          ? (data['fechaActualizacion'] as Timestamp).toDate()
+          : null,
+      activo: data['activo'] as bool,
     );
   }
 
@@ -170,12 +164,13 @@ class Plato {
       'porcionesMinimas': porcionesMinimas,
       'receta': receta,
       'descripcion': descripcion,
-      'intermedios': intermedios.map((i) => i.toFirestore()).toList(),
-      'fechaCreacion': Timestamp.fromDate(fechaCreacion),
-      'fechaActualizacion': Timestamp.fromDate(fechaActualizacion),
+      'fechaCreacion': fechaCreacion != null
+          ? Timestamp.fromDate(fechaCreacion!)
+          : null,
+      'fechaActualizacion': fechaActualizacion != null
+          ? Timestamp.fromDate(fechaActualizacion!)
+          : null,
       'activo': activo,
-      'precioVenta': precioVenta,
-      'costoTotal': costoTotal,
     };
   }
 
@@ -188,11 +183,8 @@ class Plato {
     int? porcionesMinimas,
     String? receta,
     String? descripcion,
-    List<IntermedioRequerido>? intermedios,
     DateTime? fechaActualizacion,
     bool? activo,
-    double? precioVenta,
-    double? costoTotal,
   }) {
     return Plato(
       id: id ?? this.id,
@@ -202,12 +194,9 @@ class Plato {
       porcionesMinimas: porcionesMinimas ?? this.porcionesMinimas,
       receta: receta ?? this.receta,
       descripcion: descripcion ?? this.descripcion,
-      intermedios: intermedios ?? this.intermedios,
       fechaCreacion: fechaCreacion,
       fechaActualizacion: fechaActualizacion ?? DateTime.now(),
       activo: activo ?? this.activo,
-      precioVenta: precioVenta ?? this.precioVenta,
-      costoTotal: costoTotal ?? this.costoTotal,
     );
   }
 
@@ -231,16 +220,6 @@ class Plato {
   }
 
   String get categoria => categorias.isNotEmpty ? categorias.first : '';
-
-  // 9. Métodos para cálculo
-  double get costoCalculado {
-    return intermedios.fold(0, (total, intermedio) {
-      // Aquí necesitarías obtener el costo del intermedio desde la base de datos
-      // Esto es un placeholder - implementación real dependerá de tu estructura
-      final costoIntermedio = 0.0; // Reemplazar con lógica real
-      return total + (intermedio.cantidad * costoIntermedio);
-    });
-  }
 
   @override
   String toString() {

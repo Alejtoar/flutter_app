@@ -29,6 +29,35 @@ lib/
 - Immutable Objects
 - Builder Pattern
 
+#### Modelo de Datos Actualizado
+
+El modelo de datos se ha actualizado para reflejar la nueva estructura de modelos y el sistema de cálculo de costos:
+
+1. **Plato (Dish)**
+   - Información básica del plato y categorización
+   - Enlaces a intermediarios requeridos a través de IntermedioRequerido
+   - Cálculo de costos basado en intermediarios requeridos
+
+2. **Evento (Event)**
+   - Gestión de eventos y reservas
+   - Enlaces a platos a través de PlatoEvento
+   - Rastrea el estado y detalles del evento
+
+3. **IntermedioRequerido (Required Intermediate)**
+   - Componentes intermedios requeridos para platos
+   - Enlaces platos a sus preparaciones requeridas
+   - Mantiene cantidades de intermediarios
+
+4. **InsumoUtilizado (Used Ingredient)**
+   - Ingredientes utilizados en intermediarios
+   - Enlaces ingredientes a sus intermediarios
+   - Mantiene cantidades de ingredientes
+
+5. **PlatoEvento (Event Dish)**
+   - Enlaces platos a eventos
+   - Rastrea cantidades por evento
+   - Mantiene relaciones entre platos y eventos
+
 ### 2. Capa de Servicios
 
 #### Responsabilidades

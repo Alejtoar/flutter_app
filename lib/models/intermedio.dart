@@ -1,7 +1,7 @@
+// intermedio.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:golo_app/models/insumo_utilizado.dart';
 
 class Intermedio {
   // 1. Campos del modelo
@@ -11,11 +11,7 @@ class Intermedio {
   final List<String> categorias;
   final double reduccionPorcentaje;
   final String receta;
-  final String instrucciones;
-  final List<InsumoUtilizado> insumos;
   final int tiempoPreparacionMinutos;
-  final double rendimientoFinal; // en gramos o mililitros
-  final String versionReceta;
   final DateTime fechaCreacion;
   final DateTime fechaActualizacion;
   final bool activo;
@@ -62,15 +58,11 @@ class Intermedio {
     required this.categorias,
     required this.reduccionPorcentaje,
     required this.receta,
-    required this.instrucciones,
-    required this.insumos,
     required this.tiempoPreparacionMinutos,
-    required this.rendimientoFinal,
-    required this.versionReceta,
     required this.fechaCreacion,
     required this.fechaActualizacion,
     this.activo = true,
-  });
+  }) : assert(reduccionPorcentaje >= 0 && reduccionPorcentaje <= 100);
 
   // 4. Factory constructor con validación
   factory Intermedio.crear({
@@ -80,11 +72,7 @@ class Intermedio {
     required List<String> categorias,
     double? reduccionPorcentaje,
     String receta = '',
-    String instrucciones = '',
-    required List<InsumoUtilizado> insumos,
     required int tiempoPreparacionMinutos,
-    required double rendimientoFinal,
-    String versionReceta = '1.0',
     DateTime? fechaCreacion,
     DateTime? fechaActualizacion,
     bool activo = true,
@@ -95,7 +83,7 @@ class Intermedio {
     if (codigo.isEmpty) errors.add('El código es requerido');
     if (!codigo.startsWith('PI-')) errors.add('El código debe comenzar con "PI-"');
     if (nombre.isEmpty) errors.add('El nombre es requerido');
-    if (nombre.length < 3) errors.add('Nombre muy corto (mín. 3 caracteres)');
+    
 
     // Validación de categorías
     if (categorias.isEmpty) {
@@ -108,17 +96,8 @@ class Intermedio {
       }
     }
 
-    // Validación de insumos
-    if (insumos.isEmpty) {
-      errors.add('Debe agregar al menos un insumo');
-    }
-
     if (tiempoPreparacionMinutos <= 0) {
       errors.add('El tiempo de preparación debe ser positivo');
-    }
-
-    if (rendimientoFinal <= 0) {
-      errors.add('El rendimiento final debe ser positivo');
     }
 
     // Asignar reducción porcentual por defecto según categoría principal
@@ -141,11 +120,7 @@ class Intermedio {
       categorias: categorias,
       reduccionPorcentaje: reduccionFinal,
       receta: receta,
-      instrucciones: instrucciones,
-      insumos: insumos,
       tiempoPreparacionMinutos: tiempoPreparacionMinutos,
-      rendimientoFinal: rendimientoFinal,
-      versionReceta: versionReceta,
       fechaCreacion: fechaCreacion ?? ahora,
       fechaActualizacion: fechaActualizacion ?? ahora,
       activo: activo,
@@ -156,40 +131,30 @@ class Intermedio {
   factory Intermedio.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     
-    final insumosData = List<Map<String, dynamic>>.from(data['insumos'] ?? []);
-    final insumos = insumosData.map((i) => InsumoUtilizado.fromFirestore(i)).toList();
-
-    return Intermedio.crear(
+    return Intermedio(
       id: doc.id,
-      codigo: data['codigo'] ?? '',
-      nombre: data['nombre'] ?? '',
-      categorias: List<String>.from(data['categorias'] ?? []),
-      reduccionPorcentaje: (data['reduccionPorcentaje'] ?? 0).toDouble(),
-      receta: data['receta'] ?? '',
-      instrucciones: data['instrucciones'] ?? '',
-      insumos: insumos,
-      tiempoPreparacionMinutos: data['tiempoPreparacionMinutos'] ?? 0,
-      rendimientoFinal: (data['rendimientoFinal'] ?? 0).toDouble(),
-      versionReceta: data['versionReceta'] ?? '1.0',
-      fechaCreacion: (data['fechaCreacion'] as Timestamp?)?.toDate(),
-      fechaActualizacion: (data['fechaActualizacion'] as Timestamp?)?.toDate(),
-      activo: data['activo'] ?? true,
+      codigo: data['codigo'] as String,
+      nombre: data['nombre'] as String,
+      categorias: List<String>.from(data['categorias']),
+      reduccionPorcentaje: (data['reduccionPorcentaje'] as num).toDouble(),
+      receta: data['receta'] as String,
+      tiempoPreparacionMinutos: data['tiempoPreparacionMinutos'] as int,
+      fechaCreacion: (data['fechaCreacion'] as Timestamp).toDate(),
+      fechaActualizacion: (data['fechaActualizacion'] as Timestamp).toDate(),
+      activo: data['activo'] as bool,
     );
   }
 
   // 6. Conversión a Firestore
   Map<String, dynamic> toFirestore() {
     return {
+      'id': id,
       'codigo': codigo,
       'nombre': nombre,
       'categorias': categorias,
       'reduccionPorcentaje': reduccionPorcentaje,
       'receta': receta,
-      'instrucciones': instrucciones,
-      'insumos': insumos.map((i) => i.toFirestore()).toList(),
       'tiempoPreparacionMinutos': tiempoPreparacionMinutos,
-      'rendimientoFinal': rendimientoFinal,
-      'versionReceta': versionReceta,
       'fechaCreacion': Timestamp.fromDate(fechaCreacion),
       'fechaActualizacion': Timestamp.fromDate(fechaActualizacion),
       'activo': activo,
@@ -204,11 +169,8 @@ class Intermedio {
     List<String>? categorias,
     double? reduccionPorcentaje,
     String? receta,
-    String? instrucciones,
-    List<InsumoUtilizado>? insumos,
     int? tiempoPreparacionMinutos,
-    double? rendimientoFinal,
-    String? versionReceta,
+    DateTime? fechaCreacion,
     DateTime? fechaActualizacion,
     bool? activo,
   }) {
@@ -219,24 +181,11 @@ class Intermedio {
       categorias: categorias ?? this.categorias,
       reduccionPorcentaje: reduccionPorcentaje ?? this.reduccionPorcentaje,
       receta: receta ?? this.receta,
-      instrucciones: instrucciones ?? this.instrucciones,
-      insumos: insumos ?? this.insumos,
       tiempoPreparacionMinutos: tiempoPreparacionMinutos ?? this.tiempoPreparacionMinutos,
-      rendimientoFinal: rendimientoFinal ?? this.rendimientoFinal,
-      versionReceta: versionReceta ?? this.versionReceta,
-      fechaCreacion: fechaCreacion,
-      fechaActualizacion: fechaActualizacion ?? DateTime.now(),
+      fechaCreacion: fechaCreacion ?? this.fechaCreacion,
+      fechaActualizacion: fechaActualizacion ?? this.fechaActualizacion,
       activo: activo ?? this.activo,
     );
-  }
-
-  // 8. Métodos para cálculo de costos
-  double get costoTotalInsumos {
-    return insumos.fold(0, (total, insumo) => total + (insumo.cantidad * insumo.precioUnitario));
-  }
-
-  double get costoConReduccion {
-    return costoTotalInsumos * (1 - (reduccionPorcentaje / 100));
   }
 
   // 9. Helpers para UI
@@ -271,21 +220,31 @@ class Intermedio {
   // 13. Métodos para comparación
   @override
   bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    return other is Intermedio &&
+    return identical(this, other) ||
+        other is Intermedio &&
         other.id == id &&
         other.codigo == codigo &&
         other.nombre == nombre &&
-        listEquals(other.categorias, categorias);
+        listEquals(other.categorias, categorias) &&
+        other.reduccionPorcentaje == reduccionPorcentaje &&
+        other.receta == receta &&
+        other.tiempoPreparacionMinutos == tiempoPreparacionMinutos &&
+        other.fechaCreacion == fechaCreacion &&
+        other.fechaActualizacion == fechaActualizacion &&
+        other.activo == activo;
   }
 
   @override
-  int get hashCode {
-    return Object.hash(
-      id,
-      codigo,
-      nombre,
-      Object.hashAll(categorias),
-    );
-  }
+  int get hashCode => Object.hash(
+        id,
+        codigo,
+        nombre,
+        Object.hashAll(categorias),
+        reduccionPorcentaje,
+        receta,
+        tiempoPreparacionMinutos,
+        fechaCreacion,
+        fechaActualizacion,
+        activo,
+      );
 }

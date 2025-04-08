@@ -1,104 +1,49 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/intermedio_requerido.dart';
-import '../services/intermedio_service.dart';
 
 class IntermedioRequeridoService {
-  final FirebaseFirestore _db;
-  final IntermedioService _intermedioService;
-  final String _coleccion = 'intermedios_requeridos';
+  static const String collectionName = 'intermedios_requeridos';
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  IntermedioRequeridoService({
-    FirebaseFirestore? db,
-    IntermedioService? intermedioService,
-  }) : _db = db ?? FirebaseFirestore.instance,
-       _intermedioService = intermedioService ?? IntermedioService();
-
-  Future<IntermedioRequerido> crearIntermedioRequerido(IntermedioRequerido intermedio) async {
-    try {
-      // Validar que el intermedio base existe
-      await _intermedioService.obtenerIntermedio(intermedio.intermedioId);
-      
-      final docRef = await _db.collection(_coleccion).add(intermedio.toFirestore());
-      return intermedio.copyWith(id: docRef.id);
-    } on FirebaseException catch (e) {
-      throw _handleFirestoreError(e);
-    }
+  // Crear nuevo intermedio requerido
+  Future<String> crear(IntermedioRequerido intermedio) async {
+    final doc = await _firestore.collection(collectionName).add(intermedio.toFirestore());
+    return doc.id;
   }
 
-  Future<IntermedioRequerido> obtenerIntermedioRequerido(String id) async {
-    try {
-      final doc = await _db.collection(_coleccion).doc(id).get();
-      if (!doc.exists) throw Exception('Intermedio requerido no encontrado');
-      return IntermedioRequerido.fromFirestore(doc);
-    } on FirebaseException catch (e) {
-      throw _handleFirestoreError(e);
-    }
+  // Actualizar intermedio requerido
+  Future<void> actualizar(String id, IntermedioRequerido intermedio) async {
+    await _firestore.collection(collectionName).doc(id).update(intermedio.toFirestore());
   }
 
+  // Obtener intermedio requerido por ID
+  Future<IntermedioRequerido?> obtener(String id) async {
+    final doc = await _firestore.collection(collectionName).doc(id).get();
+    if (!doc.exists) return null;
+    return IntermedioRequerido.fromFirestore(doc);
+  }
+
+  // Obtener todos los intermedios requeridos
+  Stream<List<IntermedioRequerido>> obtenerTodos() {
+    return _firestore
+        .collection(collectionName)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => IntermedioRequerido.fromFirestore(doc))
+            .toList());
+  }
+
+  // Eliminar intermedio requerido
+  Future<void> eliminar(String id) async {
+    await _firestore.collection(collectionName).doc(id).delete();
+  }
+
+  // Obtener intermedios requeridos por plato
   Future<List<IntermedioRequerido>> obtenerPorPlato(String platoId) async {
-    try {
-      final querySnapshot = await _db.collection(_coleccion)
-          .where('platoId', isEqualTo: platoId)
-          .orderBy('orden')
-          .get();
-
-      return querySnapshot.docs.map((doc) => IntermedioRequerido.fromFirestore(doc)).toList();
-    } on FirebaseException catch (e) {
-      throw _handleFirestoreError(e);
-    }
-  }
-
-  Future<void> actualizarIntermedioRequerido(IntermedioRequerido intermedio) async {
-    try {
-      if (intermedio.id == null) throw Exception('ID de intermedio requerido no válido');
-      await _db.collection(_coleccion).doc(intermedio.id).update(intermedio.toFirestore());
-    } on FirebaseException catch (e) {
-      throw _handleFirestoreError(e);
-    }
-  }
-
-  Future<void> eliminarIntermedioRequerido(String id) async {
-    try {
-      await _db.collection(_coleccion).doc(id).delete();
-    } on FirebaseException catch (e) {
-      throw _handleFirestoreError(e);
-    }
-  }
-
-  Future<void> actualizarOrden(String id, int nuevoOrden) async {
-    try {
-      await _db.collection(_coleccion).doc(id).update({
-        'orden': nuevoOrden,
-        'fechaActualizacion': FieldValue.serverTimestamp(),
-      });
-    } on FirebaseException catch (e) {
-      throw _handleFirestoreError(e);
-    }
-  }
-
-  Future<void> actualizarCantidad(String id, double nuevaCantidad) async {
-    try {
-      if (nuevaCantidad <= 0) {
-        throw ArgumentError('La cantidad debe ser mayor que cero');
-      }
-      
-      await _db.collection(_coleccion).doc(id).update({
-        'cantidad': nuevaCantidad,
-        'fechaActualizacion': FieldValue.serverTimestamp(),
-      });
-    } on FirebaseException catch (e) {
-      throw _handleFirestoreError(e);
-    }
-  }
-
-  Exception _handleFirestoreError(FirebaseException e) {
-    switch (e.code) {
-      case 'permission-denied':
-        return Exception('No tienes permiso para realizar esta acción');
-      case 'not-found':
-        return Exception('Intermedio requerido no encontrado');
-      default:
-        return Exception('Error de Firestore: ${e.message}');
-    }
+    final snapshot = await _firestore
+        .collection(collectionName)
+        .where('platoId', isEqualTo: platoId)
+        .get();
+    return snapshot.docs.map((doc) => IntermedioRequerido.fromFirestore(doc)).toList();
   }
 }

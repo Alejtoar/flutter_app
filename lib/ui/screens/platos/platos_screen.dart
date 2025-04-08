@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:golo_app/models/plato.dart';
-import 'package:golo_app/viewmodels/plato_viewmodel.dart';
-import 'package:golo_app/ui/screens/platos/plato_form.dart';
-import 'package:golo_app/ui/screens/platos/plato_detail.dart';
-import 'package:golo_app/ui/screens/platos/platos_list.dart';
+import '../../../models/plato.dart';
+import '../../../viewmodels/plato_viewmodel.dart';
+import 'platos_list.dart';
+import 'plato_detail.dart';
+import 'plato_form.dart';
 
 class PlatosScreen extends StatefulWidget {
   const PlatosScreen({super.key});
@@ -55,14 +55,40 @@ class _PlatosScreenState extends State<PlatosScreen> {
   }
 
   Future<void> _showPlatoForm(BuildContext context) async {
+    final viewModel = context.read<PlatoViewModel>();
     final result = await showDialog<bool>(
       context: context,
-      builder: (context) => const PlatoForm(),
+      builder: (context) => PlatoForm(
+        viewModel: viewModel,
+      ),
     );
 
     if (result == true) {
-      await _cargarPlatos();
+      viewModel.cargarPlatos();
     }
+  }
+
+  void _verDetalles(Plato plato) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PlatoDetail(
+          plato: plato,
+        ),
+      ),
+    );
+  }
+
+  void _editarPlato(Plato plato) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PlatoForm(
+          plato: plato,
+          viewModel: context.read<PlatoViewModel>(),
+        ),
+      ),
+    );
   }
 
   Future<void> _confirmDelete(BuildContext context, Plato plato) async {
@@ -146,53 +172,57 @@ class _PlatosScreenState extends State<PlatosScreen> {
   @override
   Widget build(BuildContext context) {
     final viewModel = context.watch<PlatoViewModel>();
-    final platos = viewModel.platos
-        .where((p) =>
-            p.nombre.toLowerCase().contains(_searchQuery.toLowerCase()))
-        .toList();
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Platos'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: () => _showFilterDialog(context),
+            icon: const Icon(Icons.add),
+            onPressed: () => _showPlatoForm(context),
           ),
         ],
       ),
-      body: Row(
-        children: [
-          Expanded(
-            flex: 2,
-            child: PlatosList(
-              platos: platos,
-              onPlatoSelected: _onPlatoSelected,
-              onPlatoDeleted: (plato) => _confirmDelete(context, plato),
-            ),
-          ),
-          if (_platoSeleccionado != null) ...[
-            const VerticalDivider(width: 1),
-            Expanded(
-              flex: 3,
-              child: PlatoDetail(
-                plato: _platoSeleccionado!,
-                intermedios: _platoSeleccionado!.intermedios,
-                costos: {
-                  'costoTotal': _platoSeleccionado!.costoTotal,
-                  'precioVenta': _platoSeleccionado!.precioVenta,
-                  'costoDirecto': _platoSeleccionado!.costoTotal * 0.7, // 70% directo
-                  'costoIndirecto': _platoSeleccionado!.costoTotal * 0.2, // 20% indirecto
-                  'costoAdicional': _platoSeleccionado!.costoTotal * 0.1, // 10% adicional
-                },
-              ),
-            ),
-          ],
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showPlatoForm(context),
-        child: const Icon(Icons.add),
+      body: StreamBuilder<List<Plato>>(
+        stream: viewModel.obtenerPlatos(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(
+              child: Text('Error: ${snapshot.error}'),
+            );
+          }
+
+          if (!snapshot.hasData) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+
+          final platos = snapshot.data!;
+          return ListView.builder(
+            itemCount: platos.length,
+            itemBuilder: (context, index) {
+              final plato = platos[index];
+              return Card(
+                child: ListTile(
+                  title: Text(plato.nombre),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Código: ${plato.codigo}'),
+                      Text('Categorías: ${plato.nombresCategorias}'),
+                      Text('Porciones mínimas: ${plato.porcionesMinimas}'),
+                      Text('Estado: ${plato.activo ? 'Activo' : 'Inactivo'}'),
+                    ],
+                  ),
+                  trailing: Icon(plato.activo ? Icons.check_circle : Icons.cancel),
+                  onTap: () => _verDetalles(plato),
+                  onLongPress: () => _editarPlato(plato),
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }

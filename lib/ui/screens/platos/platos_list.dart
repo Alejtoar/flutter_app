@@ -21,21 +21,13 @@ class PlatosList extends StatelessWidget {
         final plato = platos[index];
         return ListTile(
           title: Text(plato.nombre),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('${plato.precioVenta.toStringAsFixed(2)}'),
-              Text(
-                'Código: ${plato.codigo} - Categoría: ${plato.categoria}',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
-          ),
+          subtitle: Text('Código: ${plato.codigo}'),
+          trailing: Icon(plato.activo ? Icons.check_circle : Icons.cancel),
           onTap: () => onPlatoSelected(plato),
-          trailing: IconButton(
-            icon: const Icon(Icons.delete),
-            onPressed: () => onPlatoDeleted(plato),
-          ),
+          // trailing: IconButton(
+          //   icon: const Icon(Icons.delete),
+          //   onPressed: () => onPlatoDeleted(plato),
+          // ),
         );
       },
     );

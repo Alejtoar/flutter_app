@@ -2,133 +2,109 @@ import 'package:flutter/material.dart';
 import '../models/intermedio.dart';
 import '../services/intermedio_service.dart';
 
-class IntermedioViewModel with ChangeNotifier {
+class IntermedioViewModel extends ChangeNotifier {
   final IntermedioService _service;
   List<Intermedio> _intermedios = [];
-  bool _loading = false;
   String? _error;
-  Intermedio? _intermedioSeleccionado;
+  bool _loading = false;
+
+  IntermedioViewModel({IntermedioService? service})
+      : _service = service ?? IntermedioService();
 
   List<Intermedio> get intermedios => _intermedios;
-  bool get loading => _loading;
   String? get error => _error;
-  Intermedio? get intermedioSeleccionado => _intermedioSeleccionado;
+  bool get isLoading => _loading;
 
-  IntermedioViewModel(this._service);
-
-  // Cargar todos los intermedios
-  Future<void> cargarIntermedios() async {
-    _setLoading(true);
-    try {
-      _intermedios = await _service.obtenerTodos();
-      _error = null;
-    } catch (e) {
-      _error = e.toString();
-      _intermedios = [];
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  // Cargar un intermedio específico
-  Future<void> cargarIntermedio(String id) async {
-    _setLoading(true);
-    try {
-      _intermedioSeleccionado = await _service.obtenerIntermedio(id);
-      _error = null;
-    } catch (e) {
-      _error = e.toString();
-      _intermedioSeleccionado = null;
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  // Crear nuevo intermedio
-  Future<bool> crearIntermedio({
-    required String nombre,
-    required List<Map<String, dynamic>> insumos,
-    required List<String> categorias,
-    double? reduccionPorcentaje,
-    String? receta,
-    String? instrucciones,
-    required int tiempoPreparacionMinutos,
-    required double rendimientoFinal,
-    String? versionReceta,
-  }) async {
-    _setLoading(true);
-    try {
-      final intermedio = await _service.crearIntermedioConValidacion(
-        nombre: nombre,
-        insumosData: insumos,
-        categorias: categorias,
-        reduccionPorcentaje: reduccionPorcentaje,
-        receta: receta,
-        instrucciones: instrucciones,
-        tiempoPreparacionMinutos: tiempoPreparacionMinutos,
-        rendimientoFinal: rendimientoFinal,
-        versionReceta: versionReceta,
-      );
-      
-      await _service.crearIntermedio(intermedio);
-      await cargarIntermedios();
-      _error = null;
-      return true;
-    } catch (e) {
-      _error = e.toString();
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  // Actualizar intermedio existente
-  Future<bool> actualizarIntermedio(Intermedio intermedio) async {
-    _setLoading(true);
-    try {
-      await _service.actualizarIntermedio(intermedio);
-      await cargarIntermedios();
-      _error = null;
-      return true;
-    } catch (e) {
-      _error = e.toString();
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  // Desactivar intermedio
-  Future<bool> desactivarIntermedio(String id) async {
-    _setLoading(true);
-    try {
-      await _service.desactivarIntermedio(id);
-      await cargarIntermedios();
-      _error = null;
-      return true;
-    } catch (e) {
-      _error = e.toString();
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  // Helper para manejar el estado de loading
   void _setLoading(bool value) {
     _loading = value;
     notifyListeners();
   }
 
-  // Limpiar errores
-  void limpiarError() {
-    _error = null;
-    notifyListeners();
+  Future<void> obtenerIntermedios() async {
+    try {
+      _setLoading(true);
+      final stream = _service.obtenerTodos();
+      stream.listen((intermedios) {
+        _intermedios = intermedios;
+        notifyListeners();
+      });
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+    } finally {
+      _setLoading(false);
+    }
   }
 
-  // Seleccionar intermedio
-  void seleccionarIntermedio(Intermedio? intermedio) {
-    _intermedioSeleccionado = intermedio;
-    notifyListeners();
+  Future<bool> crearIntermedio({
+    required String codigo,
+    required String nombre,
+    required List<String> categorias,
+    required double reduccionPorcentaje,
+    required String receta,
+    required int tiempoPreparacionMinutos,
+    DateTime? fechaCreacion,
+    DateTime? fechaActualizacion,
+    required bool activo,
+  }) async {
+    try {
+      _setLoading(true);
+      final intermedio = await _service.crearIntermedioConValidacion(
+        codigo: codigo,
+        nombre: nombre,
+        categorias: categorias,
+        reduccionPorcentaje: reduccionPorcentaje,
+        receta: receta,
+        tiempoPreparacionMinutos: tiempoPreparacionMinutos,
+        fechaCreacion: fechaCreacion,
+        fechaActualizacion: fechaActualizacion,
+        activo: activo,
+      );
+      _intermedios.add(intermedio);
+      _error = null;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<void> actualizarIntermedio(Intermedio intermedio) async {
+    try {
+      _setLoading(true);
+      await _service.actualizarIntermedio(intermedio);
+      final index = _intermedios.indexWhere((i) => i.id == intermedio.id);
+      if (index != -1) {
+        _intermedios[index] = intermedio;
+      }
+      _error = null;
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      rethrow;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<void> eliminarIntermedio(String id) async {
+    try {
+      _setLoading(true);
+      await _service.eliminarIntermedio(id);
+      _intermedios.removeWhere((i) => i.id == id);
+      _error = null;
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      rethrow;
+    } finally {
+      _setLoading(false);
+    }
   }
 }
