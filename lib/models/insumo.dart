@@ -1,12 +1,13 @@
-
 // insumo.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 
 class Insumo {
   // 1. Campos del modelo
   final String? id;
   final String codigo;
   final String nombre;
+  final List<String> categorias;
   final String unidad;
   final double precioUnitario;
   final String proveedorId;
@@ -14,11 +15,68 @@ class Insumo {
   final DateTime fechaActualizacion;
   final bool activo;
 
+  // Categorías predefinidas con sus iconos y colores
+  static  Map<String, Map<String, dynamic>> categoriasInsumos = {
+    'lácteos': {
+      'icon': Icons.local_drink,
+      'color': Colors.blueAccent,
+    },
+    'cárnicos': {
+      'icon': Icons.set_meal,
+      'color': Colors.redAccent,
+    },
+    'vegetales': {
+      'icon': Icons.eco,
+      'color': Colors.greenAccent,
+    },
+    'frutas': {
+      'icon': Icons.apple,
+      'color': Colors.red[200]!,
+    },
+    'especias': {
+      'icon': Icons.spa,
+      'color': Colors.orangeAccent,
+    },
+    'granos': {
+      'icon': Icons.grain,
+      'color': Colors.brown[300]!,
+    },
+    'panadería': {
+      'icon': Icons.bakery_dining,
+      'color': Colors.amber[200]!,
+    },
+    'repostería': {
+      'icon': Icons.cake,
+      'color': Colors.pinkAccent,
+    },
+    'bebidas': {
+      'icon': Icons.local_bar,
+      'color': Colors.purpleAccent,
+    },
+    'empaques': {
+      'icon': Icons.redeem,
+      'color': Colors.brown[200]!,
+    },
+    'limpieza': {
+      'icon': Icons.cleaning_services,
+      'color': Colors.blueGrey[200]!,
+    },
+    'equipos': {
+      'icon': Icons.kitchen,
+      'color': Colors.deepOrange[200]!,
+    },
+    'otros': {
+      'icon': Icons.category,
+      'color': Colors.grey[600]!,
+    },
+  };
+
   // 2. Constructor const (sin validaciones directas)
   const Insumo({
     this.id,
     required this.codigo,
     required this.nombre,
+    required this.categorias,
     required this.unidad,
     required this.precioUnitario,
     required this.proveedorId,
@@ -27,11 +85,12 @@ class Insumo {
     this.activo = true,
   });
 
-  // 3. Factory constructor para creación con validación
+  // 3. Factory constructor con validación
   factory Insumo.crear({
     String? id,
     required String codigo,
     required String nombre,
+    required List<String> categorias,
     required String unidad,
     required double precioUnitario,
     required String proveedorId,
@@ -39,25 +98,25 @@ class Insumo {
     DateTime? fechaActualizacion,
     bool activo = true,
   }) {
-    // Validar campos básicos
     _validarCampos(
       codigo: codigo,
       nombre: nombre,
       unidad: unidad,
       precioUnitario: precioUnitario,
       proveedorId: proveedorId,
+      categorias: categorias,
     );
 
-    final ahora = DateTime.now();
     return Insumo(
       id: id,
       codigo: codigo,
       nombre: nombre,
+      categorias: categorias,
       unidad: unidad,
       precioUnitario: precioUnitario,
       proveedorId: proveedorId,
-      fechaCreacion: fechaCreacion ?? ahora,
-      fechaActualizacion: fechaActualizacion ?? ahora,
+      fechaCreacion: fechaCreacion ?? DateTime.now(),
+      fechaActualizacion: fechaActualizacion ?? DateTime.now(),
       activo: activo,
     );
   }
@@ -70,6 +129,7 @@ class Insumo {
       id: doc.id,
       codigo: data['codigo'] ?? '',
       nombre: data['nombre'] ?? '',
+      categorias: data['categorias'] ?? [],
       unidad: data['unidad'] ?? 'unidad',
       precioUnitario: (data['precioUnitario'] ?? 0).toDouble(),
       proveedorId: data['proveedorId'] ?? '',
@@ -84,6 +144,7 @@ class Insumo {
       id: data['id'] ?? '',
       codigo: data['codigo'] ?? '',
       nombre: data['nombre'] ?? '',
+      categorias: data['categorias'] ?? [],
       unidad: data['unidad'] ?? 'unidad',
       precioUnitario: (data['precioUnitario'] ?? 0).toDouble(),
       proveedorId: data['proveedorId'] ?? '',
@@ -93,7 +154,6 @@ class Insumo {
     );
   }
 
-
   // 5. Método de validación estático privado
   static void _validarCampos({
     required String codigo,
@@ -101,37 +161,26 @@ class Insumo {
     required String unidad,
     required double precioUnitario,
     required String proveedorId,
+    required List<String> categorias,
   }) {
     final errors = <String>[];
 
-    // Validación de código
-    if (codigo.isEmpty) {
-      errors.add('El código del insumo es requerido');
-    } else if (!codigo.startsWith('I-')) {
-      errors.add('El código debe comenzar con "I-"');
-    }
+    // Validación de campos básicos
+    if (codigo.isEmpty) errors.add('El código es requerido');
+    if (nombre.isEmpty) errors.add('El nombre es requerido');
+    if (unidad.isEmpty) errors.add('La unidad es requerida');
+    if (precioUnitario <= 0) errors.add('El precio unitario debe ser mayor a 0');
+    if (proveedorId.isEmpty) errors.add('El proveedor es requerido');
 
-    // Validación de nombre
-    if (nombre.isEmpty) {
-      errors.add('El nombre del insumo es requerido');
-    } else if (nombre.length < 3) {
-      errors.add('El nombre debe tener al menos 3 caracteres');
-    }
-
-    // Validación de unidad
-    const unidadesValidas = ['unidad', 'kg', 'gr', 'lt', 'ml'];
-    if (!unidadesValidas.contains(unidad)) {
-      errors.add('Unidad no válida. Use: ${unidadesValidas.join(', ')}');
-    }
-
-    // Validación de precio
-    if (precioUnitario <= 0) {
-      errors.add('El precio unitario debe ser mayor a cero');
-    }
-
-    // Validación de proveedor
-    if (proveedorId.isEmpty) {
-      errors.add('Debe especificar un proveedor');
+    // Validación de categorías
+    if (categorias.isEmpty) {
+      errors.add('Seleccione al menos una categoría');
+    } else {
+      for (final categoria in categorias) {
+        if (!categoriasInsumos.containsKey(categoria)) {
+          errors.add('Categoría "$categoria" no está permitida');
+        }
+      }
     }
 
     if (errors.isNotEmpty) {
@@ -144,6 +193,7 @@ class Insumo {
     return {
       'codigo': codigo,
       'nombre': nombre,
+      'categorias': categorias,
       'unidad': unidad,
       'precioUnitario': precioUnitario,
       'proveedorId': proveedorId,
@@ -158,6 +208,7 @@ class Insumo {
     String? id,
     String? codigo,
     String? nombre,
+    List<String>? categorias,
     String? unidad,
     double? precioUnitario,
     String? proveedorId,
@@ -169,6 +220,7 @@ class Insumo {
       id: id ?? this.id,
       codigo: codigo ?? this.codigo,
       nombre: nombre ?? this.nombre,
+      categorias: categorias ?? this.categorias,
       unidad: unidad ?? this.unidad,
       precioUnitario: precioUnitario ?? this.precioUnitario,
       proveedorId: proveedorId ?? this.proveedorId,
@@ -192,6 +244,7 @@ class Insumo {
         other.id == id &&
         other.codigo == codigo &&
         other.nombre == nombre &&
+        other.categorias == categorias &&
         other.unidad == unidad &&
         other.precioUnitario == precioUnitario &&
         other.proveedorId == proveedorId;
@@ -199,6 +252,6 @@ class Insumo {
 
   @override
   int get hashCode {
-    return Object.hash(id, codigo, nombre, unidad, precioUnitario, proveedorId);
+    return Object.hash(id, codigo, nombre, categorias, unidad, precioUnitario, proveedorId);
   }
 }

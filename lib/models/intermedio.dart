@@ -9,6 +9,7 @@ class Intermedio {
   final String codigo;
   final String nombre;
   final List<String> categorias;
+  final double cantidadEstandar;
   final double reduccionPorcentaje;
   final String receta;
   final int tiempoPreparacionMinutos;
@@ -56,6 +57,7 @@ class Intermedio {
     required this.codigo,
     required this.nombre,
     required this.categorias,
+    required this.cantidadEstandar,
     required this.reduccionPorcentaje,
     required this.receta,
     required this.tiempoPreparacionMinutos,
@@ -71,6 +73,7 @@ class Intermedio {
     required String nombre,
     required List<String> categorias,
     double? reduccionPorcentaje,
+    double cantidadEstandar = 1.0,
     String receta = '',
     required int tiempoPreparacionMinutos,
     DateTime? fechaCreacion,
@@ -83,7 +86,7 @@ class Intermedio {
     if (codigo.isEmpty) errors.add('El código es requerido');
     if (!codigo.startsWith('PI-')) errors.add('El código debe comenzar con "PI-"');
     if (nombre.isEmpty) errors.add('El nombre es requerido');
-    
+    if (cantidadEstandar <= 0) errors.add('La cantidad estándar debe ser mayor a 0');
 
     // Validación de categorías
     if (categorias.isEmpty) {
@@ -118,6 +121,7 @@ class Intermedio {
       codigo: codigo,
       nombre: nombre,
       categorias: categorias,
+      cantidadEstandar: cantidadEstandar,
       reduccionPorcentaje: reduccionFinal,
       receta: receta,
       tiempoPreparacionMinutos: tiempoPreparacionMinutos,
@@ -136,6 +140,7 @@ class Intermedio {
       codigo: data['codigo'] as String,
       nombre: data['nombre'] as String,
       categorias: List<String>.from(data['categorias']),
+      cantidadEstandar: (data['cantidadEstandar'] as num).toDouble(),
       reduccionPorcentaje: (data['reduccionPorcentaje'] as num).toDouble(),
       receta: data['receta'] as String,
       tiempoPreparacionMinutos: data['tiempoPreparacionMinutos'] as int,
@@ -152,6 +157,7 @@ class Intermedio {
       'codigo': codigo,
       'nombre': nombre,
       'categorias': categorias,
+      'cantidadEstandar': cantidadEstandar,
       'reduccionPorcentaje': reduccionPorcentaje,
       'receta': receta,
       'tiempoPreparacionMinutos': tiempoPreparacionMinutos,
@@ -167,6 +173,7 @@ class Intermedio {
     String? codigo,
     String? nombre,
     List<String>? categorias,
+    double? cantidadEstandar,
     double? reduccionPorcentaje,
     String? receta,
     int? tiempoPreparacionMinutos,
@@ -179,6 +186,7 @@ class Intermedio {
       codigo: codigo ?? this.codigo,
       nombre: nombre ?? this.nombre,
       categorias: categorias ?? this.categorias,
+      cantidadEstandar: cantidadEstandar ?? this.cantidadEstandar,
       reduccionPorcentaje: reduccionPorcentaje ?? this.reduccionPorcentaje,
       receta: receta ?? this.receta,
       tiempoPreparacionMinutos: tiempoPreparacionMinutos ?? this.tiempoPreparacionMinutos,
@@ -226,6 +234,7 @@ class Intermedio {
         other.codigo == codigo &&
         other.nombre == nombre &&
         listEquals(other.categorias, categorias) &&
+        other.cantidadEstandar == cantidadEstandar &&
         other.reduccionPorcentaje == reduccionPorcentaje &&
         other.receta == receta &&
         other.tiempoPreparacionMinutos == tiempoPreparacionMinutos &&
@@ -240,6 +249,7 @@ class Intermedio {
         codigo,
         nombre,
         Object.hashAll(categorias),
+        cantidadEstandar,
         reduccionPorcentaje,
         receta,
         tiempoPreparacionMinutos,

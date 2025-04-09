@@ -102,7 +102,6 @@ class Proveedor {
     if (codigo.isEmpty) errors.add('El código es requerido');
     if (!codigo.startsWith('P-')) errors.add('El código debe comenzar con "P-"');
     if (nombre.isEmpty) errors.add('El nombre es requerido');
-    if (nombre.length < 3) errors.add('Nombre muy corto (mín. 3 caracteres)');
     if (telefono.isEmpty) errors.add('Teléfono es requerido');
     if (correo.isEmpty) errors.add('Correo electrónico es requerido');
 

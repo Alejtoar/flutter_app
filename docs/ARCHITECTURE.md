@@ -1,104 +1,166 @@
 # Arquitectura de Golo App
 
-## Visión General
-
 Golo App sigue una arquitectura MVVM (Model-View-ViewModel) con Clean Architecture, organizada en capas claramente definidas.
 
 ## Capas de la Aplicación
 
 ```
 lib/
-├── models/         # Capa de Datos
+├── models/         # Capa de Dominio
+│   ├── insumo.dart
+│   ├── proveedor.dart
+│   ├── plato.dart
+│   ├── intermedio.dart
+│   └── evento.dart
+├── repositories/   # Capa de Datos
+│   ├── insumo_repository.dart
+│   ├── proveedor_repository.dart
+│   ├── plato_repository.dart
+│   ├── intermedio_repository.dart
+│   ├── insumo_utilizado_repository.dart
+│   └── intermedio_requerido_repository.dart
 ├── services/       # Capa de Servicios
-├── viewmodels/    # Capa de Presentación
+│   ├── insumo_service.dart
+│   ├── proveedor_service.dart
+│   └── plato_service.dart
+├── viewmodels/     # Capa de Presentación
+│   ├── insumo_viewmodel.dart
+│   ├── proveedor_viewmodel.dart
+│   └── plato_viewmodel.dart
 ├── ui/            # Capa de UI
+│   ├── screens/
+│   ├── widgets/
+│   ├── theme/
+│   └── navigation/
 └── core/          # Utilidades y Configuración
+    ├── utils/
+    └── config/
 ```
 
-### 1. Capa de Datos (Models)
+### 1. Capa de Dominio (Models)
 
 #### Responsabilidades
-- Definición de estructuras de datos
-- Lógica de negocio básica
+- Definición de estructuras de datos del dominio
+- Lógica de negocio
 - Validación de datos
 - Serialización/Deserialización
 
-#### Patrones Implementados
-- Value Objects
-- Data Transfer Objects (DTOs)
-- Immutable Objects
-- Builder Pattern
+#### Modelos Principales
+1. **Insumo**: Representa los ingredientes básicos
+   - Códigos únicos
+   - Categorías
+   - Proveedores
+   - Precios y unidades
 
-#### Modelo de Datos Actualizado
+2. **Proveedor**: Representa las empresas proveedoras
+   - Información de contacto
+   - Estado activo/inactivo
+   - Relación con insumos
 
-El modelo de datos se ha actualizado para reflejar la nueva estructura de modelos y el sistema de cálculo de costos:
+3. **Plato**: Representa los platos del menú
+   - Componentes (insumos e intermedios)
+   - Costos y precios
+   - Categorías
 
-1. **Plato (Dish)**
-   - Información básica del plato y categorización
-   - Enlaces a intermediarios requeridos a través de IntermedioRequerido
-   - Cálculo de costos basado en intermediarios requeridos
+4. **Intermedio**: Representa preparaciones intermedias
+   - Componentes requeridos
+   - Costos de producción
+   - Tiempo de preparación
 
-2. **Evento (Event)**
-   - Gestión de eventos y reservas
-   - Enlaces a platos a través de PlatoEvento
-   - Rastrea el estado y detalles del evento
+5. **Evento**: Representa eventos especiales
+   - Clientes y contactos
+   - Platos seleccionados
+   - Presupuestos y costos
+   - Requisitos especiales
 
-3. **IntermedioRequerido (Required Intermediate)**
-   - Componentes intermedios requeridos para platos
-   - Enlaces platos a sus preparaciones requeridas
-   - Mantiene cantidades de intermediarios
-
-4. **InsumoUtilizado (Used Ingredient)**
-   - Ingredientes utilizados en intermediarios
-   - Enlaces ingredientes a sus intermediarios
-   - Mantiene cantidades de ingredientes
-
-5. **PlatoEvento (Event Dish)**
-   - Enlaces platos a eventos
-   - Rastrea cantidades por evento
-   - Mantiene relaciones entre platos y eventos
-
-### 2. Capa de Servicios
+### 2. Capa de Datos (Repositories)
 
 #### Responsabilidades
-- Acceso a datos
-- Lógica de negocio compleja
-- Integración con Firebase
-- Caché y persistencia
+- Acceso a la base de datos
+- Manejo de caché
+- Filtrado y búsqueda
+- Manejo de errores
 
-#### Patrones Implementados
-- Repository Pattern
-- Singleton
-- Factory Method
-- Strategy Pattern
+#### Características
+- Implementación con Firestore
+- Consultas eficientes
+- Caché en memoria
+- Manejo de estados
+- Búsqueda parcial de nombres
+- Filtrado por categorías y proveedores
 
-### 3. Capa de Presentación (ViewModels)
+### 3. Capa de Servicios
 
 #### Responsabilidades
-- Lógica de presentación
+- Lógica de negocio
+- Coordinación entre capas
+- Validaciones de negocio
+- Cálculos y procesamiento
+
+### 4. Capa de Presentación (ViewModels)
+
+#### Responsabilidades
 - Estado de la UI
-- Transformación de datos
 - Manejo de eventos
+- Transformación de datos
+- Comunicación con UI
 
-#### Patrones Implementados
-- Observer Pattern (ChangeNotifier)
-- Command Pattern
-- State Pattern
-- Proxy Pattern
+### 5. Capa de UI
 
-### 4. Capa de UI
+#### Estructura
+- **Screens**: Pantallas principales
+- **Widgets**: Componentes reutilizables
+- **Theme**: Temas de diseño
+- **Navigation**: Navegación
 
-#### Responsabilidades
-- Widgets y vistas
-- Manejo de entrada de usuario
+### 6. Core
+
+#### Utilidades
+- Extensions y helpers
+- Validaciones
+- Formateo
+- Utilidades de UI
+
+#### Configuración
+- Firebase
+- Temas
 - Navegación
-- Temas y estilos
 
-#### Patrones Implementados
-- Composite Pattern (Widget Tree)
+## Patrones Implementados
+
+- MVVM Pattern
+- Repository Pattern
+- Singleton Pattern
 - Builder Pattern
-- Decorator Pattern
+- Factory Pattern
+- Observer Pattern
 - Strategy Pattern
+- Decorator Pattern
+
+## Manejo de Estados
+
+- Estado de UI
+- Estado de datos
+- Estado de carga
+- Manejo de errores
+
+## Manejo de Errores
+
+- Manejo consistente de errores
+- Mensajes de usuario
+- Logging
+- Manejo de excepciones
+
+## Características Técnicas
+
+- Firebase como backend
+- Provider para estado
+- Flutter para UI
+- Windows SDK para compilación nativa
+- Material Design 3
+- Responsive Design
+- Temas claro/oscuro
+- Navegación moderna
 
 ## Flujo de Datos
 
