@@ -17,9 +17,9 @@ abstract class InsumoRepository {
   Future<Insumo> obtenerPorCodigo(String codigo);
 
   /// Verifica si un código de insumo ya existe en la base de datos
-/// [codigo]: Código a verificar (ej: "I-001")
-/// Retorna `true` si el código ya existe, `false` si está disponible
-Future<bool> existeCodigo(String codigo);
+  /// [codigo]: Código a verificar (ej: "I-001")
+  /// Retorna `true` si el código ya existe, `false` si está disponible
+  Future<bool> existeCodigo(String codigo);
 
   // Métodos para filtrar insumos
   Future<List<Insumo>> filtrarInsumosPorCategoria(String categoria);

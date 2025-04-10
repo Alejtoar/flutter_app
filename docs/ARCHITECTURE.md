@@ -1,4 +1,16 @@
-# Arquitectura de Golo App
+# Golo App - Sistema de Gestión de Restaurantes
+
+## Descripción General
+Golo App es una aplicación de gestión integral para restaurantes desarrollada con Flutter. La aplicación permite administrar platos, eventos, inventario y costos de producción, facilitando la operación diaria del restaurante.
+
+## Objetivos
+- Gestionar el menú y platos del restaurante
+- Administrar eventos y reservaciones
+- Controlar costos de producción
+- Gestionar inventario y materias primas
+- Generar reportes y análisis
+
+## Arquitectura de Golo App
 
 Golo App sigue una arquitectura MVVM (Model-View-ViewModel) con Clean Architecture, organizada en capas claramente definidas.
 
