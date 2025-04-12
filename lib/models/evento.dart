@@ -11,7 +11,7 @@ class Evento {
   final int numeroInvitados;
   final TipoEvento tipoEvento;
   final EstadoEvento estado;
-  final DateTime fechaCotizacion;
+  final DateTime? fechaCotizacion;
   final DateTime? fechaConfirmacion;
   final DateTime fechaCreacion;
   final DateTime fechaActualizacion;
@@ -81,12 +81,20 @@ class Evento {
     // Validaciones específicas por tipo de evento
     final diasHastaEvento = fecha.difference(ahora).inDays;
 
-    if (tipoEvento == TipoEvento.planificado && diasHastaEvento < 15) {
-      errors.add('Los eventos planificados requieren al menos 15 días de anticipación');
+    if (tipoEvento == TipoEvento.matrimonio && diasHastaEvento < 30) {
+      errors.add('Los eventos de matrimonio requieren al menos 30 días de anticipación');
     }
 
-    if (tipoEvento == TipoEvento.inmediato && diasHastaEvento > 7) {
-      errors.add('Los eventos inmediatos deben estar dentro de los próximos 7 días');
+    if (tipoEvento == TipoEvento.produccionAudiovisual && diasHastaEvento > 14) {
+      errors.add('Los eventos de producción audiovisual deben estar dentro de los próximos 14 días');
+    }
+
+    if (tipoEvento == TipoEvento.chefEnCasa && diasHastaEvento < 7) {
+      errors.add('Los eventos de chef en casa requieren al menos 7 días de anticipación');
+    }
+
+    if (tipoEvento == TipoEvento.institucional && diasHastaEvento < 14) {
+      errors.add('Los eventos institucionales requieren al menos 14 días de anticipación');
     }
 
     if (errors.isNotEmpty) {
@@ -125,7 +133,7 @@ class Evento {
       numeroInvitados: map['numeroInvitados'] ?? 0,
       tipoEvento: TipoEvento.values.firstWhere(
         (e) => e.toString() == map['tipoEvento'],
-        orElse: () => TipoEvento.planificado,
+        orElse: () => TipoEvento.institucional,
       ),
       estado: EstadoEvento.values.firstWhere(
         (e) => e.toString() == map['estado'],
@@ -152,7 +160,7 @@ class Evento {
       'numeroInvitados': numeroInvitados,
       'tipoEvento': tipoEvento.toString(),
       'estado': estado.toString(),
-      'fechaCotizacion': Timestamp.fromDate(fechaCotizacion),
+      if (fechaCotizacion != null) 'fechaCotizacion': Timestamp.fromDate(fechaCotizacion!),
       if (fechaConfirmacion != null) 'fechaConfirmacion': Timestamp.fromDate(fechaConfirmacion!),
       'fechaCreacion': Timestamp.fromDate(fechaCreacion),
       'fechaActualizacion': Timestamp.fromDate(fechaActualizacion),
@@ -173,7 +181,7 @@ class Evento {
       numeroInvitados: data['numeroInvitados'] ?? 0,
       tipoEvento: TipoEvento.values.firstWhere(
         (e) => e.toString() == data['tipoEvento'],
-        orElse: () => TipoEvento.planificado,
+        orElse: () => TipoEvento.institucional,
       ),
       estado: EstadoEvento.values.firstWhere(
         (e) => e.toString() == data['estado'],
@@ -200,7 +208,7 @@ class Evento {
       'numeroInvitados': numeroInvitados,
       'tipoEvento': tipoEvento.toString(),
       'estado': estado.toString(),
-      'fechaCotizacion': Timestamp.fromDate(fechaCotizacion),
+      if (fechaCotizacion != null) 'fechaCotizacion': Timestamp.fromDate(fechaCotizacion!),
       if (fechaConfirmacion != null) 'fechaConfirmacion': Timestamp.fromDate(fechaConfirmacion!),
       'fechaCreacion': Timestamp.fromDate(fechaCreacion),
       'fechaActualizacion': Timestamp.fromDate(fechaActualizacion),
@@ -261,16 +269,17 @@ class Evento {
 }
 
 enum TipoEvento {
-  planificado,
-  inmediato,
-  especial
+  matrimonio,
+  produccionAudiovisual,
+  chefEnCasa,
+  institucional
 }
 
 enum EstadoEvento {
   cotizado,
   confirmado,
-  enPreparacion,
-  enProceso,
+  esCotizacion,
+  enPruebaMenu,
   completado,
   cancelado
 }

@@ -3,6 +3,9 @@ import 'package:golo_app/repositories/insumo_utilizado_repository.dart';
 import 'package:golo_app/repositories/intermedio_requerido_repository.dart';
 import 'package:golo_app/repositories/intermedio_repository.dart';
 import 'package:golo_app/repositories/plato_repository.dart';
+import 'package:golo_app/repositories/plato_evento_repository.dart';
+import 'package:golo_app/repositories/intermedio_evento_repository.dart';
+import 'package:golo_app/repositories/insumo_evento_repository.dart';
 
 class CalculadoraCostosService {
   final InsumoRepository _insumoRepo;
@@ -10,6 +13,9 @@ class CalculadoraCostosService {
   final InsumoUtilizadoRepository _insumoUtilizadoRepo;
   final IntermedioRequeridoRepository _intermedioRequeridoRepo;
   final PlatoRepository _platoRepo;
+  final PlatoEventoRepository _platoEventoRepo;
+  final IntermedioEventoRepository _intermedioEventoRepo;
+  final InsumoEventoRepository _insumoEventoRepo;
 
   CalculadoraCostosService({
     required InsumoRepository insumoRepo,
@@ -17,11 +23,17 @@ class CalculadoraCostosService {
     required InsumoUtilizadoRepository insumoUtilizadoRepo,
     required IntermedioRequeridoRepository intermedioRequeridoRepo,
     required PlatoRepository platoRepo,
+    required PlatoEventoRepository platoEventoRepo,
+    required IntermedioEventoRepository intermedioEventoRepo,
+    required InsumoEventoRepository insumoEventoRepo,
   }) : _insumoRepo = insumoRepo,
        _intermedioRepo = intermedioRepo,
        _insumoUtilizadoRepo = insumoUtilizadoRepo,
        _intermedioRequeridoRepo = intermedioRequeridoRepo,
-       _platoRepo = platoRepo;
+       _platoRepo = platoRepo,
+       _platoEventoRepo = platoEventoRepo,
+       _intermedioEventoRepo = intermedioEventoRepo,
+       _insumoEventoRepo = insumoEventoRepo;
 
   /// Calcula el costo de un insumo para cierta cantidad
   Future<double> calcularCostoInsumo(String insumoId, double cantidad) async {
@@ -107,5 +119,42 @@ class CalculadoraCostosService {
   /// Calcula el margen de ganancia sugerido (30% sobre el costo)
   double calcularPrecioVenta(double costo) {
     return costo * 1.3; // 30% de margen
+  }
+
+  /// Calcula el costo total de un evento considerando todos sus componentes
+  Future<double> calcularCostoEvento(String eventoId) async {
+    double costoTotal = 0.0;
+    
+    // 1. Calcular costo de platos del evento
+    final platosEvento = await _platoEventoRepo.obtenerPorEvento(eventoId);
+    for (final platoEvento in platosEvento) {
+      final costoPlato = await calcularCostoPlato(
+        platoId: platoEvento.platoId,
+        cantidad: platoEvento.cantidad,
+      );
+      costoTotal += costoPlato;
+    }
+    
+    // 2. Calcular costo de intermedios del evento
+    final intermediosEvento = await _intermedioEventoRepo.obtenerPorEvento(eventoId);
+    for (final intermedioEvento in intermediosEvento) {
+      final costoIntermedio = await calcularCostoIntermedio(
+        intermedioId: intermedioEvento.intermedioId,
+        cantidadPreparar: intermedioEvento.cantidad.toDouble(),
+      );
+      costoTotal += costoIntermedio;
+    }
+    
+    // 3. Calcular costo de insumos directos del evento
+    final insumosEvento = await _insumoEventoRepo.obtenerPorEvento(eventoId);
+    for (final insumoEvento in insumosEvento) {
+      final costoInsumo = await calcularCostoInsumo(
+        insumoEvento.insumoId,
+        insumoEvento.cantidad,
+      );
+      costoTotal += costoInsumo;
+    }
+    
+    return costoTotal;
   }
 }

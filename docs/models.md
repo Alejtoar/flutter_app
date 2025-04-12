@@ -6,21 +6,26 @@
 ```dart
 class Plato {
   String id;
+  String codigo;
   String nombre;
   String descripcion;
   List<String> categorias;
+  double costoTotal;
+  double precioVenta;
+  List<IntermedioRequerido> intermedios;
   bool activo;
   DateTime? fechaCreacion;
   DateTime? fechaActualizacion;
 }
 ```
-**Descripción**: Representa un plato del menú con su información básica, categorización y fechas de creación y actualización.
+**Descripción**: Representa un plato del menú con su información básica, categorización, costos y fechas de creación y actualización.
 
 ### 2. Evento
 ```dart
 class Evento {
   String id;
-  String nombre;
+  String codigo;
+  String nombreCliente;
   DateTime fecha;
   TipoEvento tipo;
   EstadoEvento estado;
@@ -30,48 +35,79 @@ class Evento {
 ```
 **Descripción**: Gestiona eventos y reservaciones del restaurante.
 
-### 3. IntermedioRequerido
+### 3. Intermedio
+```dart
+class Intermedio {
+  String id;
+  String nombre;
+  String descripcion;
+  List<InsumoUtilizado> insumos;
+}
+```
+**Descripción**: Representa preparaciones intermedias utilizadas en platos.
+
+### 4. IntermedioRequerido
 ```dart
 class IntermedioRequerido {
-  String? id;
   String platoId;
   String intermedioId;
   double cantidad;
 }
 ```
-**Descripción**: Representa los componentes intermedios o preparaciones requeridas para un plato. Enlaza un plato con sus intermedios requeridos y sus cantidades.
+**Descripción**: Enlaza preparaciones intermedias con platos.
 
-### 4. InsumoUtilizado
+### 5. InsumoUtilizado
 ```dart
 class InsumoUtilizado {
-  String? id;
   String insumoId;
   String intermedioId;
   double cantidad;
+  UnidadMedida unidad;
 }
 ```
-**Descripción**: Representa la relación entre un intermedio y sus ingredientes (insumos), incluyendo la cantidad utilizada.
+**Descripción**: Enlaza ingredientes con preparaciones intermedias.
 
-### 5. PlatoEvento
+### 6. PlatoEvento
 ```dart
 class PlatoEvento {
-  String? id;
-  String eventoId;
   String platoId;
+  String eventoId;
   int cantidad;
 }
 ```
 **Descripción**: Enlaza platos con eventos con sus respectivas cantidades.
 
+### 7. Proveedor
+```dart
+class Proveedor {
+  String id;
+  String nombre;
+  String contacto;
+  List<String> insumosProveidos;
+}
+```
+**Descripción**: Representa proveedores de ingredientes.
+
+### 8. Insumo
+```dart
+class Insumo {
+  String id;
+  String nombre;
+  double precioUnitario;
+  UnidadMedida unidadBase;
+}
+```
+**Descripción**: Representa ingredientes crudos con precios.
+
 ## Relaciones entre Modelos
 
 1. **Plato -> IntermedioRequerido**
-   - Un plato puede tener múltiples intermedios requeridos
-   - Cada intermedio está enlazado a un plato específico a través de `platoId`
+   - Un plato puede tener múltiples preparaciones intermedias requeridas
+   - Cada preparación intermedia está enlazada a un plato específico a través de `platoId`
 
-2. **IntermedioRequerido -> InsumoUtilizado**
-   - Cada intermedio puede tener múltiples ingredientes
-   - Los ingredientes están enlazados a su intermedio a través de `intermedioId`
+2. **Intermedio -> InsumoUtilizado**
+   - Cada preparación intermedia puede tener múltiples ingredientes
+   - Los ingredientes están enlazados a su preparación intermedia a través de `intermedioId`
 
 3. **Evento -> PlatoEvento**
    - Un evento puede tener múltiples platos
@@ -80,6 +116,52 @@ class PlatoEvento {
 4. **PlatoEvento -> Plato**
    - Enlaza platos de eventos con sus definiciones de platos originales
    - Mantiene la cantidad de cada plato en el evento
+
+## Enumeraciones
+
+### TipoEvento
+```dart
+enum TipoEvento {
+  matrimonio,
+  produccionAudiovisual,
+  chefEnCasa,
+  institucional
+}
+```
+
+### EstadoEvento
+```dart
+enum EstadoEvento {
+  cotizado,
+  confirmado,
+  esCotizacion,
+  enPruebaMenu,
+  completado,
+  cancelado
+}
+```
+
+### UnidadMedida
+```dart
+enum UnidadMedida {
+  gramos,
+  kilogramos,
+  litros,
+  unidades
+}
+```
+
+## Relaciones entre Modelos (Diagrama)
+```mermaid
+classDiagram
+    Plato "1" *-- "many" IntermedioRequerido
+    Intermedio "1" *-- "many" InsumoUtilizado
+    Evento "1" *-- "many" PlatoEvento
+    PlatoEvento --> Plato
+    InsumoUtilizado --> Insumo
+    IntermedioRequerido --> Intermedio
+    Proveedor "1" *-- "many" Insumo
+```
 
 ## Flujo de Cálculo de Costos
 

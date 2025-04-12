@@ -18,7 +18,13 @@ lib/
 │   ├── insumo_utilizado_repository.dart
 │   ├── insumo_utilizado_repository_impl.dart
 │   ├── intermedio_requerido_repository.dart
-│   └── intermedio_requerido_repository_impl.dart
+│   ├── intermedio_requerido_repository_impl.dart
+│   ├── evento_repository.dart
+│   ├── evento_repository_impl.dart
+│   ├── plato_evento_repository.dart
+│   ├── plato_evento_repository_impl.dart
+│   └── intermedio_evento_repository.dart
+│       └── intermedio_evento_repository_impl.dart
 ```
 
 ## Interfaces de Repositories
@@ -68,6 +74,22 @@ abstract class PlatoRepository {
   Future<List<Plato>> obtenerTodos();
   Future<void> actualizar(Plato plato);
   Future<void> eliminar(String id);
+  Future<List<Plato>> buscarPorNombre(String query);
+  Future<List<Plato>> filtrarPorCategoria(String categoria);
+}
+```
+
+### EventoRepository
+```dart
+abstract class EventoRepository {
+  Future<Evento> crear(Evento evento);
+  Future<Evento> obtener(String id);
+  Future<List<Evento>> obtenerTodos();
+  Future<void> actualizar(Evento evento);
+  Future<void> eliminar(String id);
+  Future<List<Evento>> obtenerPorTipo(TipoEvento tipo);
+  Future<List<Evento>> obtenerPorEstado(EstadoEvento estado);
+  Future<List<Evento>> obtenerProximos();
 }
 ```
 
@@ -82,17 +104,51 @@ abstract class IntermedioRepository {
 }
 ```
 
+### Relaciones
+```dart
+// PlatoEventoRepository
+abstract class PlatoEventoRepository {
+  Future<void> asociarPlatoEvento(String platoId, String eventoId);
+  Future<void> desasociarPlatoEvento(String platoId, String eventoId);
+  Future<List<Plato>> obtenerPlatosPorEvento(String eventoId);
+}
+
+// IntermedioEventoRepository
+abstract class IntermedioEventoRepository {
+  Future<void> asociarIntermedioEvento(String intermedioId, String eventoId);
+  Future<List<Intermedio>> obtenerIntermediosPorEvento(String eventoId);
+}
+```
+
 ## Implementaciones
 
-Todas las implementaciones siguen el patrón:
+Todas las implementaciones:
 1. Extienden su interfaz correspondiente
 2. Utilizan Firestore como backend
-3. Implementan un manejo consistente de errores
-4. Manejan estados y caché cuando es necesario
+3. Implementan manejo consistente de errores
+4. Soportan caché local cuando es necesario
+
+Ejemplo de implementación base:
+```dart
+class PlatoFirestoreRepository implements PlatoRepository {
+  final FirebaseFirestore _firestore;
+  
+  @override
+  Future<Plato> crear(Plato plato) async {
+    try {
+      final docRef = await _firestore.collection('platos').add(plato.toMap());
+      return plato.copyWith(id: docRef.id);
+    } on FirebaseException catch (e) {
+      throw _handleFirestoreError(e);
+    }
+  }
+  
+  // ... otros métodos
+}
+```
 
 ## Manejo de Errores
 
-Todos los repositories implementan un manejo consistente de errores usando el método `_handleFirestoreError`:
 ```dart
 Exception _handleFirestoreError(FirebaseException e) {
   switch (e.code) {
@@ -103,21 +159,16 @@ Exception _handleFirestoreError(FirebaseException e) {
     case 'invalid-argument':
       return Exception('Datos no válidos');
     default:
-      return Exception('Error al acceder a los datos: ${e.message}');
+      return Exception('Error de Firebase: ${e.message}');
   }
 }
 ```
 
-## Caché
+## Repositorios Especializados
 
-Algunos repositories implementan caché en memoria para optimizar el rendimiento:
-- `InsumoRepository`: Caché de códigos de insumos
-- `ProveedorRepository`: Caché de proveedores frecuentemente accedidos
-
-## Filtrado
-
-Los repositories implementan métodos de filtrado eficientes usando consultas de Firestore:
-- Filtrado por categoría
-- Filtrado por proveedor
-- Búsqueda parcial de nombres
-- Filtrado por estado activo
+| Repositorio | Descripción |
+|-------------|-------------|
+| `InsumoRepository` | CRUD para insumos |
+| `InsumoUtilizadoRepository` | Relación insumo-plato |
+| `IntermedioRequeridoRepository` | Relación insumo-intermedio |
+| `ProveedorRepository` | Gestión de proveedores |

@@ -25,6 +25,9 @@ abstract class EventoRepository {
   /// Obtiene eventos por rango de fechas
   Future<List<Evento>> obtenerPorRangoFechas(DateTime desde, DateTime hasta);
 
+  /// Obtiene todos los eventos activos
+  Future<List<Evento>> obtenerTodos();
+
   /// Verifica si existe un evento con un nombre específico
   Future<bool> existeEventoConNombre(String nombre);
 

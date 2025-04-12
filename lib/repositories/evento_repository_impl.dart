@@ -164,6 +164,15 @@ class EventoFirestoreRepository implements EventoRepository {
     return query.docs.map((doc) => Evento.fromFirestore(doc)).toList();
   }
 
+  @override
+  Future<List<Evento>> obtenerTodos() async {
+    final query = _db.collection(_coleccion)
+        .where('activo', isEqualTo: true);
+        
+    final snapshot = await query.get();
+    return snapshot.docs.map((doc) => Evento.fromFirestore(doc)).toList();
+  }
+
   Exception _handleFirestoreError(FirebaseException e) {
     switch (e.code) {
       case 'permission-denied':

@@ -164,17 +164,12 @@ class Plato {
       'porcionesMinimas': porcionesMinimas,
       'receta': receta,
       'descripcion': descripcion,
-      'fechaCreacion': fechaCreacion != null
-          ? Timestamp.fromDate(fechaCreacion!)
-          : null,
-      'fechaActualizacion': fechaActualizacion != null
-          ? Timestamp.fromDate(fechaActualizacion!)
-          : null,
+      'fechaCreacion': fechaCreacion != null ? Timestamp.fromDate(fechaCreacion!) : null,
+      'fechaActualizacion': fechaActualizacion != null ? Timestamp.fromDate(fechaActualizacion!) : null,
       'activo': activo,
     };
   }
 
-  // 7. Método copyWith
   Plato copyWith({
     String? id,
     String? codigo,
@@ -183,6 +178,7 @@ class Plato {
     int? porcionesMinimas,
     String? receta,
     String? descripcion,
+    DateTime? fechaCreacion,
     DateTime? fechaActualizacion,
     bool? activo,
   }) {
@@ -190,12 +186,12 @@ class Plato {
       id: id ?? this.id,
       codigo: codigo ?? this.codigo,
       nombre: nombre ?? this.nombre,
-      categorias: categorias ?? this.categorias,
+      categorias: categorias ?? List.from(this.categorias),
       porcionesMinimas: porcionesMinimas ?? this.porcionesMinimas,
       receta: receta ?? this.receta,
       descripcion: descripcion ?? this.descripcion,
-      fechaCreacion: fechaCreacion,
-      fechaActualizacion: fechaActualizacion ?? DateTime.now(),
+      fechaCreacion: fechaCreacion ?? this.fechaCreacion,
+      fechaActualizacion: fechaActualizacion ?? this.fechaActualizacion,
       activo: activo ?? this.activo,
     );
   }

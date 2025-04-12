@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
+import 'package:golo_app/navigation/nav_rail.dart';
+import 'package:provider/provider.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
+ 
+void main() {
+  runApp(
+    MultiProvider(
+      providers: [], // Lista vacía por ahora
+      child: const MyApp(),
+    ),
   );
-  runApp(const MyApp());
+
 }
 
 class MyApp extends StatelessWidget {
@@ -16,15 +19,13 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Golo App',
-      theme: ThemeData.light(),
-      darkTheme: ThemeData.dark(),
-      themeMode: ThemeMode.system,
-      home: const Scaffold(
-        body: Center(
-          child: Text('Bienvenido a Golo App'),
-        ),
+      title: 'Catering App',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
+      home: const AppNavigation(), // Usamos nuestro navigation rail aquí
+      debugShowCheckedModeBanner: false,
     );
   }
 }
