@@ -54,26 +54,71 @@ class _NavigationRailPageState extends State<NavigationRailPage> {
     return Scaffold(
       bottomNavigationBar:
           isSmallScreen
-              ? BottomNavigationBar(
-                items: _navBarItems,
-                currentIndex: _selectedIndex,
-                onTap: (int index) {
-                  setState(() {
-                    _selectedIndex = index;
-                    _expandedSection = -1;
-                  });
-                },
+              ? Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_expandedSection != -1)
+                    Container(
+                      height: 50,
+                      color: Theme.of(context).colorScheme.secondaryContainer,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.arrow_back),
+                            onPressed: () {
+                              setState(() {
+                                _expandedSection = -1;
+                              });
+                            },
+                          ),
+                          ..._getSubDestinations(_expandedSection).map((item) {
+                            final index =
+                                _getSubDestinations(
+                                  _expandedSection,
+                                ).indexOf(item) +
+                                1;
+                            return TextButton(
+                              onPressed: () => _handleSubItemSelection(index),
+                              child: Text((item.label as Text).data!),
+                            );
+                          }),
+                        ],
+                      ),
+                    ),
+                  BottomNavigationBar(
+                    items: _navBarItems,
+                    currentIndex: _selectedIndex,
+                    selectedItemColor: Theme.of(context).colorScheme.primary,
+                    unselectedItemColor:
+                        Theme.of(context).colorScheme.onSurface,
+                    onTap: (int index) {
+                      setState(() {
+                        if (_expandedSection == -1 &&
+                            [1, 2, 3, 4, 5].contains(index)) {
+                          _expandedSection = index;
+                        } else {
+                          _selectedIndex = index;
+                          _expandedSection = -1;
+                        }
+                      });
+                    },
+                  ),
+                ],
               )
               : null,
       body: Row(
         children: <Widget>[
           if (!isSmallScreen)
             NavigationRail(
-              selectedIndex: _selectedIndex < (_expandedSection == -1 
-                  ? _navBarItems.length 
-                  : _getSubDestinations(_expandedSection).length + 1)
-                ? _selectedIndex 
-                : 0,
+              selectedIndex:
+                  _selectedIndex <
+                          (_expandedSection == -1
+                              ? _navBarItems.length
+                              : _getSubDestinations(_expandedSection).length +
+                                  1)
+                      ? _selectedIndex
+                      : 0,
               onDestinationSelected: (int index) {
                 setState(() {
                   if (_expandedSection != -1) {
@@ -107,13 +152,14 @@ class _NavigationRailPageState extends State<NavigationRailPage> {
                       : [
                         NavigationRailDestination(
                           icon: const Icon(Icons.arrow_back),
+                          selectedIcon: const Icon(Icons.arrow_back),
                           label: const Text('Atrás'),
                           padding: const EdgeInsets.only(top: 16),
                         ),
                         ..._getSubDestinations(_expandedSection),
                       ],
             ),
-          const VerticalDivider(thickness: 1, width: 1),
+          if (!isSmallScreen) const VerticalDivider(thickness: 1, width: 1),
           // This is the main content.
           Expanded(child: _buildCurrentScreen()),
         ],
@@ -127,18 +173,22 @@ class _NavigationRailPageState extends State<NavigationRailPage> {
         return [
           const NavigationRailDestination(
             icon: Icon(Icons.list_alt),
+            selectedIcon: Icon(Icons.list_alt),
             label: Text('Todos los Eventos'),
           ),
           const NavigationRailDestination(
             icon: Icon(Icons.add_circle_outline),
+            selectedIcon: Icon(Icons.add_circle),
             label: Text('Nuevo Evento'),
           ),
           const NavigationRailDestination(
             icon: Icon(Icons.calendar_today),
+            selectedIcon: Icon(Icons.calendar_today),
             label: Text('Calendario'),
           ),
           const NavigationRailDestination(
             icon: Icon(Icons.filter_alt),
+            selectedIcon: Icon(Icons.filter_alt),
             label: Text('Por Estado'),
           ),
         ];
@@ -146,22 +196,25 @@ class _NavigationRailPageState extends State<NavigationRailPage> {
         return [
           const NavigationRailDestination(
             icon: Icon(Icons.menu_book),
+            selectedIcon: Icon(Icons.menu_book),
             label: Text('Diseñar Menú'),
           ),
           const NavigationRailDestination(
             icon: Icon(Icons.calculate),
+            selectedIcon: Icon(Icons.calculate),
             label: Text('Calculadora'),
           ),
           const NavigationRailDestination(
             icon: Icon(Icons.format_list_bulleted),
+            selectedIcon: Icon(Icons.format_list_bulleted),
             label: Text('Insumos Requeridos'),
           ),
           const NavigationRailDestination(
             icon: Icon(Icons.directions_car),
+            selectedIcon: Icon(Icons.directions_car),
             label: Text('Logística'),
           ),
         ];
-      // Añadir otros casos para las demás secciones
       default:
         return [];
     }
@@ -177,8 +230,11 @@ class _NavigationRailPageState extends State<NavigationRailPage> {
       // Aquí manejas la navegación real
       final subItemIndex = index - 1;
       print('Navegar a: $_expandedSection - $subItemIndex');
-      // Ejemplo: Navegar a pantalla específica
-      // Navigator.push(context, MaterialPageRoute(builder: (_) => ...));
+      // Actualizar el índice seleccionado para reflejar la selección
+      setState(() {
+        _selectedIndex = _expandedSection;
+      });
+      // Aquí puedes navegar a pantallas específicas
     }
   }
 
@@ -191,25 +247,22 @@ class _NavigationRailPageState extends State<NavigationRailPage> {
       case 0:
         return const DashboardScreen();
       case 1:
-        //return const EventosScreen() ;
-        return const Scaffold(
-          body: Center(child: Text('Pantalla de Eventos en desarrollo')),
-        );
+        return const Scaffold(body: Center(child: Text('Pantalla de Eventos')));
       case 2:
         return const Scaffold(
-          body: Center(child: Text('Pantalla de Eventos en desarrollo')),
+          body: Center(child: Text('Pantalla de Planificación')),
         );
       case 3:
         return const Scaffold(
-          body: Center(child: Text('Pantalla de Eventos en desarrollo')),
+          body: Center(child: Text('Pantalla de Catálogos')),
         );
       case 4:
         return const Scaffold(
-          body: Center(child: Text('Pantalla de Eventos en desarrollo')),
+          body: Center(child: Text('Pantalla de Reportes')),
         );
       case 5:
         return const Scaffold(
-          body: Center(child: Text('Pantalla de Eventos en desarrollo')),
+          body: Center(child: Text('Pantalla de Administración')),
         );
       default:
         return const Center(child: Text('Pantalla no encontrada'));
@@ -217,7 +270,16 @@ class _NavigationRailPageState extends State<NavigationRailPage> {
   }
 
   Widget _buildSubScreen(int section) {
-    // Aquí puedes implementar pantallas específicas para subsecciones
-    return Center(child: Text('Contenido de la sección $section'));
+    // Implementa pantallas específicas para subsecciones
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('Contenido de la sección ${_navBarItems[section].label}'),
+          const SizedBox(height: 20),
+          Text('Subsección seleccionada'),
+        ],
+      ),
+    );
   }
 }
