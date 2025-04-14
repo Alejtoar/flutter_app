@@ -1,9 +1,13 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:golo_app/features/catalogos/insumos/controllers/insumo_controller.dart';
+import 'package:golo_app/features/catalogos/insumos/screens/insumos_screen.dart';
 import 'package:golo_app/features/dashboards/screens/dashboard_screen.dart';
 import 'package:golo_app/navigation/controllers/navigation_controller.dart';
 import 'package:golo_app/navigation/models/main_menu.dart';
 import 'package:golo_app/navigation/widgets/bottom_navigation.dart';
 import 'package:golo_app/navigation/widgets/rail_navigation.dart';
+import 'package:golo_app/repositories/insumo_repository_impl.dart';
 import 'package:provider/provider.dart';
 
 class NavigationPage extends StatelessWidget {
@@ -56,7 +60,10 @@ class NavigationPage extends StatelessWidget {
       case 0:
         return const DashboardScreen();
       case 1:
-        return const Scaffold(body: Center(child: Text('Pantalla de Eventos')));
+        return ChangeNotifierProvider(
+        create: (_) => InsumoController(InsumoFirestoreRepository(FirebaseFirestore.instance)),
+        child: const InsumosScreen(),
+      );
       // ... otros casos
       default:
         return const Center(child: Text('Pantalla no encontrada'));

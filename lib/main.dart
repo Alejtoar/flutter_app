@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:golo_app/navigation/controllers/navigation_controller.dart';
 import 'package:golo_app/navigation/navigation_page.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 
 void main() {
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => NavigationController(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => NavigationController()),
+        Provider(create: (_) => FirebaseFirestore.instance),
+      ],
       child: const MyApp(),
     ),
   );
