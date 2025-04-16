@@ -1,63 +1,66 @@
+//rail_navigation.dart
+
 import 'package:flutter/material.dart';
-import 'package:golo_app/navigation/controllers/navigation_controller.dart';
-import 'package:golo_app/navigation/models/menu_item.dart';
 import 'package:provider/provider.dart';
-
-
+import 'package:golo_app/navigation/controllers/navigation_controller.dart';
 
 class RailNavigation extends StatelessWidget {
   final bool isExpanded;
 
-  const RailNavigation({
-    Key? key,
-    required this.isExpanded,
-  }) : super(key: key);
+  const RailNavigation({Key? key, required this.isExpanded}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final controller = Provider.of<NavigationController>(context);
-    final currentItems = controller.currentMenuItems;
 
     return NavigationRail(
       selectedIndex: _calculateSelectedIndex(controller),
       onDestinationSelected: (index) => _handleSelection(index, controller),
       extended: isExpanded,
-      destinations: _buildDestinations(controller, currentItems),
+      destinations: _buildDestinations(controller),
     );
   }
 
-  int _calculateSelectedIndex(NavigationController controller) {
-    final items = controller.currentMenuItems;
-    if (controller.isSubMenuOpen) {
-      // Ensure index is valid (0 is back button, 1+ are subitems)
-      return (controller.currentIndex + 1).clamp(0, items.length);
-    } else {
-      return controller.mainMenuIndex.clamp(0, items.length - 1);
-    }
-  }
-
   void _handleSelection(int index, NavigationController controller) {
-    final items = controller.currentMenuItems;
-    if (index < 0 || index >= _buildDestinations(controller, items).length) {
-      return; // Ignore invalid selections
-    }
-    
     if (controller.isSubMenuOpen) {
-      index == 0 ? controller.backToMain() : controller.navigateToSub(index - 1);
+      if (index == 0) {
+        // El primer ítem es el botón "Atrás"
+        controller.backToMain();
+      } else {
+        controller.navigateToSub(index - 1); // Ajustar índice para subitems
+      }
     } else {
       controller.navigateToMain(index);
     }
   }
 
+  int _calculateSelectedIndex(NavigationController controller) {
+  if (controller.isSubMenuOpen) {
+    // Ajusta el índice sumando 1 (para saltar el botón "Atrás") 
+    // y aplica clamp al rango correcto
+    final adjustedIndex = controller.subMenuIndex + 1;
+    return adjustedIndex.clamp(0, controller.currentSubMenuItems.length);
+  }
+  return controller.mainMenuIndex.clamp(0, controller.mainMenuItems.length - 1);
+}
+
   List<NavigationRailDestination> _buildDestinations(
-      NavigationController controller, List<MenuItem> items) {
+    NavigationController controller,
+  ) {
+    final items =
+        controller.isSubMenuOpen
+            ? controller.currentSubMenuItems
+            : controller.mainMenuItems;
+
     return [
       if (controller.isSubMenuOpen) _buildBackDestination(),
-      ...items.map((item) => NavigationRailDestination(
-        icon: Icon(item.icon),
-        selectedIcon: Icon(item.activeIcon),
-        label: Text(item.label),
-      )),
+      ...items.map(
+        (item) => NavigationRailDestination(
+          icon: Icon(item.icon),
+          selectedIcon: Icon(item.activeIcon),
+          label: Text(item.label),
+        ),
+      ),
     ];
   }
 

@@ -23,11 +23,7 @@ class EventSubMenu {
       activeIcon: Icons.filter_alt,
       label: 'Por Estado',
     ),
-    MenuItem(
-      icon: Icons.search,
-      activeIcon: Icons.search,
-      label: 'Buscar',
-    ),
+    MenuItem(icon: Icons.search, activeIcon: Icons.search, label: 'Buscar'),
   ];
 }
 
@@ -83,12 +79,20 @@ class CatalogSubMenu {
 
 class ReportSubMenu {
   static final items = <MenuItem>[
-    // ... items de reportes
+    MenuItem(
+      icon: Icons.bar_chart,
+      activeIcon: Icons.bar_chart,
+      label: 'Reportes Generales',
+    ),
   ];
 }
 
 class AdminSubMenu {
   static final items = <MenuItem>[
-    // ... items de admin
+    MenuItem(
+      icon: Icons.settings,
+      activeIcon: Icons.settings,
+      label: 'Configuración',
+    ),
   ];
 }

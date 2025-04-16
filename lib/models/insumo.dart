@@ -16,59 +16,23 @@ class Insumo {
   final bool activo;
 
   // Categorías predefinidas con sus iconos y colores
-  static  Map<String, Map<String, dynamic>> categoriasInsumos = {
-    'lácteos': {
-      'icon': Icons.local_drink,
-      'color': Colors.blueAccent,
-    },
-    'cárnicos': {
-      'icon': Icons.set_meal,
-      'color': Colors.redAccent,
-    },
-    'vegetales': {
-      'icon': Icons.eco,
-      'color': Colors.greenAccent,
-    },
-    'frutas': {
-      'icon': Icons.apple,
-      'color': Colors.red[200]!,
-    },
-    'especias': {
-      'icon': Icons.spa,
-      'color': Colors.orangeAccent,
-    },
-    'granos': {
-      'icon': Icons.grain,
-      'color': Colors.brown[300]!,
-    },
-    'panadería': {
-      'icon': Icons.bakery_dining,
-      'color': Colors.amber[200]!,
-    },
-    'repostería': {
-      'icon': Icons.cake,
-      'color': Colors.pinkAccent,
-    },
-    'bebidas': {
-      'icon': Icons.local_bar,
-      'color': Colors.purpleAccent,
-    },
-    'empaques': {
-      'icon': Icons.redeem,
-      'color': Colors.brown[200]!,
-    },
+  static Map<String, Map<String, dynamic>> categoriasInsumos = {
+    'lácteos': {'icon': Icons.local_drink, 'color': Colors.blueAccent},
+    'cárnicos': {'icon': Icons.set_meal, 'color': Colors.redAccent},
+    'vegetales': {'icon': Icons.eco, 'color': Colors.greenAccent},
+    'frutas': {'icon': Icons.apple, 'color': Colors.red[200]!},
+    'especias': {'icon': Icons.spa, 'color': Colors.orangeAccent},
+    'granos': {'icon': Icons.grain, 'color': Colors.brown[300]!},
+    'panadería': {'icon': Icons.bakery_dining, 'color': Colors.amber[200]!},
+    'repostería': {'icon': Icons.cake, 'color': Colors.pinkAccent},
+    'bebidas': {'icon': Icons.local_bar, 'color': Colors.purpleAccent},
+    'empaques': {'icon': Icons.redeem, 'color': Colors.brown[200]!},
     'limpieza': {
       'icon': Icons.cleaning_services,
       'color': Colors.blueGrey[200]!,
     },
-    'equipos': {
-      'icon': Icons.kitchen,
-      'color': Colors.deepOrange[200]!,
-    },
-    'otros': {
-      'icon': Icons.category,
-      'color': Colors.grey[600]!,
-    },
+    'equipos': {'icon': Icons.kitchen, 'color': Colors.deepOrange[200]!},
+    'otros': {'icon': Icons.category, 'color': Colors.grey[600]!},
   };
 
   // 2. Constructor const (sin validaciones directas)
@@ -121,22 +85,37 @@ class Insumo {
     );
   }
 
+  static List<String> get nombresCategorias => categoriasInsumos.keys.toList();
+
+  static IconData iconoCategoria(String nombre) {
+    return categoriasInsumos[nombre]?['icon'] ?? Icons.category;
+  }
+
+  static Color colorCategoria(String nombre) {
+    return categoriasInsumos[nombre]?['color'] ?? Colors.grey;
+  }
+
   // 4. Factory constructor para Firestore
   factory Insumo.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    
-    return Insumo.crear(
-      id: doc.id,
-      codigo: data['codigo'] ?? '',
-      nombre: data['nombre'] ?? '',
-      categorias: data['categorias'] ?? [],
-      unidad: data['unidad'] ?? 'unidad',
-      precioUnitario: (data['precioUnitario'] ?? 0).toDouble(),
-      proveedorId: data['proveedorId'] ?? '',
-      fechaCreacion: (data['fechaCreacion'] as Timestamp?)?.toDate(),
-      fechaActualizacion: (data['fechaActualizacion'] as Timestamp?)?.toDate(),
-      activo: data['activo'] ?? true,
-    );
+    try {
+      final data = doc.data() as Map<String, dynamic>;
+
+      return Insumo.crear(
+        id: doc.id,
+        codigo: data['codigo'] ?? '',
+        nombre: data['nombre'] ?? '',
+        categorias: List<String>.from(data['categorias'] ?? []),
+        unidad: data['unidad'] ?? 'unidad',
+        precioUnitario: (data['precioUnitario'] ?? 0).toDouble(),
+        proveedorId: data['proveedorId'] ?? '',
+        fechaCreacion: (data['fechaCreacion'] as Timestamp?)?.toDate(),
+        fechaActualizacion:
+            (data['fechaActualizacion'] as Timestamp?)?.toDate(),
+        activo: data['activo'] ?? true,
+      );
+    } catch (e) {
+      throw Exception('Error convirtiendo documento a Insumo: $e');
+    }
   }
 
   factory Insumo.fromMap(Map<String, dynamic> data) {
@@ -169,8 +148,9 @@ class Insumo {
     if (codigo.isEmpty) errors.add('El código es requerido');
     if (nombre.isEmpty) errors.add('El nombre es requerido');
     if (unidad.isEmpty) errors.add('La unidad es requerida');
-    if (precioUnitario <= 0) errors.add('El precio unitario debe ser mayor a 0');
-    if (proveedorId.isEmpty) errors.add('El proveedor es requerido');
+    if (precioUnitario <= 0)
+      {errors.add('El precio unitario debe ser mayor a 0');}
+    //if (proveedorId.isEmpty) errors.add('El proveedor es requerido');
 
     // Validación de categorías
     if (categorias.isEmpty) {
@@ -252,6 +232,14 @@ class Insumo {
 
   @override
   int get hashCode {
-    return Object.hash(id, codigo, nombre, categorias, unidad, precioUnitario, proveedorId);
+    return Object.hash(
+      id,
+      codigo,
+      nombre,
+      categorias,
+      unidad,
+      precioUnitario,
+      proveedorId,
+    );
   }
 }

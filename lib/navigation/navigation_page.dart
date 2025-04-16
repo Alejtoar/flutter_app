@@ -1,14 +1,16 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+//navigation_page.dart
+
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:golo_app/features/catalogos/insumos/controllers/insumo_controller.dart';
 import 'package:golo_app/features/catalogos/insumos/screens/insumos_screen.dart';
 import 'package:golo_app/features/dashboards/screens/dashboard_screen.dart';
 import 'package:golo_app/navigation/controllers/navigation_controller.dart';
-import 'package:golo_app/navigation/models/main_menu.dart';
+import 'package:golo_app/features/catalogos/proveedores/screens/proveedores_screen.dart';
+import 'package:golo_app/features/catalogos/proveedores/controllers/proveedor_controller.dart';
 import 'package:golo_app/navigation/widgets/bottom_navigation.dart';
 import 'package:golo_app/navigation/widgets/rail_navigation.dart';
-import 'package:golo_app/repositories/insumo_repository_impl.dart';
-import 'package:provider/provider.dart';
+
 
 class NavigationPage extends StatelessWidget {
   const NavigationPage({Key? key}) : super(key: key);
@@ -17,17 +19,15 @@ class NavigationPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     final bool isSmallScreen = width < 600;
-    final controller = Provider.of<NavigationController>(context);
 
     return Scaffold(
-      body: AnimatedBuilder(
-        animation: controller,
-        builder: (context, _) {
+      body: Consumer<NavigationController>(
+        builder: (context, controller, _) {
           return Row(
             children: [
               if (!isSmallScreen) RailNavigation(isExpanded: width > 800),
               if (!isSmallScreen) const VerticalDivider(thickness: 1, width: 1),
-              Expanded(child: _buildCurrentScreen(controller)),
+              Expanded(child: _buildCurrentScreen(controller, context)),
             ],
           );
         },
@@ -38,61 +38,91 @@ class NavigationPage extends StatelessWidget {
   }
 
   Widget _buildMobileNavigation(BuildContext context) {
-    final controller = Provider.of<NavigationController>(context);
-
-    return BottomNavigation(
-      onItemSelected: (index) {
-        if (MainMenu.items[index].subItems != null) {
-          controller.navigateToMain(index);
-        } else {
-          controller.navigateToMain(index);
-        }
-      },
-    );
+    return const BottomNavigation();
   }
 
-  Widget _buildCurrentScreen(NavigationController controller) {
+  Widget _buildCurrentScreen(
+    NavigationController controller,
+    BuildContext context,
+  ) {
+    // Prioridad: Submenú > Menú principal
     if (controller.isSubMenuOpen) {
-      return _buildSubScreen(controller);
+      return _buildSubScreen(controller, context);
     }
+    return _buildMainScreen(controller);
+  }
 
+  Widget _buildMainScreen(NavigationController controller) {
     switch (controller.mainMenuIndex) {
-      case 0:
+      case 0: // Inicio
         return const DashboardScreen();
-      case 1:
-        return ChangeNotifierProvider(
-        create: (_) => InsumoController(InsumoFirestoreRepository(FirebaseFirestore.instance)),
-        child: const InsumosScreen(),
-      );
-      // ... otros casos
+      case 1: // Eventos
+        return _buildPantallaGenerica('Eventos');
+      case 2: // Planificación
+        return _buildPantallaGenerica('Planificación');
+      case 3: // Catálogos
+        return _buildCatalogosMain(controller);
+      case 4: // Reportes
+        return _buildPantallaGenerica('Reportes');
+      case 5: // Admin
+        return _buildPantallaGenerica('Admin');
       default:
         return const Center(child: Text('Pantalla no encontrada'));
     }
   }
 
-  Widget _buildSubScreen(NavigationController controller) {
-    if (controller.currentMenuItems.isEmpty) {
-      return const Center(child: Text('No hay elementos disponibles'));
-    }
-
-    final currentIndex = controller.currentIndex.clamp(
-      0,
-      controller.currentMenuItems.length - 1,
-    );
-    final currentItem = controller.currentMenuItems[currentIndex];
-
+  Widget _buildPantallaGenerica(String titulo) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(currentItem.label),
-        automaticallyImplyLeading: false,
-      ),
+      appBar: AppBar(title: Text(titulo)),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(currentItem.icon, size: 50),
+            Icon(Icons.construction, size: 50),
             const SizedBox(height: 20),
-            Text('Detalles de ${currentItem.label}'),
+            Text('Pantalla de $titulo en desarrollo'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubScreen(
+    NavigationController controller,
+    BuildContext context,
+  ) {
+    final currentSubItems = controller.currentSubMenuItems;
+    final currentItem = currentSubItems[controller.subMenuIndex];
+    return Scaffold(
+      body:
+          currentItem.label == 'Insumos'
+              ? Consumer<InsumoController>(
+                  builder: (context, controller, _) {
+                    return const InsumosScreen();
+                  },
+                )
+              : currentItem.label == 'Proveedores'
+                  ? Consumer<ProveedorController>(
+                      builder: (context, controller, _) {
+                        return const ProveedoresScreen();
+                      },
+                    )
+                  : _buildPantallaGenerica(currentItem.label),
+    );
+  }
+
+  Widget _buildCatalogosMain(NavigationController controller) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Catálogos')),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('Seleccione una categoría del submenú'),
+            ElevatedButton(
+              onPressed: controller.backToMain,
+              child: const Text('Volver al menú principal'),
+            ),
           ],
         ),
       ),

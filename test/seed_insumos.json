@@ -1,0 +1,26 @@
+{
+    "insumos": [
+      {
+        "codigo": "I-001",
+        "nombre": "Leche entera",
+        "categorias": ["lácteos"],
+        "unidad": "litro",
+        "precioUnitario": 25.5,
+        "proveedorId": "prov001",
+        "activo": true,
+        "fechaCreacion": { ".sv": "timestamp" },
+        "fechaActualizacion": { ".sv": "timestamp" }
+      },
+      {
+        "codigo": "I-002",
+        "nombre": "Queso fresco",
+        "categorias": ["lácteos"],
+        "unidad": "kg",
+        "precioUnitario": 180,
+        "proveedorId": "prov001",
+        "activo": true,
+        "fechaCreacion": { ".sv": "timestamp" },
+        "fechaActualizacion": { ".sv": "timestamp" }
+      }
+    ]
+  }

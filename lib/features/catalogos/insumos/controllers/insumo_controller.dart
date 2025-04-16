@@ -1,85 +1,155 @@
+//inaumo_controller.dart
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:golo_app/models/insumo.dart';
 import 'package:golo_app/repositories/insumo_repository.dart';
+import 'package:golo_app/models/proveedor.dart';
+import 'package:golo_app/repositories/proveedor_repository.dart';
 
 class InsumoController extends ChangeNotifier {
   final InsumoRepository _repository;
+  final ProveedorRepository _proveedorRepository;
   List<Insumo> _insumos = [];
-  List<Insumo> _filteredInsumos = [];
   bool _loading = false;
-  String? _error;
+  String _searchQuery = '';
+  Timer? _debounceTimer;
+  List<String> _categoriasFiltro = [];
+  String? _proveedorFiltro;
+  List<Insumo> _insumosFiltrados = [];
 
-  InsumoController(this._repository);
+  // Proveedores
+  List<Proveedor> _proveedores = [];
+  Proveedor? _proveedorSeleccionado;
+  List<Proveedor> get proveedores => _proveedores;
+  Proveedor? get proveedorSeleccionado => _proveedorSeleccionado;
 
-  List<Insumo> get insumos => _filteredInsumos;
+  List<Insumo> get insumos => _insumos;
+  List<Insumo> get insumosFiltrados => _insumosFiltrados;
   bool get loading => _loading;
-  String? get error => _error;
 
-  Future<void> loadInsumos() async {
+  InsumoController(this._repository, this._proveedorRepository);
+
+  // Método público para cargar insumos
+  Future<void> cargarInsumos() async {
+    _loading = true;
+    notifyListeners();
+
     try {
-      _setLoading(true);
       _insumos = await _repository.obtenerTodos();
-      _filteredInsumos = List.from(_insumos);
+      _insumosFiltrados = _insumos; // Inicializar la lista filtrada
+      debugPrint('Insumos cargados: ${_insumos.length}');
     } catch (e) {
-      _setError('Error al cargar insumos: ${e.toString()}');
-      rethrow;
+      debugPrint('Error al cargar insumos: $e');
+      _insumos = [];
+      _insumosFiltrados = [];
     } finally {
-      _setLoading(false);
+      _loading = false;
+      notifyListeners();
     }
   }
 
-  Future<bool> deleteInsumo(String id) async {
+  // Cargar proveedores
+  Future<void> cargarProveedores() async {
     try {
-      _setLoading(true);
+      _proveedores = await _proveedorRepository.obtenerTodos();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error al cargar proveedores: $e');
+      _proveedores = [];
+      notifyListeners();
+    }
+  }
+
+  void seleccionarProveedor(Proveedor? proveedor) {
+    _proveedorSeleccionado = proveedor;
+    notifyListeners();
+  }
+
+  // Filtrar insumos por proveedor
+  Future<void> filtrarPorProveedor(String? proveedorId) async {
+    if (proveedorId == null || proveedorId.isEmpty) {
+      await cargarInsumos();
+      return;
+    }
+    try {
+      _loading = true;
+      notifyListeners();
+      _insumosFiltrados = await _repository.filtrarInsumosPorProveedor(
+        proveedorId,
+      );
+    } catch (e) {
+      debugPrint('Error al filtrar por proveedor: $e');
+      _insumosFiltrados = [];
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
+  }
+
+  // Método público para búsqueda con debounce
+  void buscarInsumos(
+    String query, {
+    List<String> categorias = const [],
+    String? proveedorId,
+  }) {
+    if (_debounceTimer?.isActive ?? false) _debounceTimer?.cancel();
+
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+      _searchQuery = query;
+      _categoriasFiltro = categorias;
+      _proveedorFiltro = proveedorId;
+      _aplicarFiltros();
+      notifyListeners();
+    });
+  }
+
+  void _aplicarFiltros() {
+    _insumosFiltrados =
+        _insumos.where((insumo) {
+          final matchNombre =
+              _searchQuery.isEmpty ||
+              insumo.nombre.toLowerCase().contains(_searchQuery.toLowerCase());
+          final matchCategorias =
+              _categoriasFiltro.isEmpty ||
+              insumo.categorias.any((c) => _categoriasFiltro.contains(c));
+          final matchProveedor =
+              _proveedorFiltro == null ||
+              _proveedorFiltro!.isEmpty ||
+              insumo.proveedorId == _proveedorFiltro;
+          return matchNombre && matchCategorias && matchProveedor;
+        }).toList();
+  }
+
+  // Método público para eliminar con confirmación (contexto pasado desde UI)
+  Future<bool> eliminarInsumo({required String id}) async {
+    try {
       await _repository.eliminarInsumo(id);
-      await loadInsumos();
+      await cargarInsumos();
       return true;
     } catch (e) {
-      _setError('Error al eliminar insumo: ${e.toString()}');
       return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
-  
-  void filterInsumos(String query) {
-    _filteredInsumos = _insumos
-        .where((i) => i.nombre.toLowerCase().contains(query.toLowerCase()))
-        .toList();
-    notifyListeners();
-  }
-
-  Future<void> saveInsumo(Insumo insumo) async {
-    try {
-      _setLoading(true);
-      if (insumo.id == null || insumo.id!.isEmpty) {
-        await _repository.crear(insumo);
-      } else {
-        await _repository.actualizar(insumo);
-      }
-      await loadInsumos();
-    } catch (e) {
-      _setError('Error al guardar insumo: ${e.toString()}');
-      rethrow;
-    } finally {
-      _setLoading(false);
     }
   }
 
-  // Métodos auxiliares para manejar estado
-  void _setLoading(bool loading) {
-    _loading = loading;
-    notifyListeners();
+  // Métodos públicos para CRUD
+  Future<void> crearInsumo(Insumo insumo) async {
+    await _repository.crear(insumo);
+    await cargarInsumos();
   }
 
-  void _setError(String? error) {
-    _error = error;
-    notifyListeners();
+  Future<void> actualizarInsumo(Insumo insumo) async {
+    await _repository.actualizar(insumo);
+    await cargarInsumos();
   }
 
-  // Nuevo método para limpiar errores
-  void clearError() {
-    _error = null;
-    notifyListeners();
+  Future<String> generarNuevoCodigo() async {
+    return await _repository.generarNuevoCodigo();
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
   }
 }

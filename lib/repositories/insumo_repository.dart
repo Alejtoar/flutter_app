@@ -6,7 +6,7 @@ abstract class InsumoRepository {
 
   Future<Insumo> crear(Insumo insumo);
   Future<Insumo> obtener(String id);
-  Future<List<Insumo>> obtenerTodos({String? proveedorId});
+  Future<List<Insumo>> obtenerTodos();
   Future<List<Insumo>> obtenerVarios(List<String> ids);
   Future<void> actualizar(Insumo insumo);
   Future<void> desactivar(String id);

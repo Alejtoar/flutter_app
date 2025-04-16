@@ -1,3 +1,4 @@
+// proveedor_repository_impl.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:golo_app/models/proveedor.dart';
 import 'package:golo_app/repositories/proveedor_repository.dart';
@@ -38,8 +39,7 @@ class ProveedorFirestoreRepository implements ProveedorRepository {
   Future<List<Proveedor>> obtenerTodos() async {
     try {
       final querySnapshot = await _db.collection(_coleccion)
-          .where('activo', isEqualTo: true)
-          .orderBy('nombre')
+          // .where('activo', isEqualTo: true)
           .get();
       return querySnapshot.docs.map((doc) => Proveedor.fromFirestore(doc)).toList();
     } on FirebaseException catch (e) {

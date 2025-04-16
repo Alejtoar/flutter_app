@@ -4,20 +4,22 @@ import '../models/main_menu.dart';
 
 class NavigationController extends ChangeNotifier {
   int _mainMenuIndex = 0;
-  int? _subMenuIndex;
+  int _subMenuIndex = 0;
   MenuItem? _expandedMenu;
-  List<MenuItem> get mainMenuItems => MainMenu.items;
 
-  int get currentIndex => _subMenuIndex ?? _mainMenuIndex;
-  MenuItem? get expandedMenu => _expandedMenu;
+  List<MenuItem> get mainMenuItems => MainMenu.items;
+  List<MenuItem> get currentSubMenuItems => _expandedMenu?.subItems ?? [];
+
+  int get mainMenuIndex => _mainMenuIndex;
+  int get subMenuIndex => _subMenuIndex;
   bool get isSubMenuOpen => _expandedMenu != null;
 
-  List<MenuItem> get currentMenuItems =>
-      isSubMenuOpen ? _expandedMenu!.subItems! : MainMenu.items;
-
   void navigateToMain(int index) {
+    final isValidIndex = index >= 0 && index < MainMenu.items.length;
+    if (!isValidIndex) return;
+
     _mainMenuIndex = index;
-    _subMenuIndex = null;
+    _subMenuIndex = 0;
 
     if (MainMenu.items[index].subItems != null) {
       _expandedMenu = MainMenu.items[index];
@@ -35,9 +37,16 @@ class NavigationController extends ChangeNotifier {
 
   void backToMain() {
     _expandedMenu = null;
-    _subMenuIndex = null;
+    _subMenuIndex = 0;
     notifyListeners();
   }
 
-  int get mainMenuIndex => _mainMenuIndex;
+  // Nuevo: Verificar si el ítem principal tiene pantalla asociada
+  bool get hasMainScreen {
+    if (!isSubMenuOpen) return true;
+    return _expandedMenu?.subItems == null;
+  }
+
+  List<MenuItem> get currentMenuItems =>
+      isSubMenuOpen ? _expandedMenu!.subItems! : MainMenu.items;
 }

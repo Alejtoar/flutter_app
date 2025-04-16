@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:golo_app/navigation/controllers/navigation_controller.dart';
 import 'package:provider/provider.dart';
+import 'package:golo_app/navigation/controllers/navigation_controller.dart';
+
 
 class BottomNavigation extends StatelessWidget {
   final void Function(int index)? onItemSelected;
@@ -16,15 +17,12 @@ class BottomNavigation extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (controller.isSubMenuOpen) _buildSubMenuBar(context, controller),
-        _buildMainNavigationBar(controller, theme),
+        _buildMainNavigationBar(context, controller, theme),
       ],
     );
   }
 
-  Widget _buildSubMenuBar(
-    BuildContext context,
-    NavigationController controller,
-  ) {
+  Widget _buildSubMenuBar(BuildContext context, NavigationController controller) {
     return Container(
       height: 50,
       decoration: BoxDecoration(
@@ -51,10 +49,9 @@ class BottomNavigation extends StatelessWidget {
                   foregroundColor:
                       Theme.of(context).colorScheme.onSecondaryContainer,
                 ),
-                onPressed:
-                    () => controller.navigateToSub(
-                      controller.currentMenuItems.indexOf(item),
-                    ),
+                onPressed: () => controller.navigateToSub(
+                  controller.currentMenuItems.indexOf(item),
+                ),
                 child: Text(item.label),
               ),
             ),
@@ -65,20 +62,20 @@ class BottomNavigation extends StatelessWidget {
   }
 
   Widget _buildMainNavigationBar(
+    BuildContext context,
     NavigationController controller,
     ThemeData theme,
   ) {
     return BottomNavigationBar(
-      items:
-          controller.mainMenuItems
-              .map(
-                (item) => BottomNavigationBarItem(
-                  icon: Icon(item.icon),
-                  activeIcon: Icon(item.activeIcon),
-                  label: item.label,
-                ),
-              )
-              .toList(),
+      items: controller.mainMenuItems
+          .map(
+            (item) => BottomNavigationBarItem(
+              icon: Icon(item.icon),
+              activeIcon: Icon(item.activeIcon),
+              label: item.label,
+            ),
+          )
+          .toList(),
       currentIndex: controller.mainMenuIndex,
       onTap: (index) => _handleMainItemTap(index, controller),
       selectedItemColor: theme.primaryColor,
@@ -87,15 +84,14 @@ class BottomNavigation extends StatelessWidget {
   }
 
   void _handleMainItemTap(int index, NavigationController controller) {
+    final item = controller.mainMenuItems[index];
     if (onItemSelected != null) {
       onItemSelected!(index);
     } else {
-      final item = controller.mainMenuItems[index];
       if (item.subItems != null && item.subItems!.isNotEmpty) {
         controller.navigateToMain(index);
       } else {
         controller.navigateToMain(index);
-        // Aquí podrías navegar directamente a una pantalla si no tiene subitems
       }
     }
   }
