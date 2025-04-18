@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:golo_app/features/catalogos/insumos/controllers/insumo_controller.dart';
 import 'package:golo_app/features/catalogos/insumos/screens/insumos_screen.dart';
+import 'package:golo_app/features/catalogos/intermedios/screens/intermedios_screen.dart';
 import 'package:golo_app/features/dashboards/screens/dashboard_screen.dart';
 import 'package:golo_app/navigation/controllers/navigation_controller.dart';
 import 'package:golo_app/features/catalogos/proveedores/screens/proveedores_screen.dart';
@@ -101,6 +102,8 @@ class NavigationPage extends StatelessWidget {
                     return const InsumosScreen();
                   },
                 )
+              : currentItem.label == 'Intermedios'
+                  ? const IntermediosScreen()
               : currentItem.label == 'Proveedores'
                   ? Consumer<ProveedorController>(
                       builder: (context, controller, _) {

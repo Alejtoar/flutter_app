@@ -38,8 +38,6 @@ class IntermedioFirestoreRepository implements IntermedioRepository {
   Future<List<Intermedio>> obtenerTodos() async {
     try {
       final querySnapshot = await _db.collection(_coleccion)
-          .where('activo', isEqualTo: true)
-          .orderBy('nombre')
           .get();
       return querySnapshot.docs.map((doc) => Intermedio.fromFirestore(doc)).toList();
     } on FirebaseException catch (e) {

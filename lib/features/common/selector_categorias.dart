@@ -1,66 +1,30 @@
 //selector_categorias.dart
 import 'package:flutter/material.dart';
 import 'package:golo_app/models/insumo.dart';
+import 'package:golo_app/models/intermedio.dart';
 
 class SelectorCategorias extends StatelessWidget {
+  final List<String> categorias;
   final List<String> seleccionadas;
   final ValueChanged<List<String>> onChanged;
   final bool multiple;
-  final bool compacto;
   final bool mostrarContador;
 
   const SelectorCategorias({
     super.key,
     required this.seleccionadas,
     required this.onChanged,
+    this.categorias = const [],
     this.multiple = true,
-    this.compacto = false,
     this.mostrarContador = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    if (compacto) {
-      return _buildSelectorCompacto(context);
-    }
-    return _buildSelectorCompleto(context);
+    return _buildSelectorCompacto(context);
   }
 
-  Widget _buildSelectorCompleto(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: Insumo.nombresCategorias.map((categoria) {
-        final seleccionada = seleccionadas.contains(categoria);
-        return FilterChip(
-          label: Text(categoria),
-          selected: seleccionada,
-          onSelected: (selected) {
-            final nuevas = List<String>.from(seleccionadas);
-            if (selected) {
-              if (multiple) {
-                nuevas.add(categoria);
-              } else {
-                nuevas.clear();
-                nuevas.add(categoria);
-              }
-            } else {
-              nuevas.remove(categoria);
-            }
-            onChanged(nuevas);
-          },
-          avatar: Icon(Insumo.iconoCategoria(categoria)),
-          backgroundColor: Colors.grey[200],
-          selectedColor: Insumo.colorCategoria(categoria).withOpacity(0.2),
-          labelStyle: TextStyle(
-            color: seleccionada
-                ? Insumo.colorCategoria(categoria)
-                : Colors.black,
-          ),
-        );
-      }).toList(),
-    );
-  }
+  List<String> get _categorias => categorias.isNotEmpty ? categorias : Insumo.nombresCategorias;
 
   Widget _buildSelectorCompacto(BuildContext context) {
     return Column(
@@ -87,7 +51,7 @@ class SelectorCategorias extends StatelessWidget {
       height: 0,
       padding: EdgeInsets.zero,
       child: _CategorySelector(
-        categories: Insumo.nombresCategorias,
+        categories: _categorias,
         selected: seleccionadas,
         multiple: multiple,
         onSelectionChanged: onChanged,
@@ -144,11 +108,16 @@ class _CategorySelectorState extends State<_CategorySelector> {
   }
 
   Widget _buildCategoryItem(String category) {
+    // Detecta si son categorías de Intermedio
+    final isIntermedio = widget.categories.isNotEmpty && widget.categories.every((cat) => Intermedio.categoriasDisponibles.containsKey(cat));
+    final icon = isIntermedio
+        ? (Intermedio.categoriasDisponibles[category]?['icon'] as IconData? ?? Icons.category)
+        : Insumo.iconoCategoria(category);
     return CheckboxListTile(
       value: _tempSelected.contains(category),
       title: Text(category),
       onChanged: (value) => _handleCategoryToggle(category, value),
-      secondary: Icon(Insumo.iconoCategoria(category)),
+      secondary: Icon(icon),
     );
   }
 

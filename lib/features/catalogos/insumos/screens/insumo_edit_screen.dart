@@ -143,7 +143,7 @@ class _AddEditInsumoScreenState extends State<AddEditInsumoScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8),
                 child: SelectorCategorias(
                   seleccionadas: _selectedCategories,
-                  compacto: true,
+                  
                   onChanged:
                       (categorias) =>
                           setState(() => _selectedCategories = categorias),

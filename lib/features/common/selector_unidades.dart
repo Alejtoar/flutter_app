@@ -9,7 +9,7 @@ class SelectorUnidades extends StatelessWidget {
 
   // Lista de unidades permitidas (extraída del modelo Insumo)
   static const List<String> unidadesPermitidas = [
-    'unidad', 'kg', 'g', 'l', 'ml', 'pieza', 'paquete', 'caja', 'botella', 'docena', 'metro', 'cm', 'litro', 'gramo', 'tableta', 'sobre', 'frasco', 'bulto', 'bandeja', 'otro'
+    'unidad', 'kg', 'gramo', 'litro', 'ml', 'pieza', 'paquete', 'caja', 'botella', 'docena', 'tableta', 'sobre', 'frasco', 'bulto', 'bandeja', 'otro'
   ];
 
   const SelectorUnidades({

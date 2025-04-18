@@ -148,7 +148,7 @@ class _InsumosScreenState extends State<InsumosScreen> {
                 proveedorId: _proveedorFiltro?.id,
               );
             },
-            compacto: true,
+            
             mostrarContador: true,
           ),
         ),

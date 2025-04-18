@@ -9,6 +9,7 @@ class Intermedio {
   final String codigo;
   final String nombre;
   final List<String> categorias;
+  final String unidad;
   final double cantidadEstandar;
   final double reduccionPorcentaje;
   final String receta;
@@ -49,6 +50,36 @@ class Intermedio {
       'color': Colors.purple[200]!,
       'reduccionDefault': 30.0,
     },
+    'proteína': {
+      'icon': Icons.set_meal,
+      'color': Colors.deepOrange[200]!,
+      'reduccionDefault': 18.0,
+    },
+    'ensalada': {
+      'icon': Icons.eco,
+      'color': Colors.lightGreen[200]!,
+      'reduccionDefault': 8.0,
+    },
+    'galletaría': {
+      'icon': Icons.cookie,
+      'color': Colors.brown[100]!,
+      'reduccionDefault': 12.0,
+    },
+    'panadería': {
+      'icon': Icons.bakery_dining,
+      'color': Colors.amber[300]!,
+      'reduccionDefault': 10.0,
+    },
+    'guarnición fría': {
+      'icon': Icons.ac_unit,
+      'color': Colors.cyan[200]!,
+      'reduccionDefault': 7.0,
+    },
+    'otros': {
+      'icon': Icons.category,
+      'color': Colors.grey[400]!,
+      'reduccionDefault': 10.0,
+    },
   };
 
   // 3. Constructor const
@@ -57,6 +88,7 @@ class Intermedio {
     required this.codigo,
     required this.nombre,
     required this.categorias,
+    required this.unidad,
     required this.cantidadEstandar,
     required this.reduccionPorcentaje,
     required this.receta,
@@ -72,6 +104,7 @@ class Intermedio {
     required String codigo,
     required String nombre,
     required List<String> categorias,
+    required String unidad,
     double? reduccionPorcentaje,
     double cantidadEstandar = 1.0,
     String receta = '',
@@ -84,9 +117,12 @@ class Intermedio {
     final errors = <String>[];
 
     if (codigo.isEmpty) errors.add('El código es requerido');
-    if (!codigo.startsWith('PI-')) errors.add('El código debe comenzar con "PI-"');
+    if (!codigo.startsWith('PI-'))
+      errors.add('El código debe comenzar con "PI-"');
     if (nombre.isEmpty) errors.add('El nombre es requerido');
-    if (cantidadEstandar <= 0) errors.add('La cantidad estándar debe ser mayor a 0');
+    if (unidad.isEmpty) errors.add('La unidad es requerida');
+    if (cantidadEstandar <= 0)
+      errors.add('La cantidad estándar debe ser mayor a 0');
 
     // Validación de categorías
     if (categorias.isEmpty) {
@@ -104,7 +140,8 @@ class Intermedio {
     }
 
     // Asignar reducción porcentual por defecto según categoría principal
-    final reduccionDefault = categoriasDisponibles[categorias.first]?['reduccionDefault'] ?? 0.0;
+    final reduccionDefault =
+        categoriasDisponibles[categorias.first]?['reduccionDefault'] ?? 0.0;
     final reduccionFinal = reduccionPorcentaje ?? reduccionDefault;
 
     if (reduccionFinal < 0 || reduccionFinal > 100) {
@@ -121,6 +158,7 @@ class Intermedio {
       codigo: codigo,
       nombre: nombre,
       categorias: categorias,
+      unidad: unidad,
       cantidadEstandar: cantidadEstandar,
       reduccionPorcentaje: reduccionFinal,
       receta: receta,
@@ -134,12 +172,13 @@ class Intermedio {
   // 5. Factory constructor para Firestore
   factory Intermedio.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
-    
+
     return Intermedio(
       id: doc.id,
       codigo: data['codigo'] as String,
       nombre: data['nombre'] as String,
       categorias: List<String>.from(data['categorias']),
+      unidad: data['unidad'] as String,
       cantidadEstandar: (data['cantidadEstandar'] as num).toDouble(),
       reduccionPorcentaje: (data['reduccionPorcentaje'] as num).toDouble(),
       receta: data['receta'] as String,
@@ -157,6 +196,7 @@ class Intermedio {
       'codigo': codigo,
       'nombre': nombre,
       'categorias': categorias,
+      'unidad': unidad,
       'cantidadEstandar': cantidadEstandar,
       'reduccionPorcentaje': reduccionPorcentaje,
       'receta': receta,
@@ -173,6 +213,7 @@ class Intermedio {
     String? codigo,
     String? nombre,
     List<String>? categorias,
+    String? unidad,
     double? cantidadEstandar,
     double? reduccionPorcentaje,
     String? receta,
@@ -186,10 +227,12 @@ class Intermedio {
       codigo: codigo ?? this.codigo,
       nombre: nombre ?? this.nombre,
       categorias: categorias ?? this.categorias,
+      unidad: unidad ?? this.unidad,
       cantidadEstandar: cantidadEstandar ?? this.cantidadEstandar,
       reduccionPorcentaje: reduccionPorcentaje ?? this.reduccionPorcentaje,
       receta: receta ?? this.receta,
-      tiempoPreparacionMinutos: tiempoPreparacionMinutos ?? this.tiempoPreparacionMinutos,
+      tiempoPreparacionMinutos:
+          tiempoPreparacionMinutos ?? this.tiempoPreparacionMinutos,
       fechaCreacion: fechaCreacion ?? this.fechaCreacion,
       fechaActualizacion: fechaActualizacion ?? this.fechaActualizacion,
       activo: activo ?? this.activo,
@@ -199,7 +242,9 @@ class Intermedio {
   // 9. Helpers para UI
   List<IconData> get iconosCategorias {
     return categorias
-        .map((categoria) => categoriasDisponibles[categoria]!['icon'] as IconData)
+        .map(
+          (categoria) => categoriasDisponibles[categoria]!['icon'] as IconData,
+        )
         .toList();
   }
 
@@ -230,31 +275,31 @@ class Intermedio {
   bool operator ==(Object other) {
     return identical(this, other) ||
         other is Intermedio &&
-        other.id == id &&
-        other.codigo == codigo &&
-        other.nombre == nombre &&
-        listEquals(other.categorias, categorias) &&
-        other.cantidadEstandar == cantidadEstandar &&
-        other.reduccionPorcentaje == reduccionPorcentaje &&
-        other.receta == receta &&
-        other.tiempoPreparacionMinutos == tiempoPreparacionMinutos &&
-        other.fechaCreacion == fechaCreacion &&
-        other.fechaActualizacion == fechaActualizacion &&
-        other.activo == activo;
+            other.id == id &&
+            other.codigo == codigo &&
+            other.nombre == nombre &&
+            listEquals(other.categorias, categorias) &&
+            other.cantidadEstandar == cantidadEstandar &&
+            other.reduccionPorcentaje == reduccionPorcentaje &&
+            other.receta == receta &&
+            other.tiempoPreparacionMinutos == tiempoPreparacionMinutos &&
+            other.fechaCreacion == fechaCreacion &&
+            other.fechaActualizacion == fechaActualizacion &&
+            other.activo == activo;
   }
 
   @override
   int get hashCode => Object.hash(
-        id,
-        codigo,
-        nombre,
-        Object.hashAll(categorias),
-        cantidadEstandar,
-        reduccionPorcentaje,
-        receta,
-        tiempoPreparacionMinutos,
-        fechaCreacion,
-        fechaActualizacion,
-        activo,
-      );
+    id,
+    codigo,
+    nombre,
+    Object.hashAll(categorias),
+    cantidadEstandar,
+    reduccionPorcentaje,
+    receta,
+    tiempoPreparacionMinutos,
+    fechaCreacion,
+    fechaActualizacion,
+    activo,
+  );
 }
