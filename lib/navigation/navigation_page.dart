@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import 'package:golo_app/features/catalogos/insumos/controllers/insumo_controller.dart';
 import 'package:golo_app/features/catalogos/insumos/screens/insumos_screen.dart';
 import 'package:golo_app/features/catalogos/intermedios/screens/intermedios_screen.dart';
+import 'package:golo_app/features/catalogos/platos/controllers/plato_controller.dart';
+import 'package:golo_app/features/catalogos/platos/screens/platos_screen.dart';
 import 'package:golo_app/features/dashboards/screens/dashboard_screen.dart';
 import 'package:golo_app/navigation/controllers/navigation_controller.dart';
 import 'package:golo_app/features/catalogos/proveedores/screens/proveedores_screen.dart';
@@ -104,6 +106,12 @@ class NavigationPage extends StatelessWidget {
                 )
               : currentItem.label == 'Intermedios'
                   ? const IntermediosScreen()
+              : currentItem.label == 'Platos'
+                  ? Consumer<PlatoController>(
+                      builder: (context, controller, _) {
+                        return const PlatosScreen();
+                      },
+                    )
               : currentItem.label == 'Proveedores'
                   ? Consumer<ProveedorController>(
                       builder: (context, controller, _) {

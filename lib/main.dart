@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:golo_app/features/catalogos/insumos/controllers/insumo_controller.dart';
 import 'package:golo_app/features/catalogos/intermedios/controllers/intermedio_controller.dart';
+import 'package:golo_app/features/catalogos/platos/controllers/plato_controller.dart';
+import 'package:golo_app/repositories/plato_repository_impl.dart';
+import 'package:golo_app/repositories/intermedio_requerido_repository_impl.dart';
+import 'package:golo_app/repositories/insumo_requerido_repository_impl.dart';
 import 'package:golo_app/features/catalogos/proveedores/controllers/proveedor_controller.dart';
 import 'package:golo_app/navigation/controllers/navigation_controller.dart';
 import 'package:golo_app/navigation/navigation_page.dart';
@@ -46,6 +50,13 @@ void main() async {
                 IntermedioFirestoreRepository(FirebaseFirestore.instance),
                 InsumoUtilizadoFirestoreRepository(FirebaseFirestore.instance),
               ),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => PlatoController(
+            PlatoFirestoreRepository(FirebaseFirestore.instance),
+            IntermedioRequeridoFirestoreRepository(FirebaseFirestore.instance),
+            InsumoRequeridoFirestoreRepository(FirebaseFirestore.instance),
+          ),
         ),
       ],
       child: const MyApp(),

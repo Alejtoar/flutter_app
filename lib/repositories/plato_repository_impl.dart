@@ -37,9 +37,7 @@ class PlatoFirestoreRepository implements PlatoRepository {
   @override
   Future<List<Plato>> obtenerTodos({String? categoria}) async {
     try {
-      Query query = _db.collection(_coleccion)
-          .where('activo', isEqualTo: true)
-          .orderBy('nombre');
+      Query query = _db.collection(_coleccion);
 
       if (categoria != null) {
         query = query.where('categorias', arrayContains: categoria);

@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:golo_app/models/insumo.dart';
 import 'package:golo_app/models/intermedio.dart';
+import 'package:golo_app/models/plato.dart';
 
 class SelectorCategorias extends StatelessWidget {
   final List<String> categorias;
@@ -108,11 +109,14 @@ class _CategorySelectorState extends State<_CategorySelector> {
   }
 
   Widget _buildCategoryItem(String category) {
-    // Detecta si son categorías de Intermedio
+    // Detecta si son categorías de Intermedio o Plato
     final isIntermedio = widget.categories.isNotEmpty && widget.categories.every((cat) => Intermedio.categoriasDisponibles.containsKey(cat));
+    final isPlato = widget.categories.isNotEmpty && widget.categories.every((cat) => Plato.categoriasDisponibles.containsKey(cat));
     final icon = isIntermedio
         ? (Intermedio.categoriasDisponibles[category]?['icon'] as IconData? ?? Icons.category)
-        : Insumo.iconoCategoria(category);
+        : isPlato
+          ? (Plato.categoriasDisponibles[category]?['icon'] as IconData? ?? Icons.category)
+          : Insumo.iconoCategoria(category);
     return CheckboxListTile(
       value: _tempSelected.contains(category),
       title: Text(category),
