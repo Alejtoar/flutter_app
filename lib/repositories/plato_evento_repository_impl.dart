@@ -11,11 +11,7 @@ class PlatoEventoFirestoreRepository implements PlatoEventoRepository {
   @override
   Future<PlatoEvento> crear(PlatoEvento relacion) async {
     try {
-      final docRef = await _db.collection(_coleccion).add({
-        'eventoId': relacion.eventoId,
-        'platoId': relacion.platoId,
-        'cantidad': relacion.cantidad,
-      });
+      final docRef = await _db.collection(_coleccion).add(relacion.toFirestore());
       return relacion.copyWith(id: docRef.id);
     } on FirebaseException catch (e) {
       throw _handleFirestoreError(e);
@@ -38,9 +34,7 @@ class PlatoEventoFirestoreRepository implements PlatoEventoRepository {
     try {
       await _db.collection(_coleccion)
           .doc(relacion.id)
-          .update({
-            'cantidad': relacion.cantidad,
-          });
+          .update(relacion.toFirestore());
     } on FirebaseException catch (e) {
       throw _handleFirestoreError(e);
     }
@@ -78,7 +72,7 @@ class PlatoEventoFirestoreRepository implements PlatoEventoRepository {
   @override
   Future<void> reemplazarPlatosDeEvento(
     String eventoId, 
-    List<String> nuevosPlatosIds
+    List<PlatoEvento> nuevosPlatosEvento
   ) async {
     final batch = _db.batch();
     
@@ -89,13 +83,9 @@ class PlatoEventoFirestoreRepository implements PlatoEventoRepository {
     }
     
     // Crear nuevas relaciones
-    for (final platoId in nuevosPlatosIds) {
+    for (final platoEvento in nuevosPlatosEvento) {
       final docRef = _db.collection(_coleccion).doc();
-      batch.set(docRef, {
-        'eventoId': eventoId,
-        'platoId': platoId,
-        'cantidad': 1,
-      });
+      batch.set(docRef, platoEvento.toFirestore());
     }
     
     await batch.commit();

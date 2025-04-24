@@ -15,6 +15,11 @@ import 'package:golo_app/repositories/proveedor_repository_impl.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'features/eventos/buscador_eventos/controllers/buscador_eventos_controller.dart';
+import 'repositories/evento_repository_impl.dart';
+import 'repositories/plato_evento_repository_impl.dart';
+import 'repositories/insumo_evento_repository_impl.dart';
+import 'repositories/intermedio_evento_repository_impl.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -25,6 +30,15 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => NavigationController()),
         Provider(create: (_) => FirebaseFirestore.instance),
+        ChangeNotifierProvider(
+          create: (_) => BuscadorEventosController(
+            repository: EventoFirestoreRepository(FirebaseFirestore.instance),
+            platoEventoRepository: PlatoEventoFirestoreRepository(FirebaseFirestore.instance),
+            insumoEventoRepository: InsumoEventoFirestoreRepository(FirebaseFirestore.instance),
+            intermedioEventoRepository: IntermedioEventoFirestoreRepository(FirebaseFirestore.instance),
+          ),
+        ),
+
         ChangeNotifierProvider(
           create:
               (context) => InsumoController(

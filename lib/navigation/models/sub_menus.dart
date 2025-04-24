@@ -6,24 +6,13 @@ class EventSubMenu {
     MenuItem(
       icon: Icons.list_alt,
       activeIcon: Icons.list_alt,
-      label: 'Todos los Eventos',
-    ),
-    MenuItem(
-      icon: Icons.add_circle_outline,
-      activeIcon: Icons.add_circle,
-      label: 'Nuevo Evento',
+      label: 'Eventos',
     ),
     MenuItem(
       icon: Icons.calendar_today,
       activeIcon: Icons.calendar_today,
       label: 'Calendario',
     ),
-    MenuItem(
-      icon: Icons.filter_alt,
-      activeIcon: Icons.filter_alt,
-      label: 'Por Estado',
-    ),
-    MenuItem(icon: Icons.search, activeIcon: Icons.search, label: 'Buscar'),
   ];
 }
 

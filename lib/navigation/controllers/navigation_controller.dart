@@ -41,6 +41,22 @@ class NavigationController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Navegación inteligente para botón atrás
+  void back() {
+    if (isSubMenuOpen && _subMenuIndex == 0) {
+      // Si está en el primer submenú, volver a Home
+      _mainMenuIndex = 0;
+      _subMenuIndex = 0;
+      _expandedMenu = null;
+      notifyListeners();
+    } else if (isSubMenuOpen) {
+      // Si está en otro submenú, volver al primero
+      _subMenuIndex = 0;
+      notifyListeners();
+    }
+    // Si ya está en Home, no hace nada
+  }
+
   // Nuevo: Verificar si el ítem principal tiene pantalla asociada
   bool get hasMainScreen {
     if (!isSubMenuOpen) return true;

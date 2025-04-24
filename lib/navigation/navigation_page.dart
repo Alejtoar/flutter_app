@@ -13,6 +13,8 @@ import 'package:golo_app/features/catalogos/proveedores/screens/proveedores_scre
 import 'package:golo_app/features/catalogos/proveedores/controllers/proveedor_controller.dart';
 import 'package:golo_app/navigation/widgets/bottom_navigation.dart';
 import 'package:golo_app/navigation/widgets/rail_navigation.dart';
+import 'package:golo_app/features/eventos/buscador_eventos/screens/buscador_eventos_screen.dart';
+import 'package:golo_app/features/eventos/buscador_eventos/controllers/buscador_eventos_controller.dart';
 
 
 class NavigationPage extends StatelessWidget {
@@ -23,20 +25,29 @@ class NavigationPage extends StatelessWidget {
     final width = MediaQuery.of(context).size.width;
     final bool isSmallScreen = width < 600;
 
-    return Scaffold(
-      body: Consumer<NavigationController>(
-        builder: (context, controller, _) {
-          return Row(
-            children: [
-              if (!isSmallScreen) RailNavigation(isExpanded: width > 800),
-              if (!isSmallScreen) const VerticalDivider(thickness: 1, width: 1),
-              Expanded(child: _buildCurrentScreen(controller, context)),
-            ],
-          );
-        },
+    return WillPopScope(
+      onWillPop: () async {
+        final nav = Provider.of<NavigationController>(context, listen: false);
+        final wasHome = nav.mainMenuIndex == 0 && !nav.isSubMenuOpen;
+        nav.back();
+        // Si ya estaba en Home, permite cerrar la app
+        return wasHome;
+      },
+      child: Scaffold(
+        body: Consumer<NavigationController>(
+          builder: (context, controller, _) {
+            return Row(
+              children: [
+                if (!isSmallScreen) RailNavigation(isExpanded: width > 800),
+                if (!isSmallScreen) const VerticalDivider(thickness: 1, width: 1),
+                Expanded(child: _buildCurrentScreen(controller, context)),
+              ],
+            );
+          },
+        ),
+        bottomNavigationBar:
+            isSmallScreen ? _buildMobileNavigation(context) : null,
       ),
-      bottomNavigationBar:
-          isSmallScreen ? _buildMobileNavigation(context) : null,
     );
   }
 
@@ -60,7 +71,11 @@ class NavigationPage extends StatelessWidget {
       case 0: // Inicio
         return const DashboardScreen();
       case 1: // Eventos
-        return _buildPantallaGenerica('Eventos');
+        return Consumer<BuscadorEventosController>(
+          builder: (context, eventosController, _) {
+            return const BuscadorEventosScreen();
+          },
+        );
       case 2: // Planificación
         return _buildPantallaGenerica('Planificación');
       case 3: // Catálogos

@@ -1,6 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PlatoEvento {
+  // Personalización temporal para el evento
+  final String? nombrePersonalizado;
+  final List<dynamic>? insumosExtra;
+  final List<String>? insumosRemovidos;
+  final List<dynamic>? intermediosExtra;
+  final List<String>? intermediosRemovidos;
   final String? id;
   final String eventoId;
   final String platoId;
@@ -11,6 +17,11 @@ class PlatoEvento {
     required this.eventoId,
     required this.platoId,
     required this.cantidad,
+    this.nombrePersonalizado,
+    this.insumosExtra,
+    this.insumosRemovidos,
+    this.intermediosExtra,
+    this.intermediosRemovidos,
   });
 
   factory PlatoEvento.fromMap(Map<String, dynamic> map) {
@@ -19,6 +30,11 @@ class PlatoEvento {
       eventoId: map['eventoId'] as String,
       platoId: map['platoId'] as String,
       cantidad: map['cantidad'] as int,
+      nombrePersonalizado: map['nombrePersonalizado'] as String?,
+      insumosExtra: map['insumosExtra'] as List<dynamic>?,
+      insumosRemovidos: (map['insumosRemovidos'] as List<dynamic>?)?.cast<String>(),
+      intermediosExtra: map['intermediosExtra'] as List<dynamic>?,
+      intermediosRemovidos: (map['intermediosRemovidos'] as List<dynamic>?)?.cast<String>(),
     );
   }
 
@@ -29,6 +45,11 @@ class PlatoEvento {
       eventoId: data['eventoId'] as String,
       platoId: data['platoId'] as String,
       cantidad: data['cantidad'] as int,
+      nombrePersonalizado: data['nombrePersonalizado'] as String?,
+      insumosExtra: data['insumosExtra'] as List<dynamic>?,
+      insumosRemovidos: (data['insumosRemovidos'] as List<dynamic>?)?.cast<String>(),
+      intermediosExtra: data['intermediosExtra'] as List<dynamic>?,
+      intermediosRemovidos: (data['intermediosRemovidos'] as List<dynamic>?)?.cast<String>(),
     );
   }
 
@@ -38,6 +59,11 @@ class PlatoEvento {
       'eventoId': eventoId,
       'platoId': platoId,
       'cantidad': cantidad,
+      if (nombrePersonalizado != null) 'nombrePersonalizado': nombrePersonalizado,
+      if (insumosExtra != null) 'insumosExtra': insumosExtra,
+      if (insumosRemovidos != null) 'insumosRemovidos': insumosRemovidos,
+      if (intermediosExtra != null) 'intermediosExtra': intermediosExtra,
+      if (intermediosRemovidos != null) 'intermediosRemovidos': intermediosRemovidos,
     };
   }
 
@@ -46,6 +72,11 @@ class PlatoEvento {
       'eventoId': eventoId,
       'platoId': platoId,
       'cantidad': cantidad,
+      if (nombrePersonalizado != null) 'nombrePersonalizado': nombrePersonalizado,
+      if (insumosExtra != null) 'insumosExtra': insumosExtra,
+      if (insumosRemovidos != null) 'insumosRemovidos': insumosRemovidos,
+      if (intermediosExtra != null) 'intermediosExtra': intermediosExtra,
+      if (intermediosRemovidos != null) 'intermediosRemovidos': intermediosRemovidos,
     };
   }
 
@@ -54,12 +85,22 @@ class PlatoEvento {
     String? eventoId,
     String? platoId,
     int? cantidad,
+    String? nombrePersonalizado,
+    List<dynamic>? insumosExtra,
+    List<String>? insumosRemovidos,
+    List<dynamic>? intermediosExtra,
+    List<String>? intermediosRemovidos,
   }) {
     return PlatoEvento(
       id: id ?? this.id,
       eventoId: eventoId ?? this.eventoId,
       platoId: platoId ?? this.platoId,
       cantidad: cantidad ?? this.cantidad,
+      nombrePersonalizado: nombrePersonalizado ?? this.nombrePersonalizado,
+      insumosExtra: insumosExtra ?? this.insumosExtra,
+      insumosRemovidos: insumosRemovidos ?? this.insumosRemovidos,
+      intermediosExtra: intermediosExtra ?? this.intermediosExtra,
+      intermediosRemovidos: intermediosRemovidos ?? this.intermediosRemovidos,
     );
   }
 
@@ -78,6 +119,6 @@ class PlatoEvento {
 
   @override
   String toString() {
-    return 'PlatoEvento(id: $id, eventoId: $eventoId, platoId: $platoId, cantidad: $cantidad)';
+    return 'PlatoEvento(id: $id, eventoId: $eventoId, platoId: $platoId, cantidad: $cantidad, nombrePersonalizado: $nombrePersonalizado, insumosExtra: $insumosExtra, insumosRemovidos: $insumosRemovidos, intermediosExtra: $intermediosExtra, intermediosRemovidos: $intermediosRemovidos)';
   }
 }

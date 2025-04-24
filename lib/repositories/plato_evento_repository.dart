@@ -22,7 +22,7 @@ abstract class PlatoEventoRepository {
   /// Reemplaza completamente los platos de un evento
   Future<void> reemplazarPlatosDeEvento(
     String eventoId, 
-    List<String> nuevosPlatosIds
+    List<PlatoEvento> nuevosPlatosEvento
   );
 
   /// Verifica si existe una relación específica

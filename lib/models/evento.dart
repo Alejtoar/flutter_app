@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Evento {
+  final bool facturable;
   final String? id;
   final String codigo;
   final String nombreCliente;
@@ -33,7 +34,9 @@ class Evento {
     required this.fechaCreacion,
     required this.fechaActualizacion,
     this.comentariosLogistica,
+    this.facturable = true,
   });
+
   factory Evento.crear({
     String? id,
     required String codigo,
@@ -50,10 +53,11 @@ class Evento {
     required DateTime fechaCreacion,
     required DateTime fechaActualizacion,
     String? comentariosLogistica,
+    bool? facturable,
   }) {
     // Validaciones
     final errors = <String>[];
-    
+
     if (codigo.isEmpty) errors.add('El código es requerido');
     if (!codigo.startsWith('E-')) errors.add('El código debe comenzar con "E-"');
     if (nombreCliente.isEmpty) errors.add('El nombre del cliente es requerido');
@@ -117,9 +121,9 @@ class Evento {
       fechaCreacion: fechaCreacion,
       fechaActualizacion: fechaActualizacion,
       comentariosLogistica: comentariosLogistica,
+      facturable: facturable ?? true,
     );
   }
-
 
   factory Evento.fromMap(Map<String, dynamic> map, String id) {
     return Evento.crear(
@@ -146,29 +150,11 @@ class Evento {
       fechaCreacion: (map['fechaCreacion'] as Timestamp).toDate(),
       fechaActualizacion: (map['fechaActualizacion'] as Timestamp).toDate(),
       comentariosLogistica: map['comentariosLogistica'],
+      facturable: map['facturable'] ?? true,
     );
   }
 
-  Map<String, dynamic> toMap() {
-    return {
-      'codigo': codigo,
-      'nombreCliente': nombreCliente,
-      'telefono': telefono,
-      'correo': correo,
-      'fecha': Timestamp.fromDate(fecha),
-      'ubicacion': ubicacion,
-      'numeroInvitados': numeroInvitados,
-      'tipoEvento': tipoEvento.toString(),
-      'estado': estado.toString(),
-      if (fechaCotizacion != null) 'fechaCotizacion': Timestamp.fromDate(fechaCotizacion!),
-      if (fechaConfirmacion != null) 'fechaConfirmacion': Timestamp.fromDate(fechaConfirmacion!),
-      'fechaCreacion': Timestamp.fromDate(fechaCreacion),
-      'fechaActualizacion': Timestamp.fromDate(fechaActualizacion),
-      if (comentariosLogistica != null) 'comentariosLogistica': comentariosLogistica,
-    };
-  }
-
-    factory Evento.fromFirestore(DocumentSnapshot doc) {
+  factory Evento.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return Evento.crear(
       id: doc.id,
@@ -194,7 +180,28 @@ class Evento {
       fechaCreacion: (data['fechaCreacion'] as Timestamp).toDate(),
       fechaActualizacion: (data['fechaActualizacion'] as Timestamp).toDate(),
       comentariosLogistica: data['comentariosLogistica'],
+      facturable: data['facturable'] ?? true,
     );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'codigo': codigo,
+      'nombreCliente': nombreCliente,
+      'telefono': telefono,
+      'correo': correo,
+      'fecha': Timestamp.fromDate(fecha),
+      'ubicacion': ubicacion,
+      'numeroInvitados': numeroInvitados,
+      'tipoEvento': tipoEvento.toString(),
+      'estado': estado.toString(),
+      if (fechaCotizacion != null) 'fechaCotizacion': Timestamp.fromDate(fechaCotizacion!),
+      if (fechaConfirmacion != null) 'fechaConfirmacion': Timestamp.fromDate(fechaConfirmacion!),
+      'fechaCreacion': Timestamp.fromDate(fechaCreacion),
+      'fechaActualizacion': Timestamp.fromDate(fechaActualizacion),
+      if (comentariosLogistica != null) 'comentariosLogistica': comentariosLogistica,
+      'facturable': facturable,
+    };
   }
 
   Map<String, dynamic> toFirestore() {
@@ -213,11 +220,13 @@ class Evento {
       'fechaCreacion': Timestamp.fromDate(fechaCreacion),
       'fechaActualizacion': Timestamp.fromDate(fechaActualizacion),
       if (comentariosLogistica != null) 'comentariosLogistica': comentariosLogistica,
+      'facturable': facturable,
     };
   }
 
   Evento copyWith({
     String? id,
+    bool? facturable,
     String? codigo,
     String? nombreCliente,
     String? telefono,
@@ -249,6 +258,7 @@ class Evento {
       fechaCreacion: fechaCreacion ?? this.fechaCreacion,
       fechaActualizacion: fechaActualizacion ?? DateTime.now(),
       comentariosLogistica: comentariosLogistica ?? this.comentariosLogistica,
+      facturable: facturable ?? this.facturable,
     );
   }
 
