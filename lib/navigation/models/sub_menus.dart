@@ -6,12 +6,14 @@ class EventSubMenu {
     MenuItem(
       icon: Icons.list_alt,
       activeIcon: Icons.list_alt,
-      label: 'Eventos',
+      label: 'Buscar eventos',
+      route: '/eventos/buscar', // Usa AppRoutes.eventosBuscador si está definido
     ),
     MenuItem(
       icon: Icons.calendar_today,
       activeIcon: Icons.calendar_today,
       label: 'Calendario',
+      route: '/eventos/calendario',
     ),
   ];
 }
@@ -47,21 +49,25 @@ class CatalogSubMenu {
       icon: Icons.food_bank_outlined,
       activeIcon: Icons.food_bank,
       label: 'Platos',
+      route: '/catalogos/platos', // Usa AppRoutes.platos si está definido
     ),
     MenuItem(
       icon: Icons.calculate,
       activeIcon: Icons.calculate,
       label: 'Intermedios',
+      route: '/catalogos/intermedios',
     ),
     MenuItem(
       icon: Icons.format_list_bulleted,
       activeIcon: Icons.format_list_bulleted,
       label: 'Insumos',
+      route: '/catalogos/insumos',
     ),
     MenuItem(
       icon: Icons.directions_car,
       activeIcon: Icons.directions_car,
       label: 'Proveedores',
+      route: '/catalogos/proveedores',
     ),
   ];
 }

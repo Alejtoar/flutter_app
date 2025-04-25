@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:golo_app/navigation/app_routes.dart';
 import 'package:golo_app/features/catalogos/insumos/controllers/insumo_controller.dart';
 import 'package:golo_app/features/catalogos/intermedios/controllers/intermedio_controller.dart';
 import 'package:golo_app/features/catalogos/platos/controllers/plato_controller.dart';
@@ -7,7 +8,6 @@ import 'package:golo_app/repositories/intermedio_requerido_repository_impl.dart'
 import 'package:golo_app/repositories/insumo_requerido_repository_impl.dart';
 import 'package:golo_app/features/catalogos/proveedores/controllers/proveedor_controller.dart';
 import 'package:golo_app/navigation/controllers/navigation_controller.dart';
-import 'package:golo_app/navigation/navigation_page.dart';
 import 'package:golo_app/repositories/insumo_repository_impl.dart';
 import 'package:golo_app/repositories/intermedio_repository_impl.dart';
 import 'package:golo_app/repositories/insumo_utilizado_repository_impl.dart';
@@ -90,7 +90,8 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const NavigationPage(), // Pantalla principal directa
+      initialRoute: AppRoutes.dashboard,
+      routes: AppRoutes.routes, // Pantalla principal directa
     );
   }
 }

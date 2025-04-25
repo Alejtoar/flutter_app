@@ -57,6 +57,14 @@ class NavigationController extends ChangeNotifier {
     // Si ya está en Home, no hace nada
   }
 
+  /// Navega siempre a Home (Dashboard)
+  void goHome() {
+    _mainMenuIndex = 0;
+    _subMenuIndex = 0;
+    _expandedMenu = null;
+    notifyListeners();
+  }
+
   // Nuevo: Verificar si el ítem principal tiene pantalla asociada
   bool get hasMainScreen {
     if (!isSubMenuOpen) return true;

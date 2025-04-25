@@ -8,11 +8,13 @@ class MainMenu {
       icon: Icons.dashboard_outlined,
       activeIcon: Icons.dashboard,
       label: 'Inicio',
+      route: '/inicio', // Usa AppRoutes.dashboard si está definido
     ),
     MenuItem(
       icon: Icons.event_outlined,
       activeIcon: Icons.event,
       label: 'Eventos',
+      route: '/eventos',
       subItems: EventSubMenu.items,
     ),
     MenuItem(

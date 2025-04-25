@@ -1,73 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:golo_app/navigation/controllers/navigation_controller.dart';
+import 'package:golo_app/navigation/app_routes.dart';
+import 'package:golo_app/navigation/models/main_menu.dart';
 
 
 class BottomNavigation extends StatelessWidget {
-  final void Function(int index)? onItemSelected;
-
-  const BottomNavigation({Key? key, this.onItemSelected}) : super(key: key);
+  const BottomNavigation({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final controller = Provider.of<NavigationController>(context);
     final theme = Theme.of(context);
+    final mainMenu = MainMenu.items;
+    final route = ModalRoute.of(context)?.settings.name;
+    int selectedIndex = _calculateSelectedIndex(route);
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (controller.isSubMenuOpen) _buildSubMenuBar(context, controller),
-        _buildMainNavigationBar(context, controller, theme),
-      ],
-    );
-  }
-
-  Widget _buildSubMenuBar(BuildContext context, NavigationController controller) {
-    return Container(
-      height: 50,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.secondaryContainer,
-        border: Border(
-          bottom: BorderSide(color: Theme.of(context).dividerColor, width: 1),
-        ),
-      ),
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back),
-            tooltip: 'Volver al menú principal',
-            onPressed: controller.backToMain,
-          ),
-          const VerticalDivider(indent: 12, endIndent: 12),
-          ...controller.currentMenuItems.map(
-            (item) => Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: TextButton(
-                style: TextButton.styleFrom(
-                  foregroundColor:
-                      Theme.of(context).colorScheme.onSecondaryContainer,
-                ),
-                onPressed: () => controller.navigateToSub(
-                  controller.currentMenuItems.indexOf(item),
-                ),
-                child: Text(item.label),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMainNavigationBar(
-    BuildContext context,
-    NavigationController controller,
-    ThemeData theme,
-  ) {
     return BottomNavigationBar(
-      items: controller.mainMenuItems
+      items: mainMenu
           .map(
             (item) => BottomNavigationBarItem(
               icon: Icon(item.icon),
@@ -76,23 +23,97 @@ class BottomNavigation extends StatelessWidget {
             ),
           )
           .toList(),
-      currentIndex: controller.mainMenuIndex,
-      onTap: (index) => _handleMainItemTap(index, controller),
+      currentIndex: selectedIndex,
+      onTap: (index) => _handleMainItemTap(context, index),
       selectedItemColor: theme.primaryColor,
       unselectedItemColor: theme.disabledColor,
+      type: BottomNavigationBarType.fixed,
     );
   }
 
-  void _handleMainItemTap(int index, NavigationController controller) {
-    final item = controller.mainMenuItems[index];
-    if (onItemSelected != null) {
-      onItemSelected!(index);
+  int _calculateSelectedIndex(String? route) {
+    switch (route) {
+      case AppRoutes.dashboard:
+        return 0;
+      case AppRoutes.eventosBuscador:
+        return 1;
+      case AppRoutes.platos:
+      case AppRoutes.intermedios:
+      case AppRoutes.insumos:
+      case AppRoutes.proveedores:
+        return 3; // Catálogos
+      default:
+        return 0;
+    }
+  }
+
+  void _handleMainItemTap(BuildContext context, int index) {
+    final mainMenu = MainMenu.items;
+    final item = mainMenu[index];
+    if (item.subItems != null && item.subItems!.isNotEmpty) {
+      // Mostrar selector de submenú
+      showModalBottomSheet(
+        context: context,
+        builder: (ctx) {
+          return SafeArea(
+            child: ListView(
+              shrinkWrap: true,
+              children: [
+                for (final subItem in item.subItems!)
+                  ListTile(
+                    leading: Icon(subItem.icon),
+                    title: Text(subItem.label),
+                    onTap: () {
+                      Navigator.pop(ctx); // Cierra el bottom sheet
+                      _navigateToSubMenu(context, item.label, subItem.label);
+                    },
+                  ),
+              ],
+            ),
+          );
+        },
+      );
     } else {
-      if (item.subItems != null && item.subItems!.isNotEmpty) {
-        controller.navigateToMain(index);
-      } else {
-        controller.navigateToMain(index);
+      // Ítem sin submenú
+      switch (index) {
+        case 0:
+          Navigator.pushNamedAndRemoveUntil(context, AppRoutes.dashboard, (r) => false);
+          break;
+        case 1:
+          Navigator.pushNamedAndRemoveUntil(context, AppRoutes.eventosBuscador, (r) => false);
+          break;
+        // Puedes agregar más casos si implementas más menús principales sin submenú
       }
     }
+  }
+
+  void _navigateToSubMenu(BuildContext context, String mainLabel, String subLabel) {
+    if (mainLabel == 'Catálogos') {
+      switch (subLabel) {
+        case 'Platos':
+          Navigator.pushNamedAndRemoveUntil(context, AppRoutes.platos, (r) => false);
+          break;
+        case 'Intermedios':
+          Navigator.pushNamedAndRemoveUntil(context, AppRoutes.intermedios, (r) => false);
+          break;
+        case 'Insumos':
+          Navigator.pushNamedAndRemoveUntil(context, AppRoutes.insumos, (r) => false);
+          break;
+        case 'Proveedores':
+          Navigator.pushNamedAndRemoveUntil(context, AppRoutes.proveedores, (r) => false);
+          break;
+      }
+    }
+    if (mainLabel == 'Eventos') {
+      switch (subLabel) {
+        case 'Buscar eventos':
+          Navigator.pushNamedAndRemoveUntil(context, AppRoutes.eventosBuscador, (r) => false);
+          break;
+        // case 'Calendario':
+        //   // Agrega aquí la ruta cuando esté lista
+        //   break;
+      }
+    }
+    // Puedes agregar más lógica para otros menús principales con submenú
   }
 }
