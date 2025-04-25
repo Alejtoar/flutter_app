@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:golo_app/models/intermedio.dart';
 import 'package:golo_app/models/insumo_utilizado.dart';
 import 'package:golo_app/repositories/intermedio_repository_impl.dart';
+import 'package:golo_app/exceptions/intermedio_en_uso_exception.dart';
 import 'package:golo_app/repositories/insumo_utilizado_repository_impl.dart';
 
 class IntermedioController extends ChangeNotifier {
@@ -42,6 +43,10 @@ class IntermedioController extends ChangeNotifier {
       await _repository.eliminar(id);
       await _insumoUtilizadoRepository.eliminarPorIntermedio(id);
       _intermedios.removeWhere((i) => i.id == id);
+      _error = null;
+      notifyListeners();
+    } on IntermedioEnUsoException catch (e) {
+      _error = e.toString();
       notifyListeners();
     } catch (e) {
       _error = e.toString();

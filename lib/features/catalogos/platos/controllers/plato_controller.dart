@@ -3,6 +3,7 @@ import 'package:golo_app/models/plato.dart';
 import 'package:golo_app/models/intermedio_requerido.dart';
 import 'package:golo_app/models/insumo_requerido.dart';
 import 'package:golo_app/repositories/plato_repository_impl.dart';
+import 'package:golo_app/exceptions/plato_en_uso_exception.dart';
 import 'package:golo_app/repositories/intermedio_requerido_repository_impl.dart';
 import 'package:golo_app/repositories/insumo_requerido_repository_impl.dart';
 
@@ -52,6 +53,10 @@ class PlatoController extends ChangeNotifier {
       await _intermedioRequeridoRepository.eliminarPorPlato(id);
       await _insumoRequeridoRepository.eliminarPorPlato(id);
       _platos.removeWhere((p) => p.id == id);
+      _error = null;
+      notifyListeners();
+    } on PlatoEnUsoException catch (e) {
+      _error = e.toString();
       notifyListeners();
     } catch (e) {
       _error = e.toString();

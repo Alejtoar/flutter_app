@@ -23,7 +23,7 @@ class SelectorUnidades extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<String>(
-      value: unidadSeleccionada,
+      value: unidadesPermitidas.contains(unidadSeleccionada) ? unidadSeleccionada : null,
       items: unidadesPermitidas
           .map((u) => DropdownMenuItem(
                 value: u,

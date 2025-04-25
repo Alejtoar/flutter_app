@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:golo_app/models/plato.dart';
 import 'package:golo_app/repositories/plato_repository.dart';
+import 'package:golo_app/exceptions/plato_en_uso_exception.dart';
 
 class PlatoFirestoreRepository implements PlatoRepository {
   final FirebaseFirestore _db;
@@ -93,6 +94,19 @@ class PlatoFirestoreRepository implements PlatoRepository {
 
   @override
   Future<void> eliminar(String id) async {
+    // 1. Verificar relaciones en eventos (platosId) y en intermedios_requeridos
+    final usos = <String>[];
+    // Evento (campo platosId contiene el id)
+    final eventosSnap = await _db.collection('eventos').where('platosId', arrayContains: id).limit(1).get();
+    if (eventosSnap.docs.isNotEmpty) usos.add('Eventos');
+    // Intermedios requeridos (campo platoId)
+    final intermediosRequeridosSnap = await _db.collection('intermedios_requeridos').where('platoId', isEqualTo: id).limit(1).get();
+    if (intermediosRequeridosSnap.docs.isNotEmpty) usos.add('Intermedios');
+    if (usos.isNotEmpty) {
+      // Lanzar excepción personalizada
+      throw PlatoEnUsoException(usos);
+    }
+    // Si no está en uso, borrar normalmente
     try {
       await _db.collection(_coleccion).doc(id).delete();
     } on FirebaseException catch (e) {

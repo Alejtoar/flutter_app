@@ -3,6 +3,9 @@ import 'package:golo_app/navigation/app_routes.dart';
 import 'package:golo_app/features/catalogos/insumos/controllers/insumo_controller.dart';
 import 'package:golo_app/features/catalogos/intermedios/controllers/intermedio_controller.dart';
 import 'package:golo_app/features/catalogos/platos/controllers/plato_controller.dart';
+import 'package:golo_app/repositories/insumo_repository.dart';
+import 'package:golo_app/repositories/intermedio_repository.dart';
+import 'package:golo_app/repositories/plato_repository.dart';
 import 'package:golo_app/repositories/plato_repository_impl.dart';
 import 'package:golo_app/repositories/intermedio_requerido_repository_impl.dart';
 import 'package:golo_app/repositories/insumo_requerido_repository_impl.dart';
@@ -38,32 +41,25 @@ void main() async {
             intermedioEventoRepository: IntermedioEventoFirestoreRepository(FirebaseFirestore.instance),
           ),
         ),
-
+        Provider<PlatoRepository>(create: (_) => PlatoFirestoreRepository(FirebaseFirestore.instance)),
+        Provider<IntermedioRepository>(create: (_) => IntermedioFirestoreRepository(FirebaseFirestore.instance)),
+        Provider<InsumoRepository>(create: (_) => InsumoFirestoreRepository(FirebaseFirestore.instance)),
         ChangeNotifierProvider(
-          create:
-              (context) => InsumoController(
-                InsumoFirestoreRepository(
-                  Provider.of<FirebaseFirestore>(context, listen: false),
-                ),
-                ProveedorFirestoreRepository(
-                  Provider.of<FirebaseFirestore>(context, listen: false),
-                ),
-              ),
+          create: (context) => InsumoController(
+            context.read<InsumoRepository>(),
+            ProveedorFirestoreRepository(Provider.of<FirebaseFirestore>(context, listen: false)),
+          ),
         ),
         ChangeNotifierProvider(
-          create:
-              (context) => ProveedorController(
-                ProveedorFirestoreRepository(
-                  Provider.of<FirebaseFirestore>(context, listen: false),
-                ),
-              ),
+          create: (context) => ProveedorController(
+            ProveedorFirestoreRepository(Provider.of<FirebaseFirestore>(context, listen: false)),
+          ),
         ),
         ChangeNotifierProvider(
-          create:
-              (_) => IntermedioController(
-                IntermedioFirestoreRepository(FirebaseFirestore.instance),
-                InsumoUtilizadoFirestoreRepository(FirebaseFirestore.instance),
-              ),
+          create: (_) => IntermedioController(
+            IntermedioFirestoreRepository(FirebaseFirestore.instance),
+            InsumoUtilizadoFirestoreRepository(FirebaseFirestore.instance),
+          ),
         ),
         ChangeNotifierProvider(
           create: (_) => PlatoController(

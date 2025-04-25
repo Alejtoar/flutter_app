@@ -4,10 +4,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:golo_app/models/insumo.dart';
 import 'package:golo_app/repositories/insumo_repository.dart';
+import 'package:golo_app/exceptions/insumo_en_uso_exception.dart';
 import 'package:golo_app/models/proveedor.dart';
 import 'package:golo_app/repositories/proveedor_repository.dart';
 
 class InsumoController extends ChangeNotifier {
+  String? _error;
+  String? get error => _error;
   final InsumoRepository _repository;
   final ProveedorRepository _proveedorRepository;
   List<Insumo> _insumos = [];
@@ -126,8 +129,15 @@ class InsumoController extends ChangeNotifier {
     try {
       await _repository.eliminarInsumo(id);
       await cargarInsumos();
+      _error = null;
       return true;
+    } on InsumoEnUsoException catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
     } catch (e) {
+      _error = e.toString();
+      notifyListeners();
       return false;
     }
   }

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:golo_app/repositories/insumo_repository.dart';
 import '../models/insumo.dart';
+import 'package:golo_app/exceptions/insumo_en_uso_exception.dart';
 
 class InsumoFirestoreRepository implements InsumoRepository {
   final FirebaseFirestore _db;
@@ -228,6 +229,22 @@ class InsumoFirestoreRepository implements InsumoRepository {
 
   @override
   Future<void> eliminarInsumo(String id) async {
+    // 1. Verificar relaciones en insumo_requerido, insumo_utilizado, insumo_evento
+    final usos = <String>[];
+    // Insumo requerido (en platos)
+    final insumoRequeridoSnap = await _db.collection('insumos_requeridos').where('insumoId', isEqualTo: id).limit(1).get();
+    if (insumoRequeridoSnap.docs.isNotEmpty) usos.add('Platos');
+    // Insumo utilizado (en intermedios)
+    final insumoUtilizadoSnap = await _db.collection('insumos_utilizados').where('insumoId', isEqualTo: id).limit(1).get();
+    if (insumoUtilizadoSnap.docs.isNotEmpty) usos.add('Intermedios');
+    // Insumo evento (en eventos)
+    final insumoEventoSnap = await _db.collection('insumos_eventos').where('insumoId', isEqualTo: id).limit(1).get();
+    if (insumoEventoSnap.docs.isNotEmpty) usos.add('Eventos');
+    if (usos.isNotEmpty) {
+      // Lanzar excepción personalizada
+      throw InsumoEnUsoException(usos);
+    }
+    // Si no está en uso, borrar normalmente
     try {
       await _db.collection(_coleccion).doc(id).delete();
     } on FirebaseException catch (e) {

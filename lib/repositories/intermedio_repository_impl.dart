@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:golo_app/repositories/intermedio_repository.dart';
 import '../models/intermedio.dart';
+import 'package:golo_app/exceptions/intermedio_en_uso_exception.dart';
 
 class IntermedioFirestoreRepository implements IntermedioRepository {
   final FirebaseFirestore _db;
@@ -147,6 +148,19 @@ class IntermedioFirestoreRepository implements IntermedioRepository {
 
   @override
   Future<void> eliminar(String id) async {
+    // 1. Verificar relaciones en intermedio_requerido, intermedio_evento
+    final usos = <String>[];
+    // Intermedio requerido (en platos)
+    final intermedioRequeridoSnap = await _db.collection('intermedios_requeridos').where('intermedioId', isEqualTo: id).limit(1).get();
+    if (intermedioRequeridoSnap.docs.isNotEmpty) usos.add('Platos');
+    // Intermedio evento (en eventos)
+    final intermedioEventoSnap = await _db.collection('intermedios_eventos').where('intermedioId', isEqualTo: id).limit(1).get();
+    if (intermedioEventoSnap.docs.isNotEmpty) usos.add('Eventos');
+    if (usos.isNotEmpty) {
+      // Lanzar excepción personalizada
+      throw IntermedioEnUsoException(usos);
+    }
+    // Si no está en uso, borrar normalmente
     try {
       await _db.collection(_coleccion).doc(id).delete();
     } on FirebaseException catch (e) {

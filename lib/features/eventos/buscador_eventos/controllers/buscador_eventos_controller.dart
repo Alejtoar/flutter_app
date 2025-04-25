@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:golo_app/models/insumo.dart';
+import 'package:golo_app/models/intermedio.dart';
+import 'package:golo_app/models/plato.dart';
 import 'package:golo_app/models/plato_evento.dart';
 import '../../../../models/evento.dart';
 import '../../../../models/insumo_evento.dart';
@@ -7,8 +10,18 @@ import '../../../../repositories/evento_repository_impl.dart';
 import '../../../../repositories/plato_evento_repository_impl.dart';
 import '../../../../repositories/insumo_evento_repository_impl.dart';
 import '../../../../repositories/intermedio_evento_repository_impl.dart';
+import '../../../../repositories/plato_repository.dart';
+import '../../../../repositories/intermedio_repository.dart';
+import '../../../../repositories/insumo_repository.dart';
 
 class BuscadorEventosController extends ChangeNotifier {
+  // Objetos relacionados cargados para la UI
+  List<Plato> _platosRelacionados = [];
+  List<Plato> get platosRelacionados => _platosRelacionados;
+  List<Intermedio> _intermediosRelacionados = [];
+  List<Intermedio> get intermediosRelacionados => _intermediosRelacionados;
+  List<Insumo> _insumosRelacionados = [];
+  List<Insumo> get insumosRelacionados => _insumosRelacionados;
   // --- Estado principal ---
   List<Evento> _eventos = [];
   List<Evento> get eventos => _eventos;
@@ -199,4 +212,36 @@ class BuscadorEventosController extends ChangeNotifier {
     fechaRangoFiltro = value;
     notifyListeners();
   }
+
+  /// Obtiene los objetos base relacionados a un evento (platos, intermedios, insumos)
+  Future<void> fetchDatosRelacionadosEvento({
+    required PlatoRepository platoRepository,
+    required IntermedioRepository intermedioRepository,
+    required InsumoRepository insumoRepository,
+  }) async {
+    // Requiere que cargarRelacionesPorEvento ya se haya ejecutado
+    try {
+      // Platos
+      final platosIds = _platosEvento.map((pe) => pe.platoId).toList();
+      _platosRelacionados = await platoRepository.obtenerVarios(platosIds);
+
+      // Intermedios
+      final intermediosIds = _intermediosEvento.map((ie) => ie.intermedioId).toList();
+      _intermediosRelacionados = await intermedioRepository.obtenerPorIds(intermediosIds);
+
+      // Insumos
+      final insumosIds = _insumosEvento.map((ie) => ie.insumoId).toList();
+      _insumosRelacionados = await insumoRepository.obtenerVarios(insumosIds);
+
+      notifyListeners();
+    } catch (e) {
+      // Si hay error, limpiar y notificar
+      _platosRelacionados = [];
+      _intermediosRelacionados = [];
+      _insumosRelacionados = [];
+      _error = e.toString();
+      notifyListeners();
+    }
+  }
 }
+

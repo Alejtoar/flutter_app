@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../models/evento.dart';
 import '../widgets/busqueda_bar_eventos.dart';
 import '../widgets/lista_eventos.dart';
+import 'editar_evento_screen.dart';
 
 class BuscadorEventosScreen extends StatefulWidget {
   const BuscadorEventosScreen({Key? key}) : super(key: key);
@@ -24,7 +25,12 @@ class _BuscadorEventosScreenState extends State<BuscadorEventosScreen> {
   }
 
   void _abrirNuevoEvento() {
-    // TODO: Navegar a pantalla de creación de evento
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EditarEventoScreen(),
+      ),
+    );
   }
 
   @override
@@ -69,7 +75,7 @@ class _BuscadorEventosScreenState extends State<BuscadorEventosScreen> {
             Row(
               children: [
                 DropdownButton<EstadoEvento?>(
-                  value: _estadoFiltro,
+                  value: EstadoEvento.values.contains(_estadoFiltro) ? _estadoFiltro : null,
                   hint: const Text('Estado'),
                   items: [null, ...EstadoEvento.values].map((estado) => DropdownMenuItem(
                     value: estado,
@@ -79,7 +85,7 @@ class _BuscadorEventosScreenState extends State<BuscadorEventosScreen> {
                 ),
                 const SizedBox(width: 8),
                 DropdownButton<TipoEvento?>(
-                  value: _tipoFiltro,
+                  value: TipoEvento.values.contains(_tipoFiltro) ? _tipoFiltro : null,
                   hint: const Text('Tipo'),
                   items: [null, ...TipoEvento.values].map((tipo) => DropdownMenuItem(
                     value: tipo,
@@ -116,7 +122,14 @@ class _BuscadorEventosScreenState extends State<BuscadorEventosScreen> {
                   return ListaEventos(
                     eventos: snapshot.data!,
                     onVerDetalle: (evento) {}, // TODO: Navegar a detalle
-                    onEditar: (evento) {}, // TODO: Navegar a edición
+                    onEditar: (evento) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => EditarEventoScreen(evento: evento),
+                        ),
+                      );
+                    },
                     onEliminar: (evento) {}, // TODO: Eliminar
                   );
                 },

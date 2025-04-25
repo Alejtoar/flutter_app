@@ -24,7 +24,7 @@ class SelectorProveedores extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<Proveedor>(
-      value: proveedorSeleccionado,
+      value: proveedores.contains(proveedorSeleccionado) ? proveedorSeleccionado : null,
       isExpanded: isExpanded,
       // enabled: enabled,
       decoration: InputDecoration(
