@@ -41,6 +41,7 @@ class ModalAgregarPlatosEvento extends StatelessWidget {
           labelCantidad: '',
           labelBuscar: 'Buscar plato',
           nombreMostrar: (p) => (p).nombre,
+          subtitleBuilder: (p) => p.descripcion,
           unidadLabel: null,
         );
       },

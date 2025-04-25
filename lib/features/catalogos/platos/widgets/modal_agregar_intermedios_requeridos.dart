@@ -64,6 +64,11 @@ class ModalAgregarIntermediosRequeridos extends StatelessWidget {
           labelBuscar: 'Buscar intermedio',
           nombreMostrar: (r) =>
             intermedioCtrl.intermedios.firstWhere((i) => i.id == r.intermedioId, orElse: () => Intermedio(id: r.intermedioId, codigo: '', nombre: r.intermedioId, categorias: [], unidad: '', cantidadEstandar: 0, reduccionPorcentaje: 0, receta: '', tiempoPreparacionMinutos: 0, fechaCreacion: DateTime.now(), fechaActualizacion: DateTime.now(), activo: true)).nombre,
+          subtitleBuilder: (r) {
+            final intermedio = intermedioCtrl.intermedios.firstWhere((i) => i.id == r.intermedioId, orElse: () => Intermedio(id: r.intermedioId, codigo: '', nombre: r.intermedioId, categorias: [], unidad: '', cantidadEstandar: 0, reduccionPorcentaje: 0, receta: '', tiempoPreparacionMinutos: 0, fechaCreacion: DateTime.now(), fechaActualizacion: DateTime.now(), activo: true));
+            final unidad = intermedio.unidad;
+            return 'Cantidad: ${r.cantidad}${unidad.isNotEmpty ? ' $unidad' : ''}';
+          },
           unidadLabel: null,
         );
       },

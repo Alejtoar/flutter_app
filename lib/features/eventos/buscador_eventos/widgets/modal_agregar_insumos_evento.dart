@@ -41,6 +41,7 @@ class ModalAgregarInsumosEvento extends StatelessWidget {
           labelCantidad: '',
           labelBuscar: 'Buscar insumo',
           nombreMostrar: (i) => (i).nombre,
+          subtitleBuilder: (i) => 'Unidad: ${i.unidad}',
           unidadLabel: null,
         );
       },

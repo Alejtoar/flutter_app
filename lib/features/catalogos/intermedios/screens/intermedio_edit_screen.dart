@@ -5,6 +5,7 @@ import 'package:golo_app/models/intermedio.dart';
 import 'package:golo_app/models/insumo_utilizado.dart';
 import 'package:golo_app/features/catalogos/intermedios/widgets/lista_insumos_utilizados.dart';
 import 'package:golo_app/features/catalogos/intermedios/widgets/modal_agregar_insumos.dart';
+import 'package:golo_app/features/catalogos/intermedios/widgets/modal_editar_cantidad_insumo.dart';
 import 'package:golo_app/features/catalogos/intermedios/controllers/intermedio_controller.dart';
 import 'package:golo_app/features/common/selector_categorias.dart';
 import 'package:golo_app/features/common/selector_unidades.dart';
@@ -44,7 +45,10 @@ class _IntermedioEditScreenState extends State<IntermedioEditScreen> {
     if (i == null) {
       // Generar código automáticamente al crear
       WidgetsBinding.instance.addPostFrameCallback((_) async {
-        final intermedioCtrl = Provider.of<IntermedioController>(context, listen: false);
+        final intermedioCtrl = Provider.of<IntermedioController>(
+          context,
+          listen: false,
+        );
         final nuevoCodigo = await intermedioCtrl.generarNuevoCodigo();
         setState(() {
           _codigoGenerado = nuevoCodigo;
@@ -53,10 +57,16 @@ class _IntermedioEditScreenState extends State<IntermedioEditScreen> {
     } else {
       _codigoGenerado = i.codigo;
     }
-    _cantidadController = TextEditingController(text: i?.cantidadEstandar.toString() ?? '');
-    _reduccionController = TextEditingController(text: i?.reduccionPorcentaje.toString() ?? '');
+    _cantidadController = TextEditingController(
+      text: i?.cantidadEstandar.toString() ?? '',
+    );
+    _reduccionController = TextEditingController(
+      text: i?.reduccionPorcentaje.toString() ?? '',
+    );
     _recetaController = TextEditingController(text: i?.receta ?? '');
-    _tiempoController = TextEditingController(text: i?.tiempoPreparacionMinutos.toString() ?? '');
+    _tiempoController = TextEditingController(
+      text: i?.tiempoPreparacionMinutos.toString() ?? '',
+    );
     _categorias = List.from(i?.categorias ?? []);
     _unidadSeleccionada = i?.unidad ?? null;
     // Si es edición, cargar insumos utilizados desde el controller
@@ -84,12 +94,13 @@ class _IntermedioEditScreenState extends State<IntermedioEditScreen> {
   void _abrirModalInsumos() async {
     await showDialog(
       context: context,
-      builder: (ctx) => ModalAgregarInsumos(
-        insumosIniciales: _insumosUtilizados,
-        onGuardar: (nuevos) {
-          setState(() => _insumosUtilizados = List.from(nuevos));
-        },
-      ),
+      builder:
+          (ctx) => ModalAgregarInsumos(
+            insumosIniciales: _insumosUtilizados,
+            onGuardar: (nuevos) {
+              setState(() => _insumosUtilizados = List.from(nuevos));
+            },
+          ),
     );
   }
 
@@ -97,7 +108,9 @@ class _IntermedioEditScreenState extends State<IntermedioEditScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_categorias.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Debes seleccionar al menos una categoría')),
+        const SnackBar(
+          content: Text('Debes seleccionar al menos una categoría'),
+        ),
       );
       return;
     }
@@ -128,7 +141,9 @@ class _IntermedioEditScreenState extends State<IntermedioEditScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.intermedio == null ? 'Crear Intermedio' : 'Editar Intermedio'),
+        title: Text(
+          widget.intermedio == null ? 'Crear Intermedio' : 'Editar Intermedio',
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -141,13 +156,17 @@ class _IntermedioEditScreenState extends State<IntermedioEditScreen> {
                   padding: const EdgeInsets.only(bottom: 8.0),
                   child: InputDecorator(
                     decoration: const InputDecoration(labelText: 'Código'),
-                    child: Text(widget.intermedio!.codigo, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    child: Text(
+                      widget.intermedio!.codigo,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
               TextFormField(
                 controller: _nombreController,
                 decoration: const InputDecoration(labelText: 'Nombre'),
-                validator: (v) => v == null || v.isEmpty ? 'Campo requerido' : null,
+                validator:
+                    (v) => v == null || v.isEmpty ? 'Campo requerido' : null,
               ),
               Padding(
                 padding: const EdgeInsets.all(8.0),
@@ -163,9 +182,15 @@ class _IntermedioEditScreenState extends State<IntermedioEditScreen> {
                     flex: 2,
                     child: TextFormField(
                       controller: _cantidadController,
-                      decoration: const InputDecoration(labelText: 'Cantidad estándar'),
+                      decoration: const InputDecoration(
+                        labelText: 'Cantidad estándar',
+                      ),
                       keyboardType: TextInputType.number,
-                      validator: (v) => (double.tryParse(v ?? '') ?? 0) > 0 ? null : 'Debe ser un número > 0',
+                      validator:
+                          (v) =>
+                              (double.tryParse(v ?? '') ?? 0) > 0
+                                  ? null
+                                  : 'Debe ser un número > 0',
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -173,7 +198,8 @@ class _IntermedioEditScreenState extends State<IntermedioEditScreen> {
                     flex: 1,
                     child: SelectorUnidades(
                       unidadSeleccionada: _unidadSeleccionada,
-                      onChanged: (val) => setState(() => _unidadSeleccionada = val),
+                      onChanged:
+                          (val) => setState(() => _unidadSeleccionada = val),
                     ),
                   ),
                 ],
@@ -185,19 +211,26 @@ class _IntermedioEditScreenState extends State<IntermedioEditScreen> {
               ),
               TextFormField(
                 controller: _recetaController,
-                decoration: const InputDecoration(labelText: 'Receta (opcional)'),
+                decoration: const InputDecoration(
+                  labelText: 'Receta (opcional)',
+                ),
                 maxLines: 2,
               ),
               TextFormField(
                 controller: _tiempoController,
-                decoration: const InputDecoration(labelText: 'Tiempo preparación (min)'),
+                decoration: const InputDecoration(
+                  labelText: 'Tiempo preparación (min)',
+                ),
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Insumos utilizados', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  const Text(
+                    'Insumos utilizados',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                   ElevatedButton.icon(
                     onPressed: _abrirModalInsumos,
                     icon: const Icon(Icons.add),
@@ -210,19 +243,49 @@ class _IntermedioEditScreenState extends State<IntermedioEditScreen> {
                 height: 180,
                 child: ListaInsumosUtilizados(
                   insumosUtilizados: _insumosUtilizados,
-                  onEditar: (iu) {},
+                  onEditar: (iu) async {
+                    final nuevos = List<InsumoUtilizado>.from(
+                      _insumosUtilizados,
+                    );
+                    final idx = nuevos.indexWhere(
+                      (x) => x.insumoId == iu.insumoId,
+                    );
+                    if (idx == -1) return;
+                    final editado = await showDialog<InsumoUtilizado>(
+                      context: context,
+                      builder:
+                          (ctx) => ModalEditarCantidadInsumo(
+                            insumoUtilizado: iu,
+                            insumo: Provider.of<InsumoController>(
+                              context,
+                              listen: false,
+                            ).insumos.firstWhere((x) => x.id == iu.insumoId),
+                            onGuardar: (nuevaCantidad) {
+                              Navigator.of(
+                                ctx,
+                              ).pop(iu.copyWith(cantidad: nuevaCantidad));
+                            },
+                          ),
+                    );
+                    if (editado != null) {
+                      setState(() => _insumosUtilizados[idx] = editado);
+                    }
+                  },
                   onEliminar: (iu) {
                     setState(() {
-                      _insumosUtilizados.removeWhere((x) => x.insumoId == iu.insumoId);
+                      _insumosUtilizados.removeWhere(
+                        (x) => x.insumoId == iu.insumoId,
+                      );
                     });
                   },
-
                 ),
               ),
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _guardar,
-                child: Text(widget.intermedio == null ? 'Crear' : 'Guardar cambios'),
+                child: Text(
+                  widget.intermedio == null ? 'Crear' : 'Guardar cambios',
+                ),
               ),
             ],
           ),

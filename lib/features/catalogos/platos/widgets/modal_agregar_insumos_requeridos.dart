@@ -64,6 +64,11 @@ class ModalAgregarInsumosRequeridos extends StatelessWidget {
           labelBuscar: 'Buscar insumo',
           nombreMostrar: (r) =>
             insumoCtrl.insumos.firstWhere((i) => i.id == r.insumoId, orElse: () => Insumo(id: r.insumoId, codigo: '', nombre: r.insumoId, categorias: [], unidad: '', precioUnitario: 0, proveedorId: '', fechaCreacion: DateTime.now(), fechaActualizacion: DateTime.now(), activo: true)).nombre,
+          subtitleBuilder: (r) {
+            final insumo = insumoCtrl.insumos.firstWhere((i) => i.id == r.insumoId, orElse: () => Insumo(id: r.insumoId, codigo: '', nombre: r.insumoId, categorias: [], unidad: '', precioUnitario: 0, proveedorId: '', fechaCreacion: DateTime.now(), fechaActualizacion: DateTime.now(), activo: true));
+            final unidad = insumo.unidad;
+            return 'Cantidad: ${r.cantidad}${unidad.isNotEmpty ? ' $unidad' : ''}';
+          },
           unidadLabel: null,
         );
       },

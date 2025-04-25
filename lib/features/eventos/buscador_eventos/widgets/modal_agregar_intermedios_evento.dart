@@ -41,6 +41,7 @@ class ModalAgregarIntermediosEvento extends StatelessWidget {
           labelCantidad: '',
           labelBuscar: 'Buscar intermedio',
           nombreMostrar: (i) => (i).nombre,
+          subtitleBuilder: (i) => 'Unidad: ${i.unidad}',
           unidadLabel: null,
         );
       },

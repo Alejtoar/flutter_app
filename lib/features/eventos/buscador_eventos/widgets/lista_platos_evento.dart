@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:golo_app/features/eventos/buscador_eventos/widgets/modal_agregar_platos_evento.dart';
-import 'package:golo_app/models/plato.dart';
-import '../../../common/item_contenedor_evento.dart';
+import 'package:provider/provider.dart';
+import 'package:golo_app/features/catalogos/platos/controllers/plato_controller.dart';
+import '../../../../models/plato_evento.dart';
 
 class ListaPlatosEvento extends StatelessWidget {
-  final List<Plato> platos;
-  final void Function(Plato) onEditar;
-  final void Function(Plato) onEliminar;
-  final void Function(List<Plato>)? onAgregar;
+  final List<PlatoEvento> platosEvento;
+  final void Function(PlatoEvento) onEditar;
+  final void Function(PlatoEvento) onEliminar;
+  final VoidCallback? onAgregar;
 
   const ListaPlatosEvento({
     Key? key,
-    required this.platos,
+    required this.platosEvento,
     required this.onEditar,
     required this.onEliminar,
     this.onAgregar,
@@ -19,48 +19,48 @@ class ListaPlatosEvento extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text('Platos del evento', style: TextStyle(fontWeight: FontWeight.bold)),
-            IconButton(
-              icon: const Icon(Icons.add_circle_outline),
-              tooltip: 'Agregar plato',
-              onPressed: () async {
-                final nuevosPlatos = await showDialog<List<Plato>>(
-                  context: context,
-                  builder: (_) => ModalAgregarPlatosEvento(
-                    platosIniciales: platos,
-                    onGuardar: (seleccionados) => Navigator.of(context).pop(seleccionados),
-                  ),
-                );
-                if (nuevosPlatos != null && onAgregar != null) {
-                  onAgregar!(nuevosPlatos);
-                }
-              },
-            ),
+    if (platosEvento.isEmpty) {
+      return const Center(child: Text('No hay platos agregados'));
+    }
+    return Builder(
+      builder: (context) {
+        final platoCtrl = Provider.of<PlatoController>(context, listen: true);
+        return DataTable(
+          columns: const [
+            DataColumn(label: Text('Plato')),
+            DataColumn(label: Text('Cantidad')),
+            DataColumn(label: Text('Acciones')),
           ],
-        ),
-        if (platos.isEmpty)
-          const Text('No hay platos agregados')
-        else
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: platos.length,
-            itemBuilder: (context, idx) {
-              final p = platos[idx];
-              return ItemContenedorEvento(
-                nombre: p.toString(), // TODO: mostrar nombre real
-                onEditar: () => onEditar(p),
-                onEliminar: () => onEliminar(p),
-              );
-            },
-          ),
-      ],
+          rows: platosEvento.map((pe) {
+            String nombre = pe.platoId;
+            try {
+              final plato = platoCtrl.platos.firstWhere((x) => x.id == pe.platoId);
+              nombre = plato.nombre;
+            } catch (_) {}
+            return DataRow(
+              cells: [
+                DataCell(Text(nombre)),
+                DataCell(Text('${pe.cantidad}')),
+                DataCell(Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      tooltip: 'Editar',
+                      onPressed: () => onEditar(pe),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete),
+                      tooltip: 'Eliminar',
+                      onPressed: () => onEliminar(pe),
+                    ),
+                  ],
+                )),
+              ],
+            );
+          }).toList(),
+        );
+      },
     );
   }
 }

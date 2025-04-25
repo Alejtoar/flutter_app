@@ -100,8 +100,32 @@ class _IntermediosScreenState extends State<IntermediosScreen> {
                         ),
                       );
                     },
-                    onEliminar: (intermedio) {
-                      // TODO: Eliminar intermedio
+                    onEliminar: (intermedio) async {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Confirmar eliminación'),
+                          content: Text('¿Seguro que deseas eliminar el intermedio "${intermedio.nombre}"?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(ctx).pop(false),
+                              child: const Text('Cancelar'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.of(ctx).pop(true),
+                              child: const Text('Eliminar'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirm != true) return;
+                      final controller = Provider.of<IntermedioController>(context, listen: false);
+                      await controller.eliminarIntermedio(intermedio.id!);
+                      if (controller.error != null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(controller.error!)),
+                        );
+                      }
                     },
                     onVerDetalle: (intermedio) {
                       Navigator.of(context).push(

@@ -13,6 +13,7 @@ class ModalAgregarRequeridos<T> extends StatefulWidget {
   final String labelCantidad;
   final String labelBuscar;
   final String Function(T) nombreMostrar;
+  final String Function(T) subtitleBuilder;
   final String? unidadLabel;
 
   const ModalAgregarRequeridos({
@@ -27,6 +28,7 @@ class ModalAgregarRequeridos<T> extends StatefulWidget {
     required this.labelCantidad,
     required this.labelBuscar,
     required this.nombreMostrar,
+    required this.subtitleBuilder,
     this.unidadLabel,
   }) : super(key: key);
 
@@ -164,10 +166,7 @@ class _ModalAgregarRequeridosState<T> extends State<ModalAgregarRequeridos<T>> {
                   final r = _requeridosSeleccionados[idx];
                   return ListTile(
                     title: Text(widget.nombreMostrar(r)),
-                    subtitle: Text(
-                      (r != null && (r as dynamic).cantidad != null)
-                        ? 'Cantidad: ${(r as dynamic).cantidad} ${widget.unidadGetter(r)}'
-                        : 'Unidad: ${widget.unidadGetter(r)}'),
+                    subtitle: Text(widget.subtitleBuilder(r)),
                     trailing: IconButton(
                       icon: const Icon(Icons.delete),
                       onPressed: () => _eliminar(r),

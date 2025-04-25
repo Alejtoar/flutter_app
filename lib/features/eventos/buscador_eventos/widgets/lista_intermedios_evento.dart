@@ -1,67 +1,66 @@
 import 'package:flutter/material.dart';
-import 'package:golo_app/features/eventos/buscador_eventos/widgets/modal_agregar_intermedios_evento.dart';
-import '../../../common/item_contenedor_evento.dart';
-import '../../../../models/intermedio.dart';
+import 'package:provider/provider.dart';
+import 'package:golo_app/features/catalogos/intermedios/controllers/intermedio_controller.dart';
+import '../../../../models/intermedio_evento.dart';
 
 class ListaIntermediosEvento extends StatelessWidget {
-  final List<Intermedio> intermedios;
-  final void Function(Intermedio) onEditar;
-  final void Function(Intermedio) onEliminar;
-  final void Function(List<Intermedio>)? onAgregar;
+  final List<IntermedioEvento> intermediosEvento;
+  final void Function(IntermedioEvento) onEditar;
+  final void Function(IntermedioEvento) onEliminar;
+  final VoidCallback? onAgregar;
 
   const ListaIntermediosEvento({
     Key? key,
-    required this.intermedios,
+    required this.intermediosEvento,
     required this.onEditar,
     required this.onEliminar,
     this.onAgregar,
   }) : super(key: key);
 
-
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text('Intermedios del evento', style: TextStyle(fontWeight: FontWeight.bold)),
-            IconButton(
-              icon: const Icon(Icons.add_circle_outline),
-              tooltip: 'Agregar intermedio',
-              onPressed: () async {
-                final nuevosIntermedios = await showDialog<List<Intermedio>>(
-                  context: context,
-                  builder: (_) => ModalAgregarIntermediosEvento(
-                    intermediosIniciales: intermedios,
-                    onGuardar: (seleccionados) => Navigator.of(context).pop(seleccionados),
-                  ),
-                );
-                if (nuevosIntermedios != null && onAgregar != null) {
-                  onAgregar!(nuevosIntermedios);
-                }
-              },
-            ),
+    if (intermediosEvento.isEmpty) {
+      return const Center(child: Text('No hay intermedios agregados'));
+    }
+    return Builder(
+      builder: (context) {
+        final intermedioCtrl = Provider.of<IntermedioController>(context, listen: true);
+        return DataTable(
+          columns: const [
+            DataColumn(label: Text('Intermedio')),
+            DataColumn(label: Text('Cantidad')),
+            DataColumn(label: Text('Acciones')),
           ],
-        ),
-        if (intermedios.isEmpty)
-          const Text('No hay intermedios agregados.')
-        else
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: intermedios.length,
-            itemBuilder: (context, index) {
-              final intermedio = intermedios[index];
-              return ItemContenedorEvento(
-                nombre: intermedio.nombre,
-                onEditar: () => onEditar(intermedio),
-                onEliminar: () => onEliminar(intermedio),
-              );
-            },
-          ),
-      ],
+          rows: intermediosEvento.map((ie) {
+            String nombre = ie.intermedioId;
+            try {
+              final intermedio = intermedioCtrl.intermedios.firstWhere((x) => x.id == ie.intermedioId);
+              nombre = intermedio.nombre;
+            } catch (_) {}
+            return DataRow(
+              cells: [
+                DataCell(Text(nombre)),
+                DataCell(Text('${ie.cantidad}')),
+                DataCell(Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      tooltip: 'Editar',
+                      onPressed: () => onEditar(ie),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete),
+                      tooltip: 'Eliminar',
+                      onPressed: () => onEliminar(ie),
+                    ),
+                  ],
+                )),
+              ],
+            );
+          }).toList(),
+        );
+      },
     );
   }
 }

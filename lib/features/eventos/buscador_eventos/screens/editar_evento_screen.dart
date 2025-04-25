@@ -4,6 +4,15 @@ import 'package:intl/intl.dart';
 import '../widgets/lista_platos_evento.dart';
 import '../widgets/lista_intermedios_evento.dart';
 import '../widgets/lista_insumos_evento.dart';
+import 'package:golo_app/models/plato_evento.dart';
+import 'package:golo_app/models/intermedio_evento.dart';
+import 'package:golo_app/models/insumo_evento.dart';
+import 'package:golo_app/models/plato.dart';
+import 'package:golo_app/models/intermedio.dart';
+import 'package:golo_app/models/insumo.dart';
+import '../widgets/modal_agregar_platos_evento.dart';
+import '../widgets/modal_agregar_intermedios_evento.dart';
+import '../widgets/modal_agregar_insumos_evento.dart';
 
 class EditarEventoScreen extends StatefulWidget {
   final Evento? evento;
@@ -14,6 +23,11 @@ class EditarEventoScreen extends StatefulWidget {
 }
 
 class _EditarEventoScreenState extends State<EditarEventoScreen> {
+  // Estado local para las listas del evento
+  List<PlatoEvento> _platosEvento = [];
+  List<IntermedioEvento> _intermediosEvento = [];
+  List<InsumoEvento> _insumosEvento = [];
+
   // Etiquetas amigables para los enums
   String _etiquetaTipoEvento(TipoEvento tipo) {
     switch (tipo) {
@@ -233,24 +247,143 @@ class _EditarEventoScreenState extends State<EditarEventoScreen> {
               maxLines: 2,
             ),
             const SizedBox(height: 20),
-            ListaPlatosEvento(
-              platos: const [],
-              onEditar: (p) {},
-              onEliminar: (p) {},
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Platos del evento', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.add),
+                  label: const Text('Agregar'),
+                  onPressed: () async {
+                    // Mostrar modal para agregar platos
+                    final seleccionados = await showDialog<List<Plato>>(
+                      context: context,
+                      builder: (ctx) => ModalAgregarPlatosEvento(
+                        platosIniciales: [], // TODO: pasar los platos actuales del evento
+                        onGuardar: (nuevos) => Navigator.of(ctx).pop(nuevos),
+                      ),
+                    );
+                    if (seleccionados != null) {
+                      setState(() {
+                        // TODO: convertir Plato a PlatoEvento y actualizar _platosEvento
+                      });
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(minimumSize: const Size(40, 36)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 180,
+              child: ListaPlatosEvento(
+                platosEvento: _platosEvento,
+                onEditar: (pe) async {
+                  final nuevos = List<PlatoEvento>.from(_platosEvento);
+                  final idx = nuevos.indexWhere((x) => x.platoId == pe.platoId);
+                  if (idx == -1) return;
+                  // Aquí puedes abrir un modal para editar la cantidad, por ahora solo ejemplo:
+                  // final editado = await showDialog<PlatoEvento>(...);
+                  // if (editado != null) setState(() => _platosEvento[idx] = editado);
+                },
+                onEliminar: (pe) {
+                  setState(() {
+                    _platosEvento.removeWhere((x) => x.platoId == pe.platoId);
+                  });
+                },
+              ),
             ),
             const SizedBox(height: 20),
-            // Lista de intermedios del evento
-            ListaIntermediosEvento(
-              intermedios: const [],
-              onEditar: (i) {},
-              onEliminar: (i) {},
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Intermedios del evento', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.add),
+                  label: const Text('Agregar'),
+                  onPressed: () async {
+                    final seleccionados = await showDialog<List<Intermedio>>(
+                      context: context,
+                      builder: (ctx) => ModalAgregarIntermediosEvento(
+                        intermediosIniciales: [], // TODO: pasar los intermedios actuales del evento
+                        onGuardar: (nuevos) => Navigator.of(ctx).pop(nuevos),
+                      ),
+                    );
+                    if (seleccionados != null) {
+                      setState(() {
+                        // TODO: convertir Intermedio a IntermedioEvento y actualizar _intermediosEvento
+                      });
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(minimumSize: const Size(40, 36)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 180,
+              child: ListaIntermediosEvento(
+                intermediosEvento: _intermediosEvento,
+                onEditar: (ie) async {
+                  final nuevos = List<IntermedioEvento>.from(_intermediosEvento);
+                  final idx = nuevos.indexWhere((x) => x.intermedioId == ie.intermedioId);
+                  if (idx == -1) return;
+                  // Aquí puedes abrir un modal para editar la cantidad, por ahora solo ejemplo:
+                  // final editado = await showDialog<IntermedioEvento>(...);
+                  // if (editado != null) setState(() => _intermediosEvento[idx] = editado);
+                },
+                onEliminar: (ie) {
+                  setState(() {
+                    _intermediosEvento.removeWhere((x) => x.intermedioId == ie.intermedioId);
+                  });
+                },
+              ),
             ),
             const SizedBox(height: 20),
-            // Lista de insumos del evento
-            ListaInsumosEvento(
-              insumos: const [],
-              onEditar: (i) {},
-              onEliminar: (i) {},
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Insumos del evento', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.add),
+                  label: const Text('Agregar'),
+                  onPressed: () async {
+                    final seleccionados = await showDialog<List<Insumo>>(
+                      context: context,
+                      builder: (ctx) => ModalAgregarInsumosEvento(
+                        insumosIniciales: [], // TODO: pasar los insumos actuales del evento
+                        onGuardar: (nuevos) => Navigator.of(ctx).pop(nuevos),
+                      ),
+                    );
+                    if (seleccionados != null) {
+                      setState(() {
+                        // TODO: convertir Insumo a InsumoEvento y actualizar _insumosEvento
+                      });
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(minimumSize: const Size(40, 36)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 180,
+              child: ListaInsumosEvento(
+                insumosEvento: _insumosEvento,
+                onEditar: (ie) async {
+                  final nuevos = List<InsumoEvento>.from(_insumosEvento);
+                  final idx = nuevos.indexWhere((x) => x.insumoId == ie.insumoId);
+                  if (idx == -1) return;
+                  // Aquí puedes abrir un modal para editar la cantidad, por ahora solo ejemplo:
+                  // final editado = await showDialog<InsumoEvento>(...);
+                  // if (editado != null) setState(() => _insumosEvento[idx] = editado);
+                },
+                onEliminar: (ie) {
+                  setState(() {
+                    _insumosEvento.removeWhere((x) => x.insumoId == ie.insumoId);
+                  });
+                },
+              ),
             ),
             const SizedBox(height: 20),
             ElevatedButton(
