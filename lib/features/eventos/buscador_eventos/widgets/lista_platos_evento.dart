@@ -40,7 +40,7 @@ class ListaPlatosEvento extends StatelessWidget {
             return DataRow(
               cells: [
                 DataCell(Text(nombre)),
-                DataCell(Text('${pe.cantidad}')),
+                DataCell(Text('${pe.cantidad} Platos')),
                 DataCell(Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [

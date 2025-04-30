@@ -166,8 +166,7 @@ class EventoFirestoreRepository implements EventoRepository {
 
   @override
   Future<List<Evento>> obtenerTodos() async {
-    final query = _db.collection(_coleccion)
-        .where('activo', isEqualTo: true);
+    final query = _db.collection(_coleccion);
         
     final snapshot = await query.get();
     return snapshot.docs.map((doc) => Evento.fromFirestore(doc)).toList();

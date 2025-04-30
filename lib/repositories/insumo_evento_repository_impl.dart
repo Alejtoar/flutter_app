@@ -74,12 +74,12 @@ class InsumoEventoFirestoreRepository implements InsumoEventoRepository {
   }
 
   @override
-  Future<void> crearMultiples(List<InsumoEvento> relaciones) async {
+  Future<void> crearMultiples(String eventoId, List<InsumoEvento> relaciones) async {
     final batch = _db.batch();
     for (final relacion in relaciones) {
       final docRef = _db.collection(_coleccion).doc();
       batch.set(docRef, {
-        'eventoId': relacion.eventoId,
+        'eventoId': eventoId,
         'insumoId': relacion.insumoId,
         'cantidad': relacion.cantidad,
       });

@@ -8,7 +8,12 @@ class ListaIntermediosRequeridos extends StatelessWidget {
   final void Function(IntermedioRequerido) onEditar;
   final void Function(IntermedioRequerido) onEliminar;
 
-  const ListaIntermediosRequeridos({Key? key, required this.intermedios, required this.onEditar, required this.onEliminar}) : super(key: key);
+  const ListaIntermediosRequeridos({
+    Key? key,
+    required this.intermedios,
+    required this.onEditar,
+    required this.onEliminar,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -17,29 +22,42 @@ class ListaIntermediosRequeridos extends StatelessWidget {
     }
     return Consumer<IntermedioController>(
       builder: (context, intermedioCtrl, _) {
-        return ListView.builder(
-          itemCount: intermedios.length,
-          itemBuilder: (context, idx) {
-            final ir = intermedios[idx];
-            String nombre = ir.intermedioId;
+        return DataTable(
+          columns: const [
+            DataColumn(label: Text('Intermedio')),
+            DataColumn(label: Text('Cantidad')),
+            DataColumn(label: Text('Acciones')),
+          ],
+          rows: intermedios.map((ie) {
+            String nombre = ie.intermedioId;
             String? unidad;
             try {
-              final intermedio = intermedioCtrl.intermedios.firstWhere((x) => x.id == ir.intermedioId);
+              final intermedio = intermedioCtrl.intermedios.firstWhere((x) => x.id == ie.intermedioId);
               nombre = intermedio.nombre;
               unidad = intermedio.unidad;
             } catch (_) {}
-            return ListTile(
-              title: Text(nombre),
-              subtitle: Text('Cantidad: ${ir.cantidad}${unidad != null ? ' $unidad' : ''}'),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(icon: const Icon(Icons.edit), onPressed: () => onEditar(ir)),
-                  IconButton(icon: const Icon(Icons.delete), onPressed: () => onEliminar(ir)),
-                ],
-              ),
+            return DataRow(
+              cells: [
+                DataCell(Text(nombre)),
+                DataCell(Text('${ie.cantidad} ${unidad != null ? ' $unidad' : ''}')),
+                DataCell(Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      tooltip: 'Editar',
+                      onPressed: () => onEditar(ie),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete),
+                      tooltip: 'Eliminar',
+                      onPressed: () => onEliminar(ie),
+                    ),
+                  ],
+                )),
+              ],
             );
-          },
+          }).toList(),
         );
       },
     );

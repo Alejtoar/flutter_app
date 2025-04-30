@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:golo_app/models/insumo_evento.dart';
 import 'package:provider/provider.dart';
 import 'package:golo_app/models/insumo.dart';
 import 'package:golo_app/features/common/modal_agregar_requeridos.dart';
 import 'package:golo_app/features/catalogos/insumos/controllers/insumo_controller.dart';
 
 class ModalAgregarInsumosEvento extends StatelessWidget {
-  final List<Insumo> insumosIniciales;
-  final void Function(List<Insumo>) onGuardar;
+  final List<InsumoEvento> insumosIniciales;
+  final void Function(List<InsumoEvento>) onGuardar;
 
   const ModalAgregarInsumosEvento({Key? key, required this.insumosIniciales, required this.onGuardar}) : super(key: key);
 
@@ -20,7 +21,7 @@ class ModalAgregarInsumosEvento extends StatelessWidget {
             child: CircularProgressIndicator(),
           ));
         }
-        return ModalAgregarRequeridos<Insumo>(
+        return ModalAgregarRequeridos<InsumoEvento>(
           titulo: 'Agregar Insumos al Evento',
           requeridosIniciales: insumosIniciales,
           onGuardar: onGuardar,
@@ -36,12 +37,38 @@ class ModalAgregarInsumosEvento extends StatelessWidget {
               onTap: yaAgregado ? null : onTap,
             );
           },
-          unidadGetter: (i) => i.unidad,
-          crearRequerido: (item, _) => item as Insumo,
-          labelCantidad: '',
+          unidadGetter: (item) {
+            if (item is Insumo) return item.unidad;
+            if (item is InsumoEvento) {
+              final insumo = insumoCtrl.insumos.firstWhere(
+                (i) => i.id == item.insumoId,
+                orElse: () => Insumo(
+                  id: '', codigo: '', nombre: '', categorias: [], unidad: '', precioUnitario: 0, proveedorId: '', fechaCreacion: DateTime.now(), fechaActualizacion: DateTime.now(), activo: true
+                ),
+              );
+              return insumo.unidad;
+            }
+            return '';
+          },
+          crearRequerido: (item, cantidad) {
+            final insumo = item as Insumo;
+            return InsumoEvento(
+              id: null,
+              eventoId: '', // Se asigna al guardar el plato
+              insumoId: insumo.id!,
+              cantidad: cantidad,
+              unidad: insumo.unidad,
+            );
+          },
+          labelCantidad: 'Cantidad',
           labelBuscar: 'Buscar insumo',
-          nombreMostrar: (i) => (i).nombre,
-          subtitleBuilder: (i) => 'Unidad: ${i.unidad}',
+          nombreMostrar: (r) =>
+            insumoCtrl.insumos.firstWhere((i) => i.id == r.insumoId, orElse: () => Insumo(id: r.insumoId, codigo: '', nombre: r.insumoId, categorias: [], unidad: '', precioUnitario: 0, proveedorId: '', fechaCreacion: DateTime.now(), fechaActualizacion: DateTime.now(), activo: true)).nombre,
+          subtitleBuilder: (r) {
+            final insumo = insumoCtrl.insumos.firstWhere((i) => i.id == r.insumoId, orElse: () => Insumo(id: r.insumoId, codigo: '', nombre: r.insumoId, categorias: [], unidad: '', precioUnitario: 0, proveedorId: '', fechaCreacion: DateTime.now(), fechaActualizacion: DateTime.now(), activo: true));
+            final unidad = insumo.unidad;
+            return 'Cantidad: ${r.cantidad}${unidad.isNotEmpty ? ' $unidad' : ''}';
+          },
           unidadLabel: null,
         );
       },

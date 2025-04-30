@@ -17,29 +17,42 @@ class ListaInsumosRequeridos extends StatelessWidget {
     }
     return Consumer<InsumoController>(
       builder: (context, insumoCtrl, _) {
-        return ListView.builder(
-          itemCount: insumos.length,
-          itemBuilder: (context, idx) {
-            final iu = insumos[idx];
-            String nombre = iu.insumoId;
+        return DataTable(
+          columns: const [
+            DataColumn(label: Text('Insumo')),
+            DataColumn(label: Text('Cantidad')),
+            DataColumn(label: Text('Acciones')),
+          ],
+          rows: insumos.map((ie) {
+            String nombre = ie.insumoId;
             String? unidad;
             try {
-              final insumo = insumoCtrl.insumos.firstWhere((x) => x.id == iu.insumoId);
+              final insumo = insumoCtrl.insumos.firstWhere((x) => x.id == ie.insumoId);
               nombre = insumo.nombre;
               unidad = insumo.unidad;
             } catch (_) {}
-            return ListTile(
-              title: Text(nombre),
-              subtitle: Text('Cantidad: ${iu.cantidad}${unidad != null ? ' $unidad' : ''}'),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(icon: const Icon(Icons.edit), onPressed: () => onEditar(iu)),
-                  IconButton(icon: const Icon(Icons.delete), onPressed: () => onEliminar(iu)),
-                ],
-              ),
+            return DataRow(
+              cells: [
+                DataCell(Text(nombre)),
+                DataCell(Text('${ie.cantidad}${unidad != null ? ' $unidad' : ''}')),
+                DataCell(Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      tooltip: 'Editar',
+                      onPressed: () => onEditar(ie),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete),
+                      tooltip: 'Eliminar',
+                      onPressed: () => onEliminar(ie),
+                    ),
+                  ],
+                )),
+              ],
             );
-          },
+          }).toList(),
         );
       },
     );

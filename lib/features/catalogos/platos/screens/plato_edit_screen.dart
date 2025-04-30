@@ -40,20 +40,23 @@ class _PlatoEditScreenState extends State<PlatoEditScreen> {
     final idx = insumoCtrl.insumos.indexWhere((x) => x.id == iu.insumoId);
     if (idx == -1) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Insumo no encontrado en catálogo actual.')),
+        const SnackBar(
+          content: Text('Insumo no encontrado en catálogo actual.'),
+        ),
       );
       return;
     }
     final insumo = insumoCtrl.insumos[idx];
     final editado = await showDialog<InsumoRequerido>(
       context: context,
-      builder: (ctx) => ModalEditarCantidadInsumoRequerido(
-        insumoRequerido: iu,
-        insumo: insumo,
-        onGuardar: (nuevaCantidad) {
-          Navigator.of(ctx).pop(iu.copyWith(cantidad: nuevaCantidad));
-        },
-      ),
+      builder:
+          (ctx) => ModalEditarCantidadInsumoRequerido(
+            insumoRequerido: iu,
+            insumo: insumo,
+            onGuardar: (nuevaCantidad) {
+              Navigator.of(ctx).pop(iu.copyWith(cantidad: nuevaCantidad));
+            },
+          ),
     );
     if (editado != null) {
       setState(() {
@@ -64,13 +67,21 @@ class _PlatoEditScreenState extends State<PlatoEditScreen> {
   }
 
   Future<void> _editarIntermedioRequerido(IntermedioRequerido ir) async {
-    final intermedioCtrl = Provider.of<IntermedioController>(context, listen: false);
-    if (intermedioCtrl.intermedios.isEmpty) await intermedioCtrl.cargarIntermedios();
-    final idx = intermedioCtrl.intermedios.indexWhere((x) => x.id == ir.intermedioId);
+    final intermedioCtrl = Provider.of<IntermedioController>(
+      context,
+      listen: false,
+    );
+    if (intermedioCtrl.intermedios.isEmpty)
+      await intermedioCtrl.cargarIntermedios();
+    final idx = intermedioCtrl.intermedios.indexWhere(
+      (x) => x.id == ir.intermedioId,
+    );
     Intermedio intermedio;
     if (idx == -1) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Intermedio no encontrado en catálogo actual.')),
+        const SnackBar(
+          content: Text('Intermedio no encontrado en catálogo actual.'),
+        ),
       );
       intermedio = Intermedio(
         id: ir.intermedioId,
@@ -91,17 +102,20 @@ class _PlatoEditScreenState extends State<PlatoEditScreen> {
     }
     final editado = await showDialog<IntermedioRequerido>(
       context: context,
-      builder: (ctx) => ModalEditarCantidadIntermedioRequerido(
-        intermedioRequerido: ir,
-        intermedio: intermedio,
-        onGuardar: (nuevaCantidad) {
-          Navigator.of(ctx).pop(ir.copyWith(cantidad: nuevaCantidad));
-        },
-      ),
+      builder:
+          (ctx) => ModalEditarCantidadIntermedioRequerido(
+            intermedioRequerido: ir,
+            intermedio: intermedio,
+            onGuardar: (nuevaCantidad) {
+              Navigator.of(ctx).pop(ir.copyWith(cantidad: nuevaCantidad));
+            },
+          ),
     );
     if (editado != null) {
       setState(() {
-        final idxLocal = _intermedios.indexWhere((x) => x.intermedioId == ir.intermedioId);
+        final idxLocal = _intermedios.indexWhere(
+          (x) => x.intermedioId == ir.intermedioId,
+        );
         if (idxLocal != -1) _intermedios[idxLocal] = editado;
       });
     }
@@ -122,7 +136,10 @@ class _PlatoEditScreenState extends State<PlatoEditScreen> {
     // Asegura la carga de catálogos globales de insumos e intermedios
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final insumoCtrl = Provider.of<InsumoController>(context, listen: false);
-      final intermedioCtrl = Provider.of<IntermedioController>(context, listen: false);
+      final intermedioCtrl = Provider.of<IntermedioController>(
+        context,
+        listen: false,
+      );
       if (insumoCtrl.insumos.isEmpty) {
         await insumoCtrl.cargarInsumos();
       }
@@ -353,14 +370,14 @@ class _PlatoEditScreenState extends State<PlatoEditScreen> {
               SizedBox(
                 height: 120,
                 child: ListaInsumosRequeridos(
-  insumos: _insumos,
-  onEditar: _editarInsumoRequerido,
-  onEliminar: (iu) {
-    setState(() {
-      _insumos.removeWhere((x) => x.insumoId == iu.insumoId);
-    });
-  },
-),
+                  insumos: _insumos,
+                  onEditar: _editarInsumoRequerido,
+                  onEliminar: (iu) {
+                    setState(() {
+                      _insumos.removeWhere((x) => x.insumoId == iu.insumoId);
+                    });
+                  },
+                ),
               ),
               const SizedBox(height: 16),
               Row(
@@ -381,14 +398,16 @@ class _PlatoEditScreenState extends State<PlatoEditScreen> {
               SizedBox(
                 height: 120,
                 child: ListaIntermediosRequeridos(
-  intermedios: _intermedios,
-  onEditar: _editarIntermedioRequerido,
-  onEliminar: (ir) {
-    setState(() {
-      _intermedios.removeWhere((x) => x.intermedioId == ir.intermedioId);
-    });
-  },
-),
+                  intermedios: _intermedios,
+                  onEditar: _editarIntermedioRequerido,
+                  onEliminar: (ir) {
+                    setState(() {
+                      _intermedios.removeWhere(
+                        (x) => x.intermedioId == ir.intermedioId,
+                      );
+                    });
+                  },
+                ),
               ),
               const SizedBox(height: 20),
               ElevatedButton(

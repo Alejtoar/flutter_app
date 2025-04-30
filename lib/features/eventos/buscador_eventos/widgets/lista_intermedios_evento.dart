@@ -22,9 +22,8 @@ class ListaIntermediosEvento extends StatelessWidget {
     if (intermediosEvento.isEmpty) {
       return const Center(child: Text('No hay intermedios agregados'));
     }
-    return Builder(
-      builder: (context) {
-        final intermedioCtrl = Provider.of<IntermedioController>(context, listen: true);
+    return Consumer<IntermedioController>(
+      builder: (context, intermedioCtrl, _) {
         return DataTable(
           columns: const [
             DataColumn(label: Text('Intermedio')),
@@ -33,14 +32,16 @@ class ListaIntermediosEvento extends StatelessWidget {
           ],
           rows: intermediosEvento.map((ie) {
             String nombre = ie.intermedioId;
+            String? unidad;
             try {
               final intermedio = intermedioCtrl.intermedios.firstWhere((x) => x.id == ie.intermedioId);
               nombre = intermedio.nombre;
+              unidad = intermedio.unidad;
             } catch (_) {}
             return DataRow(
               cells: [
                 DataCell(Text(nombre)),
-                DataCell(Text('${ie.cantidad}')),
+                DataCell(Text('${ie.cantidad} ${unidad != null ? ' $unidad' : ''}')),
                 DataCell(Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [

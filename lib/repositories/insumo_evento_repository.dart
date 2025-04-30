@@ -20,7 +20,7 @@ abstract class InsumoEventoRepository {
   Future<List<InsumoEvento>> obtenerPorInsumo(String insumoId);
 
   /// Crea múltiples relaciones en una sola operación atómica
-  Future<void> crearMultiples(List<InsumoEvento> relaciones);
+  Future<void> crearMultiples(String eventoId, List<InsumoEvento> relaciones);
 
   /// Verifica si existe una relación específica
   Future<bool> existeRelacion(String insumoId, String eventoId);

@@ -1,3 +1,5 @@
+
+// evento.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Evento {
@@ -59,7 +61,6 @@ class Evento {
     final errors = <String>[];
 
     if (codigo.isEmpty) errors.add('El código es requerido');
-    if (!codigo.startsWith('E-')) errors.add('El código debe comenzar con "E-"');
     if (nombreCliente.isEmpty) errors.add('El nombre del cliente es requerido');
     if (telefono.isEmpty) errors.add('El teléfono es requerido');
     if (correo.isEmpty) errors.add('El correo es requerido');
@@ -77,29 +78,29 @@ class Evento {
       errors.add('Correo electrónico no válido');
     }
 
-    final ahora = DateTime.now();
-    if (fecha.isBefore(ahora)) {
-      errors.add('La fecha del evento debe ser futura');
-    }
+    // final ahora = DateTime.now();
+    // if (fecha.isBefore(ahora)) {
+    //   errors.add('La fecha del evento debe ser futura');
+    // }
 
     // Validaciones específicas por tipo de evento
-    final diasHastaEvento = fecha.difference(ahora).inDays;
+    // final diasHastaEvento = fecha.difference(ahora).inDays;
 
-    if (tipoEvento == TipoEvento.matrimonio && diasHastaEvento < 30) {
-      errors.add('Los eventos de matrimonio requieren al menos 30 días de anticipación');
-    }
+    // if (tipoEvento == TipoEvento.matrimonio && diasHastaEvento < 30) {
+    //   errors.add('Los eventos de matrimonio requieren al menos 30 días de anticipación');
+    // }
 
-    if (tipoEvento == TipoEvento.produccionAudiovisual && diasHastaEvento > 14) {
-      errors.add('Los eventos de producción audiovisual deben estar dentro de los próximos 14 días');
-    }
+    // if (tipoEvento == TipoEvento.produccionAudiovisual && diasHastaEvento > 14) {
+    //   errors.add('Los eventos de producción audiovisual deben estar dentro de los próximos 14 días');
+    // }
 
-    if (tipoEvento == TipoEvento.chefEnCasa && diasHastaEvento < 7) {
-      errors.add('Los eventos de chef en casa requieren al menos 7 días de anticipación');
-    }
+    // if (tipoEvento == TipoEvento.chefEnCasa && diasHastaEvento < 7) {
+    //   errors.add('Los eventos de chef en casa requieren al menos 7 días de anticipación');
+    // }
 
-    if (tipoEvento == TipoEvento.institucional && diasHastaEvento < 14) {
-      errors.add('Los eventos institucionales requieren al menos 14 días de anticipación');
-    }
+    // if (tipoEvento == TipoEvento.institucional && diasHastaEvento < 14) {
+    //   errors.add('Los eventos institucionales requieren al menos 14 días de anticipación');
+    // }
 
     if (errors.isNotEmpty) {
       throw ArgumentError(errors.join('\n'));
@@ -155,28 +156,31 @@ class Evento {
   }
 
   factory Evento.fromFirestore(DocumentSnapshot doc) {
+    print('Evento.fromFirestore: Procesando documento con id: ${doc.id}');
     final data = doc.data() as Map<String, dynamic>;
-    return Evento.crear(
+    return Evento(
       id: doc.id,
       codigo: data['codigo'] ?? '',
       nombreCliente: data['nombreCliente'] ?? '',
       telefono: data['telefono'] ?? '',
       correo: data['correo'] ?? '',
-      fecha: (data['fecha'] as Timestamp).toDate(),
       ubicacion: data['ubicacion'] ?? '',
-      numeroInvitados: data['numeroInvitados'] ?? 0,
+      numeroInvitados: (data['numeroInvitados'] as num?)?.toInt() ?? 0,
+      fecha: (data['fecha'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      fechaCotizacion: data['fechaCotizacion'] != null 
+          ? (data['fechaCotizacion'] as Timestamp).toDate()
+          : null,
+      fechaConfirmacion: data['fechaConfirmacion'] != null 
+          ? (data['fechaConfirmacion'] as Timestamp).toDate()
+          : null,
       tipoEvento: TipoEvento.values.firstWhere(
-        (e) => e.toString() == data['tipoEvento'],
+        (e) => e.toString() == 'TipoEvento.${data['tipoEvento']}',
         orElse: () => TipoEvento.institucional,
       ),
       estado: EstadoEvento.values.firstWhere(
-        (e) => e.toString() == data['estado'],
+        (e) => e.toString() == 'EstadoEvento.${data['estado']}',
         orElse: () => EstadoEvento.cotizado,
       ),
-      fechaCotizacion: (data['fechaCotizacion'] as Timestamp).toDate(),
-      fechaConfirmacion: data['fechaConfirmacion'] != null
-          ? (data['fechaConfirmacion'] as Timestamp).toDate()
-          : null,
       fechaCreacion: (data['fechaCreacion'] as Timestamp).toDate(),
       fechaActualizacion: (data['fechaActualizacion'] as Timestamp).toDate(),
       comentariosLogistica: data['comentariosLogistica'],

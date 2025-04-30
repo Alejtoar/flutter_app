@@ -123,7 +123,10 @@ class _ModalAgregarInsumosState extends State<ModalAgregarInsumos> {
                                             color: Colors.green,
                                           )
                                           : null,
-                                  onTap: yaAgregado ? null : () => _agregarInsumo(insumo),
+                                  onTap:
+                                      yaAgregado
+                                          ? null
+                                          : () => _agregarInsumo(insumo),
                                 );
                               },
                             ),
@@ -153,8 +156,8 @@ class _ModalAgregarInsumosState extends State<ModalAgregarInsumos> {
                   Row(
                     children: [
                       ElevatedButton(
-  onPressed: _confirmarAgregar,
-  child: const Text('Agregar'),
+                        onPressed: _confirmarAgregar,
+                        child: const Text('Agregar'),
                       ),
                       const SizedBox(width: 12),
                       TextButton(
