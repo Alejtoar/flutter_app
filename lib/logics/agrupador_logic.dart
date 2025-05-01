@@ -1,3 +1,5 @@
+// lib/logics/agrupador_logic.dart
+
 import 'package:golo_app/models/insumo.dart';
 import 'package:golo_app/repositories/insumo_repository.dart';
 import 'package:golo_app/repositories/insumo_utilizado_repository.dart';

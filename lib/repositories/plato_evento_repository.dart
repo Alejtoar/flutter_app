@@ -19,11 +19,8 @@ abstract class PlatoEventoRepository {
   /// Obtiene todos los eventos de un plato
   Future<List<PlatoEvento>> obtenerPorPlato(String platoId);
 
-  /// Reemplaza completamente los platos de un evento
-  Future<void> reemplazarPlatosDeEvento(
-    String eventoId, 
-    List<PlatoEvento> nuevosPlatosEvento
-  );
+  /// Crea múltiples relaciones en una sola operación atómica
+  Future<void> reemplazarPlatosDeEvento(String eventoId, List<PlatoEvento> nuevosPlatos);
 
   /// Verifica si existe una relación específica
   Future<bool> existeRelacion(String platoId, String eventoId);

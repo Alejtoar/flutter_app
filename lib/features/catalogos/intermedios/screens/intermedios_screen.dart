@@ -1,3 +1,4 @@
+// intermedios_screen.dart
 import 'package:flutter/material.dart';
 import 'package:golo_app/features/catalogos/intermedios/controllers/intermedio_controller.dart';
 import 'package:provider/provider.dart';

@@ -1,3 +1,5 @@
+
+// intermedio_requerido_repository_impl.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:golo_app/models/intermedio_requerido.dart';
 import 'package:golo_app/repositories/intermedio_requerido_repository.dart';

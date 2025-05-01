@@ -44,6 +44,11 @@ dependencies:
   firebase_storage: ^12.4.5
   collection: ^1.19.1
   intl: ^0.19.0
+  printing: ^5.11.1 # O la versión más reciente
+  pdf: ^3.10.4 # El motor de PDF (printing depende de esto)
+  path_provider: ^2.0.15
+  csv: ^6.0.0
+  share_plus: ^11.0.0
 
 dev_dependencies:
   integration_test:

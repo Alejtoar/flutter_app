@@ -1,3 +1,5 @@
+// lib/logics/calculadora_costos_logic.dart
+
 import 'package:golo_app/repositories/insumo_repository.dart';
 import 'package:golo_app/repositories/insumo_utilizado_repository.dart';
 import 'package:golo_app/repositories/intermedio_requerido_repository.dart';

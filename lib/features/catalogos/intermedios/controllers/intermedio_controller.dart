@@ -1,3 +1,4 @@
+// intermedio_controller.dart
 import 'package:flutter/material.dart';
 import 'package:golo_app/models/intermedio.dart';
 import 'package:golo_app/models/insumo_utilizado.dart';

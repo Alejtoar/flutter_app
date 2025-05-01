@@ -1,3 +1,4 @@
+// intermedio_evento.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class IntermedioEvento {
@@ -23,12 +24,34 @@ class IntermedioEvento {
   }
 
   factory IntermedioEvento.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+    final data = doc.data() as Map<String, dynamic>?; // Hacer data nullable
+
+    if (data == null) {
+      throw Exception(
+        "Documento ${doc.id} en 'intermedios_eventos' no contiene datos.",
+      );
+    }
+
+    final eventoId = data['eventoId'] as String?;
+    final intermedioId = data['intermedioId'] as String?;
+
+    if (eventoId == null || eventoId.isEmpty) {
+      throw Exception(
+        "Campo 'eventoId' faltante o vacío en IntermedioEvento ${doc.id}",
+      );
+    }
+    if (intermedioId == null || intermedioId.isEmpty) {
+      throw Exception(
+        "Campo 'intermedioId' faltante o vacío en IntermedioEvento ${doc.id}",
+      );
+    }
+
     return IntermedioEvento(
       id: doc.id,
-      eventoId: data['eventoId'] as String,
-      intermedioId: data['intermedioId'] as String,
-      cantidad: data['cantidad'] as int,
+      eventoId: eventoId,
+      intermedioId: intermedioId,
+      cantidad:
+          (data['cantidad'] as num?)?.toInt() ?? 0, // Manejo seguro de cantidad
     );
   }
 
@@ -50,16 +73,16 @@ class IntermedioEvento {
   }
 
   IntermedioEvento copyWith({
-  String? id,
-  String? eventoId,
-  String? intermedioId,
-  int? cantidad,
-}) {
-  return IntermedioEvento(
-    id: id ?? this.id,
-    eventoId: eventoId ?? this.eventoId,
-    intermedioId: intermedioId ?? this.intermedioId,
-    cantidad: cantidad ?? this.cantidad,
-  );
-}
+    String? id,
+    String? eventoId,
+    String? intermedioId,
+    int? cantidad,
+  }) {
+    return IntermedioEvento(
+      id: id ?? this.id,
+      eventoId: eventoId ?? this.eventoId,
+      intermedioId: intermedioId ?? this.intermedioId,
+      cantidad: cantidad ?? this.cantidad,
+    );
+  }
 }

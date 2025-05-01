@@ -1,3 +1,4 @@
+// insumo_evento.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class InsumoEvento {
@@ -26,13 +27,47 @@ class InsumoEvento {
   }
 
   factory InsumoEvento.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+    final data = doc.data() as Map<String, dynamic>?; // Hacer data nullable
+
+    if (data == null) {
+      // Opción 1: Lanzar excepción específica si la data es totalmente nula
+      throw Exception(
+        "Documento ${doc.id} en 'insumos_eventos' no contiene datos.",
+      );
+      // Opción 2: Retornar un objeto inválido (menos recomendado para relaciones)
+      // return InsumoEvento(id: doc.id, eventoId: 'ERROR_NULL_DATA', insumoId: 'ERROR_NULL_DATA', cantidad: 0, unidad: 'ERR');
+    }
+
+    // Validar campos requeridos String
+    final eventoId = data['eventoId'] as String?;
+    final insumoId = data['insumoId'] as String?;
+    final unidad =
+        data['unidad'] as String?; // Hacer la unidad nullable si puede serlo
+
+    if (eventoId == null || eventoId.isEmpty) {
+      throw Exception(
+        "Campo 'eventoId' faltante o vacío en InsumoEvento ${doc.id}",
+      );
+    }
+    if (insumoId == null || insumoId.isEmpty) {
+      throw Exception(
+        "Campo 'insumoId' faltante o vacío en InsumoEvento ${doc.id}",
+      );
+    }
+    // Considera si 'unidad' puede ser null o vacía. Si no, añade validación.
+    // if (unidad == null || unidad.isEmpty) {
+    //   throw Exception("Campo 'unidad' faltante o vacío en InsumoEvento ${doc.id}");
+    // }
+
     return InsumoEvento(
       id: doc.id,
-      eventoId: data['eventoId'] as String,
-      insumoId: data['insumoId'] as String,
-      cantidad: data['cantidad'] as double,
-      unidad: data['unidad'] as String,
+      eventoId: eventoId,
+      insumoId: insumoId,
+      cantidad:
+          (data['cantidad'] as num?)?.toDouble() ??
+          0.0, // Manejo seguro de cantidad
+      unidad:
+          unidad ?? 'sin unidad', // Usar '?' u otro default si puede ser null/vacía, sino usar unidad!
     );
   }
 
@@ -70,5 +105,4 @@ class InsumoEvento {
       unidad: unidad ?? this.unidad,
     );
   }
-  
 }

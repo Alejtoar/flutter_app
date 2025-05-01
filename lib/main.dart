@@ -3,9 +3,7 @@ import 'package:golo_app/navigation/app_routes.dart';
 import 'package:golo_app/features/catalogos/insumos/controllers/insumo_controller.dart';
 import 'package:golo_app/features/catalogos/intermedios/controllers/intermedio_controller.dart';
 import 'package:golo_app/features/catalogos/platos/controllers/plato_controller.dart';
-import 'package:golo_app/repositories/insumo_repository.dart';
-import 'package:golo_app/repositories/intermedio_repository.dart';
-import 'package:golo_app/repositories/plato_repository.dart';
+import 'package:golo_app/repositories/evento_repository.dart';
 import 'package:golo_app/repositories/plato_repository_impl.dart';
 import 'package:golo_app/repositories/intermedio_requerido_repository_impl.dart';
 import 'package:golo_app/repositories/insumo_requerido_repository_impl.dart';
@@ -15,6 +13,7 @@ import 'package:golo_app/repositories/insumo_repository_impl.dart';
 import 'package:golo_app/repositories/intermedio_repository_impl.dart';
 import 'package:golo_app/repositories/insumo_utilizado_repository_impl.dart';
 import 'package:golo_app/repositories/proveedor_repository_impl.dart';
+import 'package:golo_app/services/shopping_list_service.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -24,49 +23,83 @@ import 'repositories/plato_evento_repository_impl.dart';
 import 'repositories/insumo_evento_repository_impl.dart';
 import 'repositories/intermedio_evento_repository_impl.dart';
 import 'firebase_options.dart';
+import 'package:intl/date_symbol_data_local.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('es_ES', null);
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+   // --- Crear Instancia de Firestore ---
+  final db = FirebaseFirestore.instance;
+
+  // --- Crear Instancias de Repositorios (usando la misma instancia 'db') ---
+  // (Para mejor legibilidad y reutilización)
+  final eventoRepo = EventoFirestoreRepository(db);
+  final platoEventoRepo = PlatoEventoFirestoreRepository(db);
+  final intermedioEventoRepo = IntermedioEventoFirestoreRepository(db);
+  final insumoEventoRepo = InsumoEventoFirestoreRepository(db);
+  final platoRepo = PlatoFirestoreRepository(db);
+  final intermedioRepo = IntermedioFirestoreRepository(db);
+  final insumoRepo = InsumoFirestoreRepository(db);
+  final insumoRequeridoRepo = InsumoRequeridoFirestoreRepository(db);
+  final intermedioRequeridoRepo = IntermedioRequeridoFirestoreRepository(db);
+  final insumoUtilizadoRepo = InsumoUtilizadoFirestoreRepository(db);
+  final proveedorRepo = ProveedorFirestoreRepository(db);
+
   runApp(
     MultiProvider(
       providers: [
+        // --- Proveedores de Controladores (Usando instancias de repo) ---
         ChangeNotifierProvider(create: (_) => NavigationController()),
-        Provider(create: (_) => FirebaseFirestore.instance),
         ChangeNotifierProvider(
           create: (_) => BuscadorEventosController(
-            repository: EventoFirestoreRepository(FirebaseFirestore.instance),
-            platoEventoRepository: PlatoEventoFirestoreRepository(FirebaseFirestore.instance),
-            insumoEventoRepository: InsumoEventoFirestoreRepository(FirebaseFirestore.instance),
-            intermedioEventoRepository: IntermedioEventoFirestoreRepository(FirebaseFirestore.instance),
-          ),
-        ),
-        Provider<PlatoRepository>(create: (_) => PlatoFirestoreRepository(FirebaseFirestore.instance)),
-        Provider<IntermedioRepository>(create: (_) => IntermedioFirestoreRepository(FirebaseFirestore.instance)),
-        Provider<InsumoRepository>(create: (_) => InsumoFirestoreRepository(FirebaseFirestore.instance)),
-        ChangeNotifierProvider(
-          create: (context) => InsumoController(
-            context.read<InsumoRepository>(),
-            ProveedorFirestoreRepository(Provider.of<FirebaseFirestore>(context, listen: false)),
+            eventoRepository: eventoRepo,
+            platoEventoRepository: platoEventoRepo,
+            insumoEventoRepository: insumoEventoRepo,
+            intermedioEventoRepository: intermedioEventoRepo,
           ),
         ),
         ChangeNotifierProvider(
-          create: (context) => ProveedorController(
-            ProveedorFirestoreRepository(Provider.of<FirebaseFirestore>(context, listen: false)),
-          ),
+          // InsumoController necesita InsumoRepository y ProveedorRepository
+          create: (_) => InsumoController(insumoRepo, proveedorRepo),
         ),
         ChangeNotifierProvider(
-          create: (_) => IntermedioController(
-            IntermedioFirestoreRepository(FirebaseFirestore.instance),
-            InsumoUtilizadoFirestoreRepository(FirebaseFirestore.instance),
-          ),
+          // ProveedorController necesita ProveedorRepository
+          create: (_) => ProveedorController(proveedorRepo),
         ),
         ChangeNotifierProvider(
-          create: (_) => PlatoController(
-            PlatoFirestoreRepository(FirebaseFirestore.instance),
-            IntermedioRequeridoFirestoreRepository(FirebaseFirestore.instance),
-            InsumoRequeridoFirestoreRepository(FirebaseFirestore.instance),
+          // IntermedioController necesita IntermedioRepository y InsumoUtilizadoRepository
+          create: (_) => IntermedioController(intermedioRepo, insumoUtilizadoRepo),
+        ),
+        ChangeNotifierProvider(
+          // PlatoController necesita PlatoRepository, IntermedioRequeridoRepo, InsumoRequeridoRepo
+          create: (_) => PlatoController(platoRepo, intermedioRequeridoRepo, insumoRequeridoRepo),
+        ),
+        Provider<EventoRepository>(
+          create: (_) => eventoRepo, // Proveer la instancia ya creada de EventoRepository
+        ),
+
+        // --- Proveedor para el Servicio ---
+        Provider<ShoppingListService>(
+          create: (_) => ShoppingListService(
+            // Pasar todas las instancias de repositorio necesarias
+            eventoRepo: eventoRepo,
+            platoEventoRepo: platoEventoRepo,
+            intermedioEventoRepo: intermedioEventoRepo,
+            insumoEventoRepo: insumoEventoRepo,
+            platoRepo: platoRepo,
+            intermedioRepo: intermedioRepo,
+            insumoRepo: insumoRepo,
+            insumoRequeridoRepo: insumoRequeridoRepo,
+            intermedioRequeridoRepo: intermedioRequeridoRepo,
+            insumoUtilizadoRepo: insumoUtilizadoRepo,
+            proveedorRepo: proveedorRepo,
+            // Si separaste el servicio de agrupación, créalo y pásalo aquí también:
+            // providerGrouper: ProviderGroupingService(proveedorRepo: proveedorRepo),
           ),
+          // Opcional: lazy: false si quieres que se cree inmediatamente al inicio
+          // lazy: false,
         ),
       ],
       child: const MyApp(),

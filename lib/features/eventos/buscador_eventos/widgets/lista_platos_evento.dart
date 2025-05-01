@@ -7,6 +7,7 @@ class ListaPlatosEvento extends StatelessWidget {
   final List<PlatoEvento> platosEvento;
   final void Function(PlatoEvento) onEditar;
   final void Function(PlatoEvento) onEliminar;
+  final void Function(PlatoEvento) onPersonalizar;
   final VoidCallback? onAgregar;
 
   const ListaPlatosEvento({
@@ -14,6 +15,7 @@ class ListaPlatosEvento extends StatelessWidget {
     required this.platosEvento,
     required this.onEditar,
     required this.onEliminar,
+    required this.onPersonalizar,
     this.onAgregar,
   }) : super(key: key);
 
@@ -44,6 +46,11 @@ class ListaPlatosEvento extends StatelessWidget {
                 DataCell(Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    IconButton(
+                      icon: const Icon(Icons.tune),
+                      tooltip: 'Personalizar',
+                      onPressed: () => onPersonalizar(pe),
+                    ),
                     IconButton(
                       icon: const Icon(Icons.edit),
                       tooltip: 'Editar',

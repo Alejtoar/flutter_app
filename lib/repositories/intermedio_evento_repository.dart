@@ -19,11 +19,8 @@ abstract class IntermedioEventoRepository {
   /// Obtiene todos los eventos de un intermedio
   Future<List<IntermedioEvento>> obtenerPorIntermedio(String intermedioId);
 
-  /// Reemplaza completamente los intermedios de un evento
-  Future<void> reemplazarIntermediosDeEvento(
-    String eventoId, 
-    List<String> nuevosIntermediosIds
-  );
+  /// Crea múltiples relaciones en una sola operación atómica
+  Future<void> reemplazarIntermediosDeEvento(String eventoId, List<IntermedioEvento> nuevosIntermedios);
 
   /// Verifica si existe una relación específica
   Future<bool> existeRelacion(String intermedioId, String eventoId);
