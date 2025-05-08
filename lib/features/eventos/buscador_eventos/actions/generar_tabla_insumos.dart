@@ -46,7 +46,7 @@ Future<void> generarListaCompras(BuildContext context, Evento evento) async {
     // Generar la lista de compras agrupada para UN SOLO evento
     // NOTA: Si quisieras generar para múltiples eventos, pasarías una lista de IDs aquí
     final GroupedShoppingListResult listaAgrupada =
-        await shoppingService.generateAndGroupShoppingList([eventoId]);
+        await shoppingService.getCombinedGroupedShoppingList([eventoId]);
 
     // Cerrar el indicador de carga ANTES de navegar o mostrarSnackBar
     if (context.mounted) Navigator.pop(context);
