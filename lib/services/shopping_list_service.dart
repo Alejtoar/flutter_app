@@ -858,7 +858,9 @@ class ShoppingListService {
           }
         });
       } else {
-        /* warning insumo faltante */
+        debugPrint(
+          "[ShoppingListService][WARN] No se encontró Insumo ID $insumoId al mapear resultado final.",
+        );
       }
     });
     return flatList;

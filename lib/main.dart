@@ -13,6 +13,7 @@ import 'package:golo_app/repositories/insumo_repository_impl.dart';
 import 'package:golo_app/repositories/intermedio_repository_impl.dart';
 import 'package:golo_app/repositories/insumo_utilizado_repository_impl.dart';
 import 'package:golo_app/repositories/proveedor_repository_impl.dart';
+import 'package:golo_app/services/excel_export_service.dart';
 import 'package:golo_app/services/shopping_list_service.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -25,12 +26,11 @@ import 'repositories/intermedio_evento_repository_impl.dart';
 import 'firebase_options.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('es_ES', null);
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-   // --- Crear Instancia de Firestore ---
+  // --- Crear Instancia de Firestore ---
   final db = FirebaseFirestore.instance;
 
   // --- Crear Instancias de Repositorios (usando la misma instancia 'db') ---
@@ -46,6 +46,7 @@ void main() async {
   final intermedioRequeridoRepo = IntermedioRequeridoFirestoreRepository(db);
   final insumoUtilizadoRepo = InsumoUtilizadoFirestoreRepository(db);
   final proveedorRepo = ProveedorFirestoreRepository(db);
+  final excelExportService = ExcelExportService();
 
   runApp(
     MultiProvider(
@@ -53,12 +54,13 @@ void main() async {
         // --- Proveedores de Controladores (Usando instancias de repo) ---
         ChangeNotifierProvider(create: (_) => NavigationController()),
         ChangeNotifierProvider(
-          create: (_) => BuscadorEventosController(
-            eventoRepository: eventoRepo,
-            platoEventoRepository: platoEventoRepo,
-            insumoEventoRepository: insumoEventoRepo,
-            intermedioEventoRepository: intermedioEventoRepo,
-          ),
+          create:
+              (_) => BuscadorEventosController(
+                eventoRepository: eventoRepo,
+                platoEventoRepository: platoEventoRepo,
+                insumoEventoRepository: insumoEventoRepo,
+                intermedioEventoRepository: intermedioEventoRepo,
+              ),
         ),
         ChangeNotifierProvider(
           // InsumoController necesita InsumoRepository y ProveedorRepository
@@ -70,37 +72,47 @@ void main() async {
         ),
         ChangeNotifierProvider(
           // IntermedioController necesita IntermedioRepository y InsumoUtilizadoRepository
-          create: (_) => IntermedioController(intermedioRepo, insumoUtilizadoRepo),
+          create:
+              (_) => IntermedioController(intermedioRepo, insumoUtilizadoRepo),
         ),
         ChangeNotifierProvider(
           // PlatoController necesita PlatoRepository, IntermedioRequeridoRepo, InsumoRequeridoRepo
-          create: (_) => PlatoController(platoRepo, intermedioRequeridoRepo, insumoRequeridoRepo),
+          create:
+              (_) => PlatoController(
+                platoRepo,
+                intermedioRequeridoRepo,
+                insumoRequeridoRepo,
+              ),
         ),
         Provider<EventoRepository>(
-          create: (_) => eventoRepo, // Proveer la instancia ya creada de EventoRepository
+          create:
+              (_) =>
+                  eventoRepo, // Proveer la instancia ya creada de EventoRepository
         ),
 
         // --- Proveedor para el Servicio ---
         Provider<ShoppingListService>(
-          create: (_) => ShoppingListService(
-            // Pasar todas las instancias de repositorio necesarias
-            eventoRepo: eventoRepo,
-            platoEventoRepo: platoEventoRepo,
-            intermedioEventoRepo: intermedioEventoRepo,
-            insumoEventoRepo: insumoEventoRepo,
-            platoRepo: platoRepo,
-            intermedioRepo: intermedioRepo,
-            insumoRepo: insumoRepo,
-            insumoRequeridoRepo: insumoRequeridoRepo,
-            intermedioRequeridoRepo: intermedioRequeridoRepo,
-            insumoUtilizadoRepo: insumoUtilizadoRepo,
-            proveedorRepo: proveedorRepo,
-            // Si separaste el servicio de agrupación, créalo y pásalo aquí también:
-            // providerGrouper: ProviderGroupingService(proveedorRepo: proveedorRepo),
-          ),
+          create:
+              (_) => ShoppingListService(
+                // Pasar todas las instancias de repositorio necesarias
+                eventoRepo: eventoRepo,
+                platoEventoRepo: platoEventoRepo,
+                intermedioEventoRepo: intermedioEventoRepo,
+                insumoEventoRepo: insumoEventoRepo,
+                platoRepo: platoRepo,
+                intermedioRepo: intermedioRepo,
+                insumoRepo: insumoRepo,
+                insumoRequeridoRepo: insumoRequeridoRepo,
+                intermedioRequeridoRepo: intermedioRequeridoRepo,
+                insumoUtilizadoRepo: insumoUtilizadoRepo,
+                proveedorRepo: proveedorRepo,
+                // Si separaste el servicio de agrupación, créalo y pásalo aquí también:
+                // providerGrouper: ProviderGroupingService(proveedorRepo: proveedorRepo),
+              ),
           // Opcional: lazy: false si quieres que se cree inmediatamente al inicio
           // lazy: false,
         ),
+        Provider<ExcelExportService>(create: (_) => excelExportService),
       ],
       child: const MyApp(),
     ),

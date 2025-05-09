@@ -2,14 +2,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:golo_app/repositories/evento_repository.dart';
-import 'package:golo_app/services/shopping_list_service.dart'; // Para los typedefs
-
-import 'package:csv/csv.dart';
-import 'dart:convert'; // para utf8
-import 'package:path_provider/path_provider.dart';
-import 'package:provider/provider.dart';
-import 'dart:io';
-import 'package:share_plus/share_plus.dart';
+import 'package:golo_app/services/excel_export_service.dart';
+import 'package:golo_app/services/shopping_list_service.dart';
+import 'package:provider/provider.dart'; // Para los typedefs
 
 class ShoppingListDisplayScreen extends StatefulWidget {
   final GroupedShoppingListResult groupedShoppingList;
@@ -262,18 +257,41 @@ class _ShoppingListDisplayScreenState extends State<ShoppingListDisplayScreen> {
   // --- Lógica de Exportación (Usa el título del _titleController) ---
 
   void _showExportOptions(BuildContext context) {
-    // ... (igual que antes)
     showModalBottomSheet(
       context: context,
       builder:
           (ctx) => Wrap(
             children: <Widget>[
               ListTile(
-                leading: const Icon(Icons.description),
-                title: const Text('Exportar como CSV'),
+                leading: const Icon(Icons.table_chart_outlined),
+                title: const Text('Excel - Todo en 1 Archivo'),
                 onTap: () {
                   Navigator.pop(ctx);
-                  _exportarListaComoCsv(context);
+                  _llamarServicioExcel(separateFiles: false); // Llama al helper
+                },
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.folder_zip_outlined,
+                ), // Icono diferente
+                title: const Text('Excel - 1 Archivo por Proveedor'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _llamarServicioExcel(separateFiles: true); // Llama al helper
+                },
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.save_alt_outlined,
+                ), // Icono de Guardar
+                title: const Text('Guardar como Excel (.xlsx)'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  // Llama a la función de guardado, no de compartir
+                  _llamarServicioExcelYGuardar(
+                    separateFilesByProvider: false,
+                    separateByFacturable: false,
+                  );
                 },
               ),
             ],
@@ -281,73 +299,95 @@ class _ShoppingListDisplayScreenState extends State<ShoppingListDisplayScreen> {
     );
   }
 
-  Future<void> _exportarListaComoCsv(BuildContext context) async {
-    debugPrint("Iniciando exportación CSV...");
-    List<List<dynamic>> rows = [];
-    // Usar el título actual del TextField para el nombre del archivo y el subject
-    final String tituloActual =
+  Future<void> _llamarServicioExcelYGuardar({
+    required bool separateFilesByProvider,
+    required bool separateByFacturable,
+  }) async {
+    if (widget.groupedShoppingList.isEmpty) {
+      /* ... */
+      return;
+    }
+    final String baseFileName =
         _titleController.text.isNotEmpty
             ? _titleController.text
-            : "Lista de Compras";
-    // Crear un sufijo de archivo a partir del título (simplificado)
-    final String archivoSufijo = tituloActual
-        .toLowerCase()
-        .replaceAll(RegExp(r'[^a-z0-9]'), '_')
-        .substring(0, (tituloActual.length > 20 ? 20 : tituloActual.length));
-
-    rows.add([
-      "Proveedor Codigo",
-      "Proveedor Nombre",
-      "Insumo Codigo",
-      "Insumo Nombre",
-      "Cantidad",
-      "Unidad",
-      "Categoria Insumo",
-    ]);
-    widget.groupedShoppingList.forEach((proveedor, items) {
-      final provCodigo = proveedor?.codigo ?? '';
-      final provNombre = proveedor?.nombre ?? 'Sin Proveedor';
-      for (var item in items) {
-        rows.add([
-          provCodigo,
-          provNombre,
-          item.insumo.codigo,
-          item.insumo.nombre,
-          item.cantidad,
-          item.unidad,
-          item.insumo.categorias,
-        ]);
-      }
-    });
-    String csvData = const ListToCsvConverter().convert(rows);
+            : "Lista_Compras";
+    _showSnackBar("Preparando archivo Excel...", isError: false);
 
     try {
-      final Directory tempDir = await getTemporaryDirectory();
-      final String filePath =
-          '${tempDir.path}/${archivoSufijo}_${DateTime.now().millisecondsSinceEpoch}.csv';
-      final File file = File(filePath);
-      await file.writeAsString(csvData, encoding: utf8);
-      debugPrint("CSV guardado temporalmente en: $filePath");
-
-      final xFile = XFile(filePath);
-      final params = ShareParams(
-        files: [xFile],
-        text: tituloActual, // Usar título personalizado
-        subject: tituloActual, // Usar título personalizado
+      final excelService = context.read<ExcelExportService>();
+      // Llama al nuevo método del servicio
+      await excelService.exportSingleExcelWithMultipleSheets(
+        context: context,
+        data: widget.groupedShoppingList,
+        baseFileName: baseFileName,
+        separateFacturableInResumen: separateByFacturable,
+        separateFacturableInProviderSheets: separateFilesByProvider,
       );
-      await SharePlus.instance.share(params);
-
-      // ... (manejar resultado)
-    } catch (e, st) {
-      debugPrint("Error al exportar/compartir CSV: $e\n$st");
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Error al exportar CSV: $e"),
-            backgroundColor: Colors.red,
-          ),
+      // El feedback de éxito/error ahora lo da el servicio o el file picker
+    } catch (e) {
+      debugPrint(
+        "Error al llamar a ExcelExportService.exportShoppingListAndSave: $e",
+      );
+      if (mounted) {
+        _showSnackBar(
+          "Ocurrió un error inesperado durante la exportación a Excel.",
+          isError: true,
         );
       }
     }
+  }
+
+  // NUEVO Helper para llamar al servicio de Excel
+  Future<void> _llamarServicioExcel({required bool separateFiles}) async {
+    if (widget.groupedShoppingList.isEmpty) {
+      _showSnackBar(
+        "La lista está vacía, no hay nada que exportar.",
+        isError: true,
+      );
+      return;
+    }
+    // Obtener título actual para nombre de archivo base
+    final String baseFileName =
+        _titleController.text.isNotEmpty
+            ? _titleController.text
+            : "Lista_Compras";
+
+    // Mostrar indicador (opcional, la exportación puede ser rápida)
+    _showSnackBar("Generando archivo(s) Excel...", isError: false);
+
+    try {
+      final excelService = context.read<ExcelExportService>();
+      final success = await excelService.shareShoppingList(
+        context: context,
+        data: widget.groupedShoppingList,
+        baseFileName: baseFileName,
+        separateFilesByProvider: separateFiles,
+      );
+
+      if (success) {
+        debugPrint("Llamada a compartir Excel realizada.");
+        // El SnackBar de éxito o error lo maneja internamente el servicio o la llamada a Share
+      } else {
+        _showSnackBar(
+          "No se pudo generar o compartir el archivo Excel.",
+          isError: true,
+        );
+      }
+    } catch (e) {
+      debugPrint("Error al llamar a ExcelExportService: $e");
+      _showSnackBar(
+        "Ocurrió un error inesperado durante la exportación.",
+        isError: true,
+      );
+    }
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : Colors.green,
+      ),
+    );
   }
 }
