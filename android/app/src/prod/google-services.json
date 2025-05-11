@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "781337757827",
+    "project_id": "golo-foodcatering",
+    "storage_bucket": "golo-foodcatering.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:781337757827:android:aa461b8c9cdf8ecbf9b3b6",
+        "android_client_info": {
+          "package_name": "com.example.golo_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD_6M6KT-um4PFpTCvxWIuyi0hUw-UhGLc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,8 @@
+{
+  "projects": {
+    "dev": "golofirebase",
+    "prod": "golo-foodcatering"
+  },
+  "targets": {},
+  "etags": {}
+}

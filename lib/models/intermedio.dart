@@ -23,62 +23,54 @@ class Intermedio {
     'salsa': {
       'icon': Icons.emoji_food_beverage,
       'color': Colors.red[200]!,
-      'reduccionDefault': 15.0,
     },
     'guarnición': {
       'icon': Icons.rice_bowl,
       'color': Colors.green[200]!,
-      'reduccionDefault': 10.0,
     },
     'base': {
       'icon': Icons.bakery_dining,
       'color': Colors.amber[200]!,
-      'reduccionDefault': 5.0,
     },
     'relleno': {
       'icon': Icons.layers,
       'color': Colors.brown[200]!,
-      'reduccionDefault': 20.0,
     },
     'aderezo': {
       'icon': Icons.opacity,
       'color': Colors.blue[200]!,
-      'reduccionDefault': 25.0,
     },
     'decoración': {
       'icon': Icons.brush,
       'color': Colors.purple[200]!,
-      'reduccionDefault': 30.0,
     },
     'proteína': {
       'icon': Icons.set_meal,
       'color': Colors.deepOrange[200]!,
-      'reduccionDefault': 18.0,
     },
     'ensalada': {
       'icon': Icons.eco,
       'color': Colors.lightGreen[200]!,
-      'reduccionDefault': 8.0,
     },
     'galletaría': {
       'icon': Icons.cookie,
       'color': Colors.brown[100]!,
-      'reduccionDefault': 12.0,
     },
     'panadería': {
       'icon': Icons.bakery_dining,
       'color': Colors.amber[300]!,
-      'reduccionDefault': 10.0,
+    },
+    'postre': {
+      'icon': Icons.cake,
+      'color': Colors.pink[200]!,
     },
     'guarnición fría': {
       'icon': Icons.ac_unit,
       'color': Colors.cyan[200]!,
-      'reduccionDefault': 7.0,
     },
     'otros': {
       'icon': Icons.category,
       'color': Colors.grey[400]!,
-      'reduccionDefault': 10.0,
     },
   };
 

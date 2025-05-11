@@ -32,6 +32,7 @@ class Insumo {
       'color': Colors.blueGrey[200]!,
     },
     'equipos': {'icon': Icons.kitchen, 'color': Colors.deepOrange[200]!},
+    'decoración': {'icon': Icons.brush, 'color': Colors.purple[200]!},
     'otros': {'icon': Icons.category, 'color': Colors.grey[600]!},
   };
 
@@ -148,8 +149,9 @@ class Insumo {
     if (codigo.isEmpty) errors.add('El código es requerido');
     if (nombre.isEmpty) errors.add('El nombre es requerido');
     if (unidad.isEmpty) errors.add('La unidad es requerida');
-    if (precioUnitario <= 0)
-      {errors.add('El precio unitario debe ser mayor a 0');}
+    if (precioUnitario <= 0) {
+      errors.add('El precio unitario debe ser mayor a 0');
+    }
     //if (proveedorId.isEmpty) errors.add('El proveedor es requerido');
 
     // Validación de categorías

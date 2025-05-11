@@ -7,7 +7,8 @@ class EventSubMenu {
       icon: Icons.list_alt,
       activeIcon: Icons.list_alt,
       label: 'Buscar eventos',
-      route: '/eventos/buscar', // Usa AppRoutes.eventosBuscador si está definido
+      route:
+          '/eventos/buscar', // Usa AppRoutes.eventosBuscador si está definido
     ),
     MenuItem(
       icon: Icons.calendar_today,
@@ -85,9 +86,17 @@ class ReportSubMenu {
 class AdminSubMenu {
   static final items = <MenuItem>[
     MenuItem(
-      icon: Icons.settings,
+      icon: Icons.settings_outlined,
       activeIcon: Icons.settings,
       label: 'Configuración',
+      // route: '/admin/configuracion' // Define la ruta si tienes esta pantalla
+    ),
+    MenuItem(
+      // Nuevo ítem para cerrar sesión
+      icon: Icons.logout,
+      activeIcon: Icons.logout,
+      label: 'Cerrar Sesión',
+      route: '/logout', // Ruta especial o sin ruta si se maneja por acción
     ),
   ];
 }

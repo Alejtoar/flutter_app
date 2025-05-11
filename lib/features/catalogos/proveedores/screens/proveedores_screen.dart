@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:golo_app/features/common/empty_data_widget.dart';
 import 'package:provider/provider.dart';
 import 'package:golo_app/features/catalogos/proveedores/controllers/proveedor_controller.dart';
 import 'package:golo_app/features/catalogos/proveedores/screens/proveedor_edit_screen.dart';
@@ -68,20 +69,24 @@ class _ProveedoresScreenState extends State<ProveedoresScreen> {
   Future<void> _confirmDeleteProveedor(String id) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirmar eliminación'),
-        content: const Text('¿Eliminar este proveedor?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Confirmar eliminación'),
+            content: const Text('¿Eliminar este proveedor?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancelar'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text(
+                  'Eliminar',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
     );
     if (confirmed != true) return;
     final controller = context.read<ProveedorController>();
@@ -89,9 +94,11 @@ class _ProveedoresScreenState extends State<ProveedoresScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(success
-            ? 'Proveedor eliminado correctamente'
-            : 'Error al eliminar el proveedor'),
+        content: Text(
+          success
+              ? 'Proveedor eliminado correctamente'
+              : 'Error al eliminar el proveedor',
+        ),
         backgroundColor: success ? Colors.green : Colors.red,
       ),
     );
@@ -99,42 +106,70 @@ class _ProveedoresScreenState extends State<ProveedoresScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ProveedorController>(
-      builder: (context, controller, _) {
-        if (controller.loading) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('Gestión de Proveedores'),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.add),
-                onPressed: () => _navigateToAddEditProveedor(),
-              ),
-            ],
+    return Scaffold(
+      // Scaffold se construye siempre
+      appBar: AppBar(
+        title: const Text('Gestión de Proveedores'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: () => _navigateToAddEditProveedor(),
           ),
-          body: Column(
-            children: [
-              _buildSearchBar(controller),
-              Expanded(
-                child: controller.proveedores.isEmpty
-                    ? const Center(
-                        child: Text('No hay proveedores registrados'),
-                      )
-                    : ListView.builder(
-                        itemCount: controller.proveedores.length,
-                        itemBuilder: (context, index) => ProveedorCard(
-                          proveedor: controller.proveedores[index],
-                          onEdit: () => _navigateToAddEditProveedor(controller.proveedores[index]),
-                          onDelete: () => _confirmDeleteProveedor(controller.proveedores[index].id!),
-                        ),
+        ],
+      ),
+      body: Column(
+        // Usar Column para la barra de búsqueda y la lista
+        children: [
+          Consumer<ProveedorController>(
+            // Consumer solo para la barra, para pasar el controller
+            builder: (context, controller, _) {
+              return _buildSearchBar(controller);
+            },
+          ),
+          Expanded(
+            child: Consumer<ProveedorController>(
+              // Consumer para la lista y el estado de carga/vacío
+              builder: (context, controller, _) {
+                if (controller.loading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (controller.proveedores.isEmpty) {
+                  // ANTES: const Center(child: Text('No hay proveedores registrados'))
+                  // DESPUÉS:
+                  return const EmptyDataWidget(
+                    message: 'No tienes proveedores registrados.',
+                    callToAction: 'Presiona + para añadir tu primer proveedor.',
+                    icon: Icons.store_mall_directory_outlined,
+                  );
+                }
+
+                // Si la búsqueda no da resultados (asumiendo que buscarProveedoresPorNombre actualiza controller.proveedores)
+                // Si buscarProveedoresPorNombre usa una lista separada para filtrados, necesitarías verificar esa.
+                // Por ahora, el mensaje de arriba cubre ambos casos si la lista principal se vacía por el filtro.
+                // Si quieres un mensaje específico para "no hay resultados de búsqueda", tendrías que
+                // mantener la lista original y la filtrada por separado.
+
+                return ListView.builder(
+                  itemCount: controller.proveedores.length,
+                  itemBuilder:
+                      (context, index) => ProveedorCard(
+                        proveedor: controller.proveedores[index],
+                        onEdit:
+                            () => _navigateToAddEditProveedor(
+                              controller.proveedores[index],
+                            ),
+                        onDelete:
+                            () => _confirmDeleteProveedor(
+                              controller.proveedores[index].id!,
+                            ),
                       ),
-              ),
-            ],
+                );
+              },
+            ),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 }

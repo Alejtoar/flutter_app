@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:golo_app/features/auth/screens/login_page.dart';
 import 'package:golo_app/features/dashboards/screens/dashboard_screen.dart';
 import 'package:golo_app/features/catalogos/insumos/screens/insumos_screen.dart';
 import 'package:golo_app/features/catalogos/intermedios/screens/intermedios_screen.dart';
@@ -8,7 +9,8 @@ import 'package:golo_app/features/eventos/buscador_eventos/screens/buscador_even
 import 'package:golo_app/navigation/widgets/main_scaffold.dart';
 
 class AppRoutes {
-  static const String dashboard = '/';
+  static const String login = '/login';
+  static const String dashboard = '/dashboard';
   static const String insumos = '/catalogos/insumos';
   static const String intermedios = '/catalogos/intermedios';
   static const String platos = '/catalogos/platos';
@@ -16,6 +18,7 @@ class AppRoutes {
   static const String eventosBuscador = '/eventos/buscar';
 
   static Map<String, WidgetBuilder> routes = {
+    login: (context) => const LoginPage(),
     dashboard: (context) => const MainScaffold(child: DashboardScreen()),
     insumos: (context) => const MainScaffold(child: InsumosScreen()),
     intermedios: (context) => const MainScaffold(child: IntermediosScreen()),

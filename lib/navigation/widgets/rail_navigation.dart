@@ -1,5 +1,6 @@
 //rail_navigation.dart
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:golo_app/navigation/app_routes.dart';
 
@@ -68,7 +69,8 @@ class _RailNavigationState extends State<RailNavigation> {
     }
 
     return NavigationRail(
-      selectedIndex: inSubMenu ? ((selectedSubIndex ?? 0) + 1) : (selectedMainIndex ?? 0),
+      selectedIndex:
+          inSubMenu ? ((selectedSubIndex ?? 0) + 1) : (selectedMainIndex ?? 0),
       extended: widget.isExpanded,
       destinations: [
         if (inSubMenu)
@@ -77,54 +79,69 @@ class _RailNavigationState extends State<RailNavigation> {
             selectedIcon: const Icon(Icons.arrow_back),
             label: const Text('Atrás'),
           ),
-        ...currentMenuItems.map((item) => NavigationRailDestination(
-              icon: Icon(item.icon),
-              selectedIcon: Icon(item.activeIcon),
-              label: Text(item.label),
-            ))
+        ...currentMenuItems.map(
+          (item) => NavigationRailDestination(
+            icon: Icon(item.icon),
+            selectedIcon: Icon(item.activeIcon),
+            label: Text(item.label),
+          ),
+        ),
       ],
-      onDestinationSelected: isSmallScreen
-          ? null
-          : (index) {
-              if (inSubMenu) {
-                if (index == 0) {
-                  // Atrás
+      onDestinationSelected:
+          isSmallScreen
+              ? null
+              : (index) {
+                if (inSubMenu) {
+                  if (index == 0) {
+                    // Atrás
+                    setState(() {
+                      inSubMenu = false;
+                      selectedSubIndex = null;
+                    });
+                  } else {
+                    setState(() {
+                      selectedSubIndex = index - 1;
+                    });
+                    _navigateToSubMenu(
+                      context,
+                      mainMenu[selectedMainIndex!],
+                      index - 1,
+                    );
+                    // Ya no volvemos automáticamente al menú principal, solo si el usuario presiona 'Atrás'.
+                  }
+                } else {
                   setState(() {
-                    inSubMenu = false;
+                    selectedMainIndex = index;
                     selectedSubIndex = null;
                   });
-                } else {
-                  setState(() {
-                    selectedSubIndex = index - 1;
-                  });
-                  _navigateToSubMenu(context, mainMenu[selectedMainIndex!], index - 1);
-                  // Ya no volvemos automáticamente al menú principal, solo si el usuario presiona 'Atrás'.
+                  if ((mainMenu[index].subItems?.isNotEmpty ?? false)) {
+                    setState(() {
+                      inSubMenu = true;
+                    });
+                  } else {
+                    _navigateToMainMenu(context, index);
+                  }
                 }
-              } else {
-                setState(() {
-                  selectedMainIndex = index;
-                  selectedSubIndex = null;
-                });
-                if ((mainMenu[index].subItems?.isNotEmpty ?? false)) {
-                  setState(() {
-                    inSubMenu = true;
-                  });
-                } else {
-                  _navigateToMainMenu(context, index);
-                }
-              }
-            },
+              },
     );
   }
 
   void _navigateToMainMenu(BuildContext context, int index) {
     switch (index) {
       case 0:
-        Navigator.pushNamedAndRemoveUntil(context, AppRoutes.dashboard, (r) => false);
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppRoutes.dashboard,
+          (r) => false,
+        );
         break;
       case 1:
         // Eventos (por defecto a buscador)
-        Navigator.pushNamedAndRemoveUntil(context, AppRoutes.eventosBuscador, (r) => false);
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppRoutes.eventosBuscador,
+          (r) => false,
+        );
         break;
       case 2:
         // Planificación (no implementado)
@@ -141,37 +158,52 @@ class _RailNavigationState extends State<RailNavigation> {
     }
   }
 
-  void _navigateToSubMenu(BuildContext context, MenuItem mainItem, int subIndex) {
-    final subLabel = mainItem.subItems![subIndex].label;
+  void _navigateToSubMenu(
+    BuildContext context,
+    MenuItem mainItem,
+    int subIndex,
+  ) {
+    final subItem =
+        mainItem.subItems![subIndex]; // Obtener el MenuItem completo
+    // final subLabel = subItem.label;
+    final subRoute = subItem.route;
+
+    if (subRoute == '/logout') {
+      // Manejar cierre de sesión
+      _handleLogout(context);
+      return;
+    }
+
     switch (mainItem.label) {
       case 'Catálogos':
-        switch (subLabel) {
-          case 'Platos':
-            Navigator.pushNamedAndRemoveUntil(context, AppRoutes.platos, (r) => false);
-            break;
-          case 'Intermedios':
-            Navigator.pushNamedAndRemoveUntil(context, AppRoutes.intermedios, (r) => false);
-            break;
-          case 'Insumos':
-            Navigator.pushNamedAndRemoveUntil(context, AppRoutes.insumos, (r) => false);
-            break;
-          case 'Proveedores':
-            Navigator.pushNamedAndRemoveUntil(context, AppRoutes.proveedores, (r) => false);
-            break;
+        if (subRoute != null) {
+          Navigator.pushNamedAndRemoveUntil(context, subRoute, (r) => false);
         }
         break;
       case 'Eventos':
-        switch (subLabel) {
-          case 'Buscar eventos':
-            Navigator.pushNamedAndRemoveUntil(context, AppRoutes.eventosBuscador, (r) => false);
-            break;
-          // case 'Calendario':
-          //   // Aquí agregarás la ruta cuando esté lista
-          //   break;
+        if (subRoute != null) {
+          Navigator.pushNamedAndRemoveUntil(context, subRoute, (r) => false);
         }
+        break;
+      case 'Admin': // Si 'Cerrar Sesión' está aquí
+        if (subRoute != null && subRoute != '/logout') {
+          // Si tiene otra ruta como /admin/config
+          Navigator.pushNamedAndRemoveUntil(context, subRoute, (r) => false);
+        }
+        // Si no hay otra acción para otros subitems de admin, puedes dejarlo.
         break;
       // Agrega lógica para otros menús con submenús si es necesario
     }
   }
-}
 
+  Future<void> _handleLogout(BuildContext context) async {
+    await FirebaseAuth.instance.signOut();
+    // Navega a la pantalla de login.
+    // Asegúrate que LoginPage no esté dentro de MainScaffold.
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      AppRoutes.login,
+      (route) => false,
+    );
+  }
+}

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:golo_app/features/catalogos/insumos/controllers/insumo_controller.dart';
 import 'package:golo_app/features/catalogos/insumos/screens/insumo_edit_screen.dart';
 import 'package:golo_app/features/catalogos/insumos/widgets/insumo_card.dart';
+import 'package:golo_app/features/common/empty_data_widget.dart';
 import 'package:golo_app/features/common/selector_categorias.dart';
 import 'package:golo_app/models/insumo.dart';
 import 'package:provider/provider.dart';
@@ -27,8 +28,8 @@ class _InsumosScreenState extends State<InsumosScreen> {
     // Cargar insumos al iniciar la pantalla
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final controller = context.read<InsumoController>();
-    controller.cargarInsumos();
-    controller.cargarProveedores();
+      controller.cargarInsumos();
+      controller.cargarProveedores();
     });
   }
 
@@ -74,36 +75,60 @@ class _InsumosScreenState extends State<InsumosScreen> {
     }
 
     if (controller.insumos.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.inventory_2, size: 50, color: Colors.grey),
-            SizedBox(height: 16),
-            Text(
-              'No hay insumos registrados\nPresiona + para agregar uno nuevo',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey),
-            ),
-          ],
-        ),
+      // return const Center(
+      //   child: Column(
+      //     mainAxisAlignment: MainAxisAlignment.center,
+      //     children: [
+      //       Icon(Icons.inventory_2, size: 50, color: Colors.grey),
+      //       SizedBox(height: 16),
+      //       Text(
+      //         'No hay insumos registrados\nPresiona + para agregar uno nuevo',
+      //         textAlign: TextAlign.center,
+      //         style: TextStyle(color: Colors.grey),
+      //       ),
+      //     ],
+      //   ),
+      // );
+      return const EmptyDataWidget(
+        message: 'No hay insumos registrados.',
+        callToAction: 'Presiona + para agregar uno nuevo.',
+        icon: Icons.inventory_2_outlined, // o Icons.inventory_2
+      );
+    }
+    if (controller.insumosFiltrados.isEmpty && controller.insumos.isNotEmpty) {
+      return const EmptyDataWidget(
+        message:
+            'No se encontraron insumos que coincidan con tu búsqueda o filtros.',
+        icon: Icons.search_off_outlined,
       );
     }
 
     return RefreshIndicator(
-      onRefresh: () => controller.cargarInsumos(),
+      onRefresh: () async {
+        await controller.cargarInsumos();
+        // También es buena idea limpiar filtros aquí o que cargarInsumos lo haga
+        _searchController.clear();
+        setState(() {
+          _categoriasFiltro = [];
+          _proveedorFiltro = null;
+        });
+        controller.buscarInsumos('', categorias: [], proveedorId: null);
+      },
       child: ListView.builder(
         itemCount: controller.insumosFiltrados.length,
-          itemBuilder: (itemContext, index) => InsumoCard(
-            insumo: controller.insumosFiltrados[index],
-            onEdit: () => _navigateToAddEditInsumo(
-              mainContext,
-              controller.insumosFiltrados[index],
-            ),
-            onDelete: () => _confirmDeleteInsumo(
-              mainContext,
-              controller.insumosFiltrados[index].id!,
-            ),
+        itemBuilder:
+            (itemContext, index) => InsumoCard(
+              insumo: controller.insumosFiltrados[index],
+              onEdit:
+                  () => _navigateToAddEditInsumo(
+                    mainContext,
+                    controller.insumosFiltrados[index],
+                  ),
+              onDelete:
+                  () => _confirmDeleteInsumo(
+                    mainContext,
+                    controller.insumosFiltrados[index].id!,
+                  ),
             ),
       ),
     );
@@ -148,7 +173,7 @@ class _InsumosScreenState extends State<InsumosScreen> {
                 proveedorId: _proveedorFiltro?.id,
               );
             },
-            
+
             mostrarContador: true,
           ),
         ),

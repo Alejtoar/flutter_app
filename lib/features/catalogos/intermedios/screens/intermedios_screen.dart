@@ -1,6 +1,7 @@
 // intermedios_screen.dart
 import 'package:flutter/material.dart';
 import 'package:golo_app/features/catalogos/intermedios/controllers/intermedio_controller.dart';
+import 'package:golo_app/features/common/empty_data_widget.dart';
 import 'package:provider/provider.dart';
 import 'package:golo_app/features/common/selector_categorias.dart';
 import 'package:golo_app/models/intermedio.dart';
@@ -78,7 +79,11 @@ class _IntermediosScreenState extends State<IntermediosScreen> {
                   }
                   final intermedios = controller.intermedios;
                   if (intermedios.isEmpty) {
-                    return const Center(child: Text('No hay intermedios'));
+                    return const EmptyDataWidget(
+                      message: 'No hay intermedios registrados.',
+                      callToAction: 'Presiona + para crear uno nuevo.',
+                      icon: Icons.blender_outlined, // O algún ícono relevante
+                    );
                   }
                   // Filtrar intermedios por búsqueda y categorías
                   final filtered = intermedios.where((i) {
@@ -90,7 +95,10 @@ class _IntermediosScreenState extends State<IntermediosScreen> {
                     return matchesText && matchesCats;
                   }).toList();
                   if (filtered.isEmpty) {
-                    return const Center(child: Text('No hay intermedios que coincidan con la búsqueda'));
+                    return const EmptyDataWidget(
+                        message: 'No se encontraron intermedios que coincidan con tu búsqueda o filtros.',
+                        icon: Icons.search_off_outlined,
+                        );
                   }
                   return ListaIntermedios(
                     intermedios: filtered,

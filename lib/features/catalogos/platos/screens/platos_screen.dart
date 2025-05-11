@@ -1,5 +1,6 @@
 // platos_screen.dart
 import 'package:flutter/material.dart';
+import 'package:golo_app/features/common/empty_data_widget.dart';
 import 'package:provider/provider.dart';
 import '../controllers/plato_controller.dart';
 import '../widgets/busqueda_bar.dart';
@@ -71,7 +72,11 @@ class _PlatosScreenState extends State<PlatosScreen> {
                   }
                   final platos = controller.platos;
                   if (platos.isEmpty) {
-                    return const Center(child: Text('No hay platos'));
+                    return const EmptyDataWidget(
+                      message: 'Aún no has creado ningún plato.',
+                      callToAction: 'Presiona + para agregar tu primer plato al menú.',
+                      icon: Icons.restaurant_menu_outlined,
+                    );
                   }
                   // Filtrado por texto y categorías
                   final filtered = platos.where((p) {
@@ -82,7 +87,10 @@ class _PlatosScreenState extends State<PlatosScreen> {
                     return matchesText && matchesCats;
                   }).toList();
                   if (filtered.isEmpty) {
-                    return const Center(child: Text('No hay platos que coincidan con la búsqueda'));
+                     return const EmptyDataWidget(
+                        message: 'No se encontraron platos que coincidan con tu búsqueda o filtros.',
+                        icon: Icons.search_off_outlined,
+                    );
                   }
                   // Usa ListaPlatos para mostrar los platos con opciones de ver, editar y eliminar
                   return ListaPlatos(

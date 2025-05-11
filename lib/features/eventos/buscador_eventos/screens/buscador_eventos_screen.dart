@@ -1,5 +1,6 @@
 // buscador_eventos_screen.dart
 import 'package:flutter/material.dart';
+import 'package:golo_app/features/common/empty_data_widget.dart';
 import 'package:golo_app/features/eventos/buscador_eventos/screens/evento_detalle_screen.dart';
 import 'package:golo_app/models/evento.dart'; // Asegúrate de importar el modelo Evento
 import 'package:intl/intl.dart'; // Para formatear fechas en el botón de rango
@@ -332,7 +333,11 @@ class _BuscadorEventosScreenState extends State<BuscadorEventosScreen> {
 
                   // 3. Manejar estado vacío (después de carga, sin errores)
                   if (controller.eventos.isEmpty && !controller.loading) {
-                    return const Center(child: Text('No hay eventos creados.'));
+                    return const EmptyDataWidget(
+                      message: 'No hay eventos creados.',
+                      callToAction: 'Presiona el botón + para agregar tu primer evento.',
+                      icon: Icons.event_note_outlined,
+                    );
                   }
 
                   // 4. Aplicar filtros a la lista cargada

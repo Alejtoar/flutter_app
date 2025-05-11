@@ -1,4 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:golo_app/features/auth/screens/login_page.dart';
 import 'package:golo_app/navigation/app_routes.dart';
 import 'package:golo_app/features/catalogos/insumos/controllers/insumo_controller.dart';
 import 'package:golo_app/features/catalogos/intermedios/controllers/intermedio_controller.dart';
@@ -23,7 +25,7 @@ import 'repositories/evento_repository_impl.dart';
 import 'repositories/plato_evento_repository_impl.dart';
 import 'repositories/insumo_evento_repository_impl.dart';
 import 'repositories/intermedio_evento_repository_impl.dart';
-import 'firebase_options_dev.dart';
+import 'firebase_options_prod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 void main() async {
@@ -131,8 +133,64 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      initialRoute: AppRoutes.dashboard,
-      routes: AppRoutes.routes, // Pantalla principal directa
+      //initialRoute: AppRoutes.dashboard,
+      routes: AppRoutes.routes,// Pantalla principal directa
+      home: const AuthWrapper(),
+    );
+  }
+}
+// NUEVO WIDGET: AuthWrapper
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        // Mientras se verifica el estado de autenticación
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        // Si el usuario está autenticado
+        if (snapshot.hasData) {
+          debugPrint("AuthWrapper: User is authenticated");
+          final currentContext = context; // Captura el context actual
+          // El usuario está logueado, muestra la pantalla principal.
+          // Asegúrate de que AppRoutes.dashboard esté configurado para mostrar
+          // tu DashboardScreen dentro de un MainScaffold.
+          // Si la navegación tarda o quieres evitar un build extra, puedes retornar directamente:
+          // return const MainScaffold(child: DashboardScreen());
+          // Pero si quieres que el sistema de rutas se encargue:
+          // El siguiente Future.microtask es para asegurar que la navegación ocurra después del build.
+          // Esto es útil si AuthWrapper es la primera pantalla y necesita empujar una nueva ruta.
+          Future.microtask(() {
+            debugPrint("AuthWrapper: Attempting to navigate. Current route: ${ModalRoute.of(currentContext)?.settings.name}");
+            // Solo navega si no estamos ya en la ruta del dashboard para evitar bucles
+            // o si la ruta actual es la de login (que podría ser el caso si el usuario
+            // acaba de loguearse y AuthWrapper se reconstruye).
+            final currentRouteName = ModalRoute.of(currentContext)?.settings.name;
+            if (currentRouteName == null || currentRouteName == AppRoutes.login || currentRouteName != AppRoutes.dashboard) {
+                debugPrint("AuthWrapper: Navigating to dashboard");
+                Navigator.pushNamedAndRemoveUntil(currentContext, AppRoutes.dashboard, (route) => false);
+            } else {
+                debugPrint("AuthWrapper: Already on dashboard or unknown state, not navigating.");
+            }
+          });
+          // Muestra un loader mientras se realiza la navegación post-build.
+          // Esto evita que se vea una pantalla en blanco por un instante.
+          return const Scaffold(body: Center(child: CircularProgressIndicator(key: Key("auth_wrapper_loading_dashboard"))));
+        }
+
+        // Si el usuario NO está autenticado
+        // Muestra LoginPage directamente. LoginPage no debería tener MainScaffold.
+        // Asegúrate que AppRoutes.login esté definido si quieres navegar a él por nombre.
+        // Si no, instanciarlo directamente es más simple.
+        return const LoginPage();
+      },
     );
   }
 }

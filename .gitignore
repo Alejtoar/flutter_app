@@ -11,6 +11,8 @@
 .svn/
 .swiftpm/
 migrate_working_dir/
+.env.dev
+.env.prod
 
 # IntelliJ related
 *.iml
@@ -45,5 +47,6 @@ app.*.map.json
 /android/app/release
 
 /integration_test
-/lib/firebase_options.dart
+/lib/firebase_options_dev.dart
+/lib/firebase_options_prod.dart
 /firebase.json
