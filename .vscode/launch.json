@@ -1,25 +1,42 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+        
+        // --- Configuración de Desarrollo ---
         {
-            "name": "golo_app",
-            "request": "launch",
-            "type": "dart"
-        },
-        {
-            "name": "golo_app (profile mode)",
+            "name": "Run (Dev)", // Nombre para el menú
             "request": "launch",
             "type": "dart",
-            "flutterMode": "profile"
+            "flutterMode": "debug", // Modo de depuración por defecto
+            "program": "lib/main_dev.dart", // Punto de entrada para desarrollo
+            "args": [
+                "--flavor",
+                "dev" // Nombre del flavor
+            ]
         },
+        // --- Configuración de Producción (para probar localmente) ---
         {
-            "name": "golo_app (release mode)",
+            "name": "Run (Prod)", // Nombre para el menú
             "request": "launch",
             "type": "dart",
-            "flutterMode": "release"
+            "flutterMode": "debug", // Usar debug para poder depurar, pero con la config de prod
+            "program": "lib/main_prod.dart", // Punto de entrada para producción
+            "args": [
+                "--flavor",
+                "prod" // Nombre del flavor
+            ]
+        },
+        // --- Configuración Release de Producción (similar a un build final) ---
+        {
+            "name": "Run (Prod Release Mode)", // Para pruebas de rendimiento
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release", // Modo release, optimizado
+            "program": "lib/main_prod.dart",
+            "args": [
+                "--flavor",
+                "prod"
+            ]
         }
     ]
 }
