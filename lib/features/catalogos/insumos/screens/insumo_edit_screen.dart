@@ -1,6 +1,7 @@
 //insumo_edit_screen.dart
 import 'package:flutter/material.dart';
 import 'package:golo_app/features/catalogos/insumos/controllers/insumo_controller.dart';
+import 'package:golo_app/features/common/utils/snackbar_helper.dart';
 import 'package:golo_app/features/common/widgets/selector_categorias.dart';
 import 'package:golo_app/features/common/widgets/selector_unidades.dart';
 import 'package:golo_app/models/insumo.dart';
@@ -25,36 +26,91 @@ class AddEditInsumoScreenState extends State<AddEditInsumoScreen> {
   late List<String> _selectedCategories = [];
   Proveedor? _selectedProveedor;
   String? _unidadSeleccionada;
+  String? _codigoGenerado;
+  bool _isSaving = false;
+  bool _isGeneratingCode = false;
 
   @override
   void initState() {
     super.initState();
-    _nombreController = TextEditingController(
-      text: widget.insumo?.nombre ?? '',
-    );
-
+    final i = widget.insumo;
+    // ... (inicializar controladores de texto y categorías) ...
+    _nombreController = TextEditingController(text: i?.nombre ?? '');
     _precioController = TextEditingController(
-      text: widget.insumo?.precioUnitario.toString() ?? '',
+      text: i?.precioUnitario.toString() ?? '',
     );
-    _selectedCategories = widget.insumo?.categorias ?? [];
-    // Si el insumo ya tiene proveedor, buscarlo en el controller
-    if (widget.insumo?.proveedorId != null &&
-        widget.insumo?.proveedorId != '') {
+    _selectedCategories = List.from(i?.categorias ?? []);
+    _unidadSeleccionada = i?.unidad;
+
+    // 2. Usar el patrón de carga/generación de código
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      // Cargar proveedores es necesario para el selector
+      context.read<InsumoController>().cargarProveedores();
+      _loadInitialDataAndCode();
+    });
+  }
+
+  Future<void> _loadInitialDataAndCode() async {
+    final i = widget.insumo;
+    if (i == null) {
+      // Modo Creación: Generar Código
+      if (!mounted) return;
+      setState(() => _isGeneratingCode = true);
       final controller = context.read<InsumoController>();
-      _selectedProveedor = controller.proveedores.firstWhereOrNull(
-        (p) => p.id == widget.insumo!.proveedorId,
-      );
+      try {
+        final codigo = await controller.generarNuevoCodigo();
+        if (mounted) setState(() => _codigoGenerado = codigo);
+      } catch (e) {
+        if (mounted)
+          showAppSnackBar(
+            context,
+            'Error al generar código: $e',
+            isError: true,
+          );
+        if (mounted) setState(() => _codigoGenerado = "I-ERR");
+      } finally {
+        if (mounted) setState(() => _isGeneratingCode = false);
+      }
+    } else {
+      // Modo Edición
+      if (mounted) {
+        setState(() {
+          _codigoGenerado = i.codigo;
+          // Seleccionar proveedor existente
+          final controller = context.read<InsumoController>();
+          _selectedProveedor = controller.proveedores.firstWhereOrNull(
+            (p) => p.id == i.proveedorId,
+          );
+        });
+      }
     }
   }
 
   Future<void> _guardarInsumo() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCategories.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Selecciona al menos una categoría')),
+      showAppSnackBar(
+        context,
+        'Selecciona al menos una categoría',
+        isError: true,
       );
       return;
     }
+    if (widget.insumo == null &&
+        (_codigoGenerado == null ||
+            _codigoGenerado!.isEmpty ||
+            _codigoGenerado == 'I-ERR')) {
+      showAppSnackBar(
+        context,
+        'No se pudo generar un código válido. Inténtalo de nuevo.',
+        isError: true,
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    setState(() => _isSaving = true);
 
     final controller = context.read<InsumoController>();
     try {
@@ -76,20 +132,22 @@ class AddEditInsumoScreenState extends State<AddEditInsumoScreen> {
       );
       if (widget.insumo == null) {
         await controller.crearInsumo(insumo);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Insumo creado correctamente')),
-        );
       } else {
         await controller.actualizarInsumo(insumo);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Insumo actualizado correctamente')),
-        );
       }
-      Navigator.pop(context);
+      if (mounted) {
+        showAppSnackBar(
+          context,
+          'Insumo ${widget.insumo == null ? 'creado' : 'actualizado'} correctamente.',
+        );
+        Navigator.pop(context, true);
+      }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+      if (mounted) {
+        showAppSnackBar(context, 'Error: ${e.toString()}', isError: true);
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -98,6 +156,26 @@ class AddEditInsumoScreenState extends State<AddEditInsumoScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.insumo == null ? 'Nuevo Insumo' : 'Editar Insumo'),
+        actions: [
+          // 2. Añadir el botón de guardar en la AppBar
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child:
+                _isSaving
+                    ? const Center(
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(color: Colors.white),
+                      ),
+                    )
+                    : IconButton(
+                      icon: const Icon(Icons.save),
+                      tooltip: 'Guardar',
+                      onPressed: _guardarInsumo,
+                    ),
+          ),
+        ],
       ),
       body: Form(
         key: _formKey,
@@ -105,6 +183,52 @@ class AddEditInsumoScreenState extends State<AddEditInsumoScreen> {
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12.0),
+                child: InputDecorator(
+                  decoration: const InputDecoration(
+                    labelText: 'Código Insumo',
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  child:
+                      _isGeneratingCode && widget.insumo == null
+                          // Muestra el indicador de carga si está generando código para un nuevo insumo
+                          ? const SizedBox(
+                            height: 20,
+                            child: Row(
+                              children: [
+                                Text("Generando... "),
+                                SizedBox(width: 10),
+                                SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                          // Muestra el código generado/existente o un mensaje de error
+                          : Text(
+                            _codigoGenerado ??
+                                (widget.insumo != null
+                                    ? ''
+                                    : 'Error al generar'),
+                            style: Theme.of(
+                              context,
+                            ).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              // Muestra el texto en rojo si el código es el de error
+                              color:
+                                  _codigoGenerado == 'I-ERR'
+                                      ? Colors.red
+                                      : null,
+                            ),
+                          ),
+                ),
+              ),
               TextFormField(
                 controller: _nombreController,
                 decoration: const InputDecoration(labelText: 'Nombre'),
@@ -117,12 +241,18 @@ class AddEditInsumoScreenState extends State<AddEditInsumoScreen> {
                     flex: 2,
                     child: TextFormField(
                       controller: _precioController,
-                      decoration: const InputDecoration(labelText: 'Precio Unitario'),
+                      decoration: const InputDecoration(
+                        labelText: 'Precio Unitario',
+                      ),
                       keyboardType: TextInputType.number,
                       validator: (value) {
                         if (value!.isEmpty) return 'Requerido';
-                        if (double.tryParse(value) == null) return 'Número inválido';
-                        if (double.parse(value) <= 0) return 'Debe ser mayor a 0';
+                        if (double.tryParse(value) == null) {
+                          return 'Número inválido';
+                        }
+                        if (double.parse(value) <= 0) {
+                          return 'Debe ser mayor a 0';
+                        }
                         return null;
                       },
                     ),
@@ -132,7 +262,9 @@ class AddEditInsumoScreenState extends State<AddEditInsumoScreen> {
                     flex: 1,
                     child: SelectorUnidades(
                       unidadSeleccionada: _unidadSeleccionada,
-                      onChanged: (unidad) => setState(() => _unidadSeleccionada = unidad),
+                      onChanged:
+                          (unidad) =>
+                              setState(() => _unidadSeleccionada = unidad),
                       label: 'Unidad',
                     ),
                   ),
@@ -140,17 +272,23 @@ class AddEditInsumoScreenState extends State<AddEditInsumoScreen> {
               ),
               // Selector de categorías
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8.0,
+                  vertical: 8,
+                ),
                 child: SelectorCategorias(
                   seleccionadas: _selectedCategories,
-                  
+
                   onChanged:
                       (categorias) =>
                           setState(() => _selectedCategories = categorias),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8.0,
+                  vertical: 8,
+                ),
                 child: SelectorProveedores(
                   proveedores: context.read<InsumoController>().proveedores,
                   proveedorSeleccionado: _selectedProveedor,
@@ -163,10 +301,6 @@ class AddEditInsumoScreenState extends State<AddEditInsumoScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _guardarInsumo,
-                child: const Text('Guardar'),
-              ),
             ],
           ),
         ),

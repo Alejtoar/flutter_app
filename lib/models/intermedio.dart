@@ -109,8 +109,8 @@ class Intermedio {
     final errors = <String>[];
 
     if (codigo.isEmpty) errors.add('El código es requerido');
-    if (!codigo.startsWith('PI-'))
-      errors.add('El código debe comenzar con "PI-"');
+    //if (!codigo.startsWith('PI-'))
+      //errors.add('El código debe comenzar con "PI-"');
     if (nombre.isEmpty) errors.add('El nombre es requerido');
     if (unidad.isEmpty) errors.add('La unidad es requerida');
     if (cantidadEstandar <= 0)
