@@ -1,11 +1,11 @@
 //insumo_edit_screen.dart
 import 'package:flutter/material.dart';
 import 'package:golo_app/features/catalogos/insumos/controllers/insumo_controller.dart';
-import 'package:golo_app/features/common/selector_categorias.dart';
-import 'package:golo_app/features/common/selector_unidades.dart';
+import 'package:golo_app/features/common/widgets/selector_categorias.dart';
+import 'package:golo_app/features/common/widgets/selector_unidades.dart';
 import 'package:golo_app/models/insumo.dart';
 import 'package:provider/provider.dart';
-import 'package:golo_app/features/common/selector_proveedores.dart';
+import 'package:golo_app/features/common/widgets/selector_proveedores.dart';
 import 'package:golo_app/models/proveedor.dart';
 import 'package:collection/collection.dart';
 
@@ -15,10 +15,10 @@ class AddEditInsumoScreen extends StatefulWidget {
   const AddEditInsumoScreen({super.key, this.insumo});
 
   @override
-  _AddEditInsumoScreenState createState() => _AddEditInsumoScreenState();
+  AddEditInsumoScreenState createState() => AddEditInsumoScreenState();
 }
 
-class _AddEditInsumoScreenState extends State<AddEditInsumoScreen> {
+class AddEditInsumoScreenState extends State<AddEditInsumoScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nombreController;
   late TextEditingController _precioController;

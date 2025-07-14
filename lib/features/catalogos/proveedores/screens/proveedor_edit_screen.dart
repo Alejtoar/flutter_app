@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:golo_app/features/catalogos/proveedores/controllers/proveedor_controller.dart';
 import 'package:golo_app/models/proveedor.dart';
-import 'package:golo_app/features/common/selector_categorias.dart';
+import 'package:golo_app/features/common/widgets/selector_categorias.dart';
 
 class ProveedorEditScreen extends StatefulWidget {
   final Proveedor? proveedor;

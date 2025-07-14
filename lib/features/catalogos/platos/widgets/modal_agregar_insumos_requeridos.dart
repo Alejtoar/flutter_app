@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:golo_app/models/insumo_requerido.dart';
 import 'package:golo_app/models/insumo.dart';
-import 'package:golo_app/features/common/modal_agregar_requeridos.dart';
+import 'package:golo_app/features/common/widgets/modal_agregar_requeridos.dart';
 import 'package:golo_app/features/catalogos/insumos/controllers/insumo_controller.dart';
 
 class ModalAgregarInsumosRequeridos extends StatelessWidget {

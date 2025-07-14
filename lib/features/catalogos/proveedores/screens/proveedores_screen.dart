@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:golo_app/features/common/empty_data_widget.dart';
+import 'package:golo_app/features/common/widgets/empty_data_widget.dart';
 import 'package:provider/provider.dart';
 import 'package:golo_app/features/catalogos/proveedores/controllers/proveedor_controller.dart';
 import 'package:golo_app/features/catalogos/proveedores/screens/proveedor_edit_screen.dart';

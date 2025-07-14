@@ -1,6 +1,6 @@
 // buscador_eventos_screen.dart
 import 'package:flutter/material.dart';
-import 'package:golo_app/features/common/empty_data_widget.dart';
+import 'package:golo_app/features/common/widgets/empty_data_widget.dart';
 import 'package:golo_app/features/eventos/buscador_eventos/screens/evento_detalle_screen.dart';
 import 'package:golo_app/models/evento.dart'; // Asegúrate de importar el modelo Evento
 import 'package:intl/intl.dart'; // Para formatear fechas en el botón de rango

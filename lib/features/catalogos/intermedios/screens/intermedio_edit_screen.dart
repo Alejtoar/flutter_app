@@ -7,8 +7,8 @@ import 'package:golo_app/features/catalogos/intermedios/widgets/lista_insumos_ut
 import 'package:golo_app/features/catalogos/intermedios/widgets/modal_agregar_insumos.dart';
 import 'package:golo_app/features/catalogos/intermedios/widgets/modal_editar_cantidad_insumo.dart';
 import 'package:golo_app/features/catalogos/intermedios/controllers/intermedio_controller.dart';
-import 'package:golo_app/features/common/selector_categorias.dart';
-import 'package:golo_app/features/common/selector_unidades.dart';
+import 'package:golo_app/features/common/widgets/selector_categorias.dart';
+import 'package:golo_app/features/common/widgets/selector_unidades.dart';
 
 class IntermedioEditScreen extends StatefulWidget {
   final Intermedio? intermedio;

@@ -1,9 +1,9 @@
 // intermedios_screen.dart
 import 'package:flutter/material.dart';
 import 'package:golo_app/features/catalogos/intermedios/controllers/intermedio_controller.dart';
-import 'package:golo_app/features/common/empty_data_widget.dart';
+import 'package:golo_app/features/common/widgets/empty_data_widget.dart';
 import 'package:provider/provider.dart';
-import 'package:golo_app/features/common/selector_categorias.dart';
+import 'package:golo_app/features/common/widgets/selector_categorias.dart';
 import 'package:golo_app/models/intermedio.dart';
 import 'package:golo_app/features/catalogos/intermedios/widgets/busqueda_bar.dart';
 import 'package:golo_app/features/catalogos/intermedios/widgets/lista_intermedios.dart';

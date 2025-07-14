@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:golo_app/models/intermedio_evento.dart';
 import 'package:provider/provider.dart';
 import 'package:golo_app/models/intermedio.dart';
-import 'package:golo_app/features/common/modal_agregar_requeridos.dart';
+import 'package:golo_app/features/common/widgets/modal_agregar_requeridos.dart';
 import 'package:golo_app/features/catalogos/intermedios/controllers/intermedio_controller.dart';
 
 class ModalAgregarIntermediosEvento extends StatelessWidget {

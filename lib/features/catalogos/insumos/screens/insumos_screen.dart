@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:golo_app/features/catalogos/insumos/controllers/insumo_controller.dart';
 import 'package:golo_app/features/catalogos/insumos/screens/insumo_edit_screen.dart';
 import 'package:golo_app/features/catalogos/insumos/widgets/insumo_card.dart';
-import 'package:golo_app/features/common/empty_data_widget.dart';
-import 'package:golo_app/features/common/selector_categorias.dart';
+import 'package:golo_app/features/common/widgets/empty_data_widget.dart';
+import 'package:golo_app/features/common/widgets/selector_categorias.dart';
 import 'package:golo_app/models/insumo.dart';
 import 'package:provider/provider.dart';
-import 'package:golo_app/features/common/selector_proveedores.dart';
+import 'package:golo_app/features/common/widgets/selector_proveedores.dart';
 import 'package:golo_app/models/proveedor.dart';
 
 class InsumosScreen extends StatefulWidget {

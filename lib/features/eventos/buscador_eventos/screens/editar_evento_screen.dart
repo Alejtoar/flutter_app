@@ -1,4 +1,4 @@
-// editar_evento_screen.dart (Refactorizada estilo PlatoEditScreen)
+// editar_evento_screen.dart 
 import 'package:flutter/material.dart';
 import 'package:golo_app/features/catalogos/insumos/controllers/insumo_controller.dart';
 import 'package:golo_app/features/catalogos/intermedios/controllers/intermedio_controller.dart';

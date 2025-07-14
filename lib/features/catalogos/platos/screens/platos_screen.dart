@@ -1,11 +1,11 @@
 // platos_screen.dart
 import 'package:flutter/material.dart';
-import 'package:golo_app/features/common/empty_data_widget.dart';
+import 'package:golo_app/features/common/widgets/empty_data_widget.dart';
 import 'package:provider/provider.dart';
 import '../controllers/plato_controller.dart';
 import '../widgets/busqueda_bar.dart';
 import 'package:golo_app/models/plato.dart';
-import 'package:golo_app/features/common/selector_categorias.dart';
+import 'package:golo_app/features/common/widgets/selector_categorias.dart';
 import 'plato_edit_screen.dart';
 import '../widgets/lista_platos.dart';
 import 'plato_detalle_screen.dart';

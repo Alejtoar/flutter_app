@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:golo_app/models/plato.dart';
 import 'package:golo_app/models/plato_evento.dart';
 import 'package:provider/provider.dart';
-import 'package:golo_app/features/common/modal_agregar_requeridos.dart';
+import 'package:golo_app/features/common/widgets/modal_agregar_requeridos.dart';
 import 'package:golo_app/features/catalogos/platos/controllers/plato_controller.dart';
 
 class ModalAgregarPlatosEvento extends StatelessWidget {

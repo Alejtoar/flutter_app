@@ -17,7 +17,7 @@ import 'package:golo_app/features/catalogos/platos/widgets/modal_editar_cantidad
 import 'package:golo_app/models/intermedio.dart'; // Necesario para _editarIntermedioRequerido
 import 'package:golo_app/models/insumo.dart'; // Necesario para _editarInsumoRequerido
 // Widgets comunes
-import 'package:golo_app/features/common/selector_categorias.dart'; // Asumo que este existe
+import 'package:golo_app/features/common/widgets/selector_categorias.dart'; // Asumo que este existe
 
 class PlatoEditScreen extends StatefulWidget {
   final Plato? plato; // Plato existente o null para crear
