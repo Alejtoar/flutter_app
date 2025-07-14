@@ -1,8 +1,11 @@
-// editar_evento_screen.dart 
+// editar_evento_screen.dart
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:golo_app/features/catalogos/insumos/controllers/insumo_controller.dart';
 import 'package:golo_app/features/catalogos/intermedios/controllers/intermedio_controller.dart';
 import 'package:golo_app/features/catalogos/platos/controllers/plato_controller.dart';
+import 'package:golo_app/features/common/utils/snackbar_helper.dart';
+import 'package:golo_app/features/common/widgets/lista_componentes_requeridos.dart';
 import 'package:golo_app/features/eventos/buscador_eventos/widgets/modal_personalizar_plato_evento.dart';
 import 'package:golo_app/models/evento.dart';
 import 'package:golo_app/models/insumo.dart';
@@ -18,10 +21,6 @@ import 'package:provider/provider.dart';
 
 // Controladores y Widgets específicos de Eventos
 import '../controllers/buscador_eventos_controller.dart';
-// Widgets de listas
-import '../widgets/lista_platos_evento.dart';
-import '../widgets/lista_intermedios_evento.dart';
-import '../widgets/lista_insumos_evento.dart';
 // Modales para agregar
 import '../widgets/modal_agregar_platos_evento.dart';
 import '../widgets/modal_agregar_intermedios_evento.dart';
@@ -140,7 +139,8 @@ class _EditarEventoScreenState extends State<EditarEventoScreen> {
         );
         if (mounted) {
           setState(() => _isGeneratingCode = false); // Terminar aunque falle
-          _showSnackBar(
+          showAppSnackBar(
+            context,
             'Error al generar código automático: $error',
             isError: true,
           );
@@ -174,7 +174,8 @@ class _EditarEventoScreenState extends State<EditarEventoScreen> {
           "[EditarEventoScreen][ERROR] al cargar relaciones en modo edición: $error\n$st",
         );
         if (mounted) {
-          _showSnackBar(
+          showAppSnackBar(
+            context,
             'Error al cargar datos asociados: $error',
             isError: true,
           );
@@ -219,8 +220,9 @@ class _EditarEventoScreenState extends State<EditarEventoScreen> {
       debugPrint("[EditarEventoScreen][ERROR] al precargar catálogos: $error");
       if (mounted) {
         // Mostrar un aviso no bloqueante
-        _showSnackBar(
-          'Error al cargar catálogos necesarios: $error',
+        showAppSnackBar(
+          context,
+          'Error al cargar catalagos necesarios: $error',
           isError: true,
         );
       }
@@ -248,7 +250,11 @@ class _EditarEventoScreenState extends State<EditarEventoScreen> {
     // Verificar si el catálogo se cargó efectivamente
     final platoCtrl = Provider.of<PlatoController>(context, listen: false);
     if (platoCtrl.platos.isEmpty) {
-      _showSnackBar('El catálogo de platos no está disponible.', isError: true);
+      showAppSnackBar(
+        context,
+        'El catálogo de platos no está disponible.',
+        isError: true,
+      );
       return;
     }
 
@@ -263,9 +269,6 @@ class _EditarEventoScreenState extends State<EditarEventoScreen> {
               debugPrint(
                 "[EditarEventoScreen] ModalAgregarPlatosEvento guardó, actualizando estado local con ${nuevos.length} platos...",
               );
-              // Cerrar el modal ANTES de setState (el builder ya no debería necesitar pop)
-              // Navigator.of(ctx).pop();
-              // Actualizar estado en la pantalla principal
               if (mounted) {
                 // Re-verificar mounted por si acaso
                 setState(() {
@@ -286,10 +289,12 @@ class _EditarEventoScreenState extends State<EditarEventoScreen> {
       listen: false,
     );
     if (intermedioCtrl.intermedios.isEmpty) {
-      _showSnackBar(
+      showAppSnackBar(
+        context,
         'El catálogo de intermedios no está disponible.',
         isError: true,
       );
+
       return;
     }
 
@@ -320,10 +325,12 @@ class _EditarEventoScreenState extends State<EditarEventoScreen> {
     if (!mounted) return;
     final insumoCtrl = Provider.of<InsumoController>(context, listen: false);
     if (insumoCtrl.insumos.isEmpty) {
-      _showSnackBar(
+      showAppSnackBar(
+        context,
         'El catálogo de insumos no está disponible.',
         isError: true,
       );
+
       return;
     }
 
@@ -588,28 +595,26 @@ class _EditarEventoScreenState extends State<EditarEventoScreen> {
     // 1. Validar formulario
     if (!_formKey.currentState!.validate()) {
       debugPrint('[EditarEventoScreen] Formulario inválido.');
-      _showSnackBar(
+      showAppSnackBar(
+        context,
         'Por favor, corrige los errores en el formulario.',
         isError: true,
       );
+
       return;
     }
 
-    // 2. Validaciones adicionales (ej. ¿requiere platos?)
-    // if (_platosEvento.isEmpty) {
-    //   debugPrint('[EditarEventoScreen] Validación fallida: No hay platos.');
-    //   _showSnackBar('Debes añadir al menos un plato al evento.', isError: true);
-    //   return;
-    // }
     if (widget.evento == null &&
         (_codigoGenerado == null || _codigoGenerado!.isEmpty)) {
       debugPrint(
         '[EditarEventoScreen][ERROR] Intento de guardar evento nuevo sin código generado.',
       );
-      _showSnackBar(
+      showAppSnackBar(
+        context,
         'Aún se está generando el código, espera un momento.',
         isError: true,
       );
+
       // Opcionalmente, intentar generarlo de nuevo si falló la primera vez
       // if (!_isGeneratingCode) {
       //    WidgetsBinding.instance.addPostFrameCallback((_) => _loadInitialDataAndCode());
@@ -682,8 +687,9 @@ class _EditarEventoScreenState extends State<EditarEventoScreen> {
           _intermediosEvento,
         );
         success = creado != null;
-        if (!success)
+        if (!success) {
           errorMessage = controller.error ?? "Error desconocido al crear.";
+        }
         debugPrint(
           '[EditarEventoScreen] crearEventoConRelaciones completado. Éxito: $success',
         );
@@ -698,8 +704,9 @@ class _EditarEventoScreenState extends State<EditarEventoScreen> {
           _insumosEvento,
           _intermediosEvento,
         );
-        if (!success)
+        if (!success) {
           errorMessage = controller.error ?? "Error desconocido al actualizar.";
+        }
         debugPrint(
           '[EditarEventoScreen] actualizarEventoConRelaciones completado. Éxito: $success',
         );
@@ -708,16 +715,19 @@ class _EditarEventoScreenState extends State<EditarEventoScreen> {
       // 5. Manejar resultado y mostrar feedback
       if (mounted) {
         if (success) {
-          _showSnackBar(
+          showAppSnackBar(
+            context,
             'Evento ${widget.evento == null ? 'creado' : 'actualizado'} con éxito.',
-            isError: false, // Mensaje de éxito (verde)
+            isError: false,
           );
+
           Navigator.of(context).pop(); // Volver a la pantalla anterior
         } else {
           debugPrint('[EditarEventoScreen][ERROR] al guardar: $errorMessage');
-          _showSnackBar(
+          showAppSnackBar(
+            context,
             'Error al guardar: ${errorMessage ?? "Inténtalo de nuevo"}',
-            isError: true, // Mensaje de error (rojo)
+            isError: true,
           );
         }
       }
@@ -726,7 +736,8 @@ class _EditarEventoScreenState extends State<EditarEventoScreen> {
       debugPrint('[EditarEventoScreen][ERROR GRAL] al guardar: $e\n$st');
       errorMessage = e.toString();
       if (mounted) {
-        _showSnackBar(
+        showAppSnackBar(
+          context,
           'Error inesperado al guardar: $errorMessage',
           isError: true,
         );
@@ -737,18 +748,6 @@ class _EditarEventoScreenState extends State<EditarEventoScreen> {
         debugPrint('[EditarEventoScreen] Estado _isSaving = false');
       }
     }
-  }
-
-  // --- Helper para SnackBar ---
-  void _showSnackBar(String message, {bool isError = false}) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor:
-            isError ? Theme.of(context).colorScheme.error : Colors.green[600],
-      ),
-    );
   }
 
   // --- Construcción de la UI (similar a la versión anterior) ---
@@ -1037,11 +1036,22 @@ class _EditarEventoScreenState extends State<EditarEventoScreen> {
             _buildRelationListSection(
               isLoading: _isLoadingRelations,
               isEmpty: _platosEvento.isEmpty,
-              listWidget: ListaPlatosEvento(
-                platosEvento: _platosEvento,
+              listWidget: ListaComponentesRequeridos<PlatoEvento>(
+                items: _platosEvento,
+                nombreGetter: (pe) {
+                  // Necesitas acceder al PlatoController para obtener el nombre
+                  final platoCtrl = context.read<PlatoController>();
+                  return platoCtrl.platos
+                          .firstWhereOrNull((p) => p.id == pe.platoId)
+                          ?.nombre ??
+                      pe.platoId;
+                },
+                cantidadGetter: (pe) => "${pe.cantidad} Platos",
                 onEditar: _editarPlatoRequerido,
                 onEliminar: _eliminarPlatoRequerido,
-                onPersonalizar: _personalizarPlatoRequerido,
+                onPersonalizar:
+                    _personalizarPlatoRequerido, // El widget genérico soporta esto
+                emptyListText: "No hay platos añadidos.",
               ),
               loadingText: 'Cargando platos...',
               emptyText: 'No hay platos añadidos.',
@@ -1056,10 +1066,27 @@ class _EditarEventoScreenState extends State<EditarEventoScreen> {
             _buildRelationListSection(
               isLoading: _isLoadingRelations,
               isEmpty: _intermediosEvento.isEmpty,
-              listWidget: ListaIntermediosEvento(
-                intermediosEvento: _intermediosEvento,
+              listWidget: ListaComponentesRequeridos<IntermedioEvento>(
+                items: _intermediosEvento,
+                nombreGetter: (ie) {
+                  final intermedioCtrl = context.read<IntermedioController>();
+                  return intermedioCtrl.intermedios
+                          .firstWhereOrNull((i) => i.id == ie.intermedioId)
+                          ?.nombre ??
+                      ie.intermedioId;
+                },
+                cantidadGetter: (ie) {
+                  final intermedioCtrl = context.read<IntermedioController>();
+                  final unidad =
+                      intermedioCtrl.intermedios
+                          .firstWhereOrNull((i) => i.id == ie.intermedioId)
+                          ?.unidad ??
+                      '';
+                  return '${ie.cantidad}${unidad.isNotEmpty ? ' $unidad' : ''}';
+                },
                 onEditar: _editarIntermedioRequerido,
                 onEliminar: _eliminarIntermedioRequerido,
+                emptyListText: "No hay intermedios añadidos.",
               ),
               loadingText: 'Cargando intermedios...',
               emptyText: 'No hay intermedios añadidos.',
@@ -1071,10 +1098,21 @@ class _EditarEventoScreenState extends State<EditarEventoScreen> {
             _buildRelationListSection(
               isLoading: _isLoadingRelations,
               isEmpty: _insumosEvento.isEmpty,
-              listWidget: ListaInsumosEvento(
-                insumosEvento: _insumosEvento,
+              listWidget: ListaComponentesRequeridos<InsumoEvento>(
+                items: _insumosEvento,
+                nombreGetter: (ie) {
+                  final insumoCtrl = context.read<InsumoController>();
+                  return insumoCtrl.insumos
+                          .firstWhereOrNull((i) => i.id == ie.insumoId)
+                          ?.nombre ??
+                      ie.insumoId;
+                },
+                cantidadGetter:
+                    (ie) =>
+                        '${ie.cantidad}${ie.unidad.isNotEmpty ? ' ${ie.unidad}' : ''}',
                 onEditar: _editarInsumoRequerido,
                 onEliminar: _eliminarInsumoRequerido,
+                emptyListText: "No hay insumos añadidos.",
               ),
               loadingText: 'Cargando insumos...',
               emptyText: 'No hay insumos añadidos.',
@@ -1187,16 +1225,24 @@ class _EditarEventoScreenState extends State<EditarEventoScreen> {
       "[EditarEventoScreen] Iniciando personalización para PlatoEvento ID: ${pe.id}, Plato ID: ${pe.platoId}",
     );
     if (!mounted) return;
-  // 1. Obtener controladores y plato base
+    // 1. Obtener controladores y plato base
     final platoCtrl = Provider.of<PlatoController>(context, listen: false);
     Plato? platoBase;
     try {
       if (platoCtrl.platos.isEmpty) await platoCtrl.cargarPlatos();
       platoBase = platoCtrl.platos.firstWhere((p) => p.id == pe.platoId);
-      debugPrint("[EditarEventoScreen] Plato base encontrado: ${platoBase.nombre}");
+      debugPrint(
+        "[EditarEventoScreen] Plato base encontrado: ${platoBase.nombre}",
+      );
     } catch (e) {
-      debugPrint("[EditarEventoScreen][ERROR] No se encontró Plato base ID ${pe.platoId}: $e");
-      _showSnackBar('No se pudo encontrar la info base del plato.', isError: true);
+      debugPrint(
+        "[EditarEventoScreen][ERROR] No se encontró Plato base ID ${pe.platoId}: $e",
+      );
+      showAppSnackBar(
+        context,
+        'No se pudo encontrar la info base del plato.',
+        isError: true,
+      );
       return;
     }
 
@@ -1204,15 +1250,27 @@ class _EditarEventoScreenState extends State<EditarEventoScreen> {
     List<InsumoRequerido> insumosBase = [];
     List<IntermedioRequerido> intermediosBase = [];
     try {
-       debugPrint("[EditarEventoScreen] Cargando relaciones originales para Plato ID: ${platoBase.id!}");
-       await platoCtrl.cargarRelacionesPorPlato(platoBase.id!); // Reusa método existente
-       insumosBase = List.from(platoCtrl.insumosRequeridos);
-       intermediosBase = List.from(platoCtrl.intermediosRequeridos);
-       debugPrint("[EditarEventoScreen] Relaciones base cargadas: I(${insumosBase.length}), Int(${intermediosBase.length})");
+      debugPrint(
+        "[EditarEventoScreen] Cargando relaciones originales para Plato ID: ${platoBase.id!}",
+      );
+      await platoCtrl.cargarRelacionesPorPlato(
+        platoBase.id!,
+      ); // Reusa método existente
+      insumosBase = List.from(platoCtrl.insumosRequeridos);
+      intermediosBase = List.from(platoCtrl.intermediosRequeridos);
+      debugPrint(
+        "[EditarEventoScreen] Relaciones base cargadas: I(${insumosBase.length}), Int(${intermediosBase.length})",
+      );
     } catch (e, st) {
-       debugPrint("[EditarEventoScreen][ERROR] al cargar relaciones originales del plato base: $e\n$st");
-       _showSnackBar('Advertencia: No se pudieron cargar ingredientes base del plato.', isError: true);
-       // Continuar igualmente, el modal manejará las listas vacías
+      debugPrint(
+        "[EditarEventoScreen][ERROR] al cargar relaciones originales del plato base: $e\n$st",
+      );
+      showAppSnackBar(
+        context,
+        'Advertencia: No se pudieron cargar ingredientes base del plato.',
+        isError: true,
+      );
+      // Continuar igualmente, el modal manejará las listas vacías
     }
 
     // 3. Precargar catálogos Insumo/Intermedio
@@ -1224,25 +1282,35 @@ class _EditarEventoScreenState extends State<EditarEventoScreen> {
     final platoEventoActualizado = await showDialog<PlatoEvento>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => ModalPersonalizarPlatoEvento(
-        platoEventoOriginal: pe,
-        platoBase: platoBase!,
-        insumosBaseRequeridos: insumosBase,
-        intermediosBaseRequeridos: intermediosBase,
-      ),
+      builder:
+          (ctx) => ModalPersonalizarPlatoEvento(
+            platoEventoOriginal: pe,
+            platoBase: platoBase!,
+            insumosBaseRequeridos: insumosBase,
+            intermediosBaseRequeridos: intermediosBase,
+          ),
     );
-     debugPrint("[EditarEventoScreen] ModalPersonalizarPlatoEvento cerrado. Resultado: ${platoEventoActualizado != null ? 'Guardado' : 'Cancelado'}");
-
+    debugPrint(
+      "[EditarEventoScreen] ModalPersonalizarPlatoEvento cerrado. Resultado: ${platoEventoActualizado != null ? 'Guardado' : 'Cancelado'}",
+    );
 
     // 5. Actualizar Estado si Hubo Cambios
     if (platoEventoActualizado != null && mounted) {
       setState(() {
-        final index = _platosEvento.indexWhere((item) => item.id == pe.id || (item.platoId == pe.platoId && item.id == null));
+        final index = _platosEvento.indexWhere(
+          (item) =>
+              item.id == pe.id ||
+              (item.platoId == pe.platoId && item.id == null),
+        );
         if (index != -1) {
-          debugPrint("[EditarEventoScreen] Actualizando PlatoEvento (índice $index) con personalización.");
+          debugPrint(
+            "[EditarEventoScreen] Actualizando PlatoEvento (índice $index) con personalización.",
+          );
           _platosEvento[index] = platoEventoActualizado;
         } else {
-           debugPrint("[EditarEventoScreen][WARN] No se encontró PlatoEvento original para actualizar tras personalizar.");
+          debugPrint(
+            "[EditarEventoScreen][WARN] No se encontró PlatoEvento original para actualizar tras personalizar.",
+          );
         }
       });
     }
