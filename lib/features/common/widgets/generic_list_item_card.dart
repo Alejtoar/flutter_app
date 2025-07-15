@@ -7,6 +7,7 @@ class GenericListItemCard extends StatelessWidget {
   final List<Widget> actions;
   final bool isSelected;
   final VoidCallback onSelect; // Callback para el Checkbox
+  final Color? cardColor;
 
   const GenericListItemCard({
     Key? key,
@@ -16,10 +17,14 @@ class GenericListItemCard extends StatelessWidget {
     this.actions = const [],
     required this.isSelected,
     required this.onSelect,
+    this.cardColor,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final Color? finalCardColor = isSelected
+        ? Theme.of(context).primaryColor
+        : cardColor;
     return Card(
       elevation: 2,
       margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
@@ -30,6 +35,7 @@ class GenericListItemCard extends StatelessWidget {
           width: 1.5,
         ),
       ),
+      color: finalCardColor,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8.0),
         child: Row(

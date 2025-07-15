@@ -29,10 +29,6 @@ class BuscadorEventosController extends ChangeNotifier {
   final PlatoEventoFirestoreRepository platoEventoRepository;
   final InsumoEventoFirestoreRepository insumoEventoRepository;
   final IntermedioEventoFirestoreRepository intermedioEventoRepository;
-  // Repositorios para obtener datos base (Plato, Insumo, Intermedio) - Inyectar si es necesario
-  // final PlatoRepository _platoRepository;
-  // final IntermedioRepository _intermedioRepository;
-  // final InsumoRepository _insumoRepository;
 
   // --- Estado Principal ---
   List<Evento> _eventos = [];
@@ -77,13 +73,7 @@ class BuscadorEventosController extends ChangeNotifier {
     required this.platoEventoRepository,
     required this.insumoEventoRepository,
     required this.intermedioEventoRepository,
-    // Descomenta y requiere estos si usas fetchDatosRelacionadosEvento
-    // required PlatoRepository platoRepository,
-    // required IntermedioRepository intermedioRepository,
-    // required InsumoRepository insumoRepository,
-  }) /* : _platoRepository = platoRepository, // Asignar si se inyectan
-         _intermedioRepository = intermedioRepository,
-         _insumoRepository = insumoRepository */;
+  });
 
   // --- Métodos CRUD y Carga ---
 
@@ -99,28 +89,76 @@ class BuscadorEventosController extends ChangeNotifier {
     }
   }
 
-  Future<void> eliminarEvento(String id) async {
-    // No establecer loading aquí para que la UI no parpadee por una operación rápida
+  Future<bool> _eliminarUnEventoIndividual(String id) async {
     try {
-      // Eliminar el evento principal
-      await eventoRepository.eliminar(id);
-
-      // Eliminar relaciones asociadas (en paralelo si es posible y seguro)
-      // Usar los métodos eliminarPorEvento que usan batch internamente
+      // Usar Future.wait para eliminar relaciones en paralelo.
+      // Cada uno de estos métodos ya usa un batch de Firestore, por lo que son eficientes.
       await Future.wait([
         platoEventoRepository.eliminarPorEvento(id),
         insumoEventoRepository.eliminarPorEvento(id),
         intermedioEventoRepository.eliminarPorEvento(id),
       ]);
 
-      // Actualizar la lista local
-      _eventos.removeWhere((e) => e.id == id);
-      _clearError();
-      notifyListeners(); // Notificar cambio en la lista
+      // Eliminar el documento principal del evento DESPUÉS de sus relaciones
+      await eventoRepository.eliminar(id);
+
+      debugPrint(
+        "[BuscadorCtrl] Evento $id y sus relaciones eliminados de la BD.",
+      );
+      return true;
     } catch (e, st) {
-      _setError('Error al eliminar evento $id: $e', st);
-      // No notificamos aquí para no ocultar el error inmediatamente
+      // Guardar el error para poder mostrarlo en la UI
+      _error = 'Error al eliminar evento $id: $e';
+      debugPrint("[BuscadorCtrl][ERROR] $_error\n$st");
+      return false; // Indicar que esta eliminación específica falló
     }
+  }
+
+  /// Método PÚBLICO para eliminar un solo evento desde la UI. Notifica.
+  Future<void> eliminarUnEvento(String id) async {
+    _error = null; // Limpiar error anterior
+    final success = await _eliminarUnEventoIndividual(id);
+
+    if (success) {
+      // Si la eliminación en la BD fue exitosa, quitarlo de la lista local
+      _eventos.removeWhere((e) => e.id == id);
+    }
+
+    // Notificar siempre para que la UI se actualice, ya sea para quitar el item
+    // o para mostrar un posible error que se haya guardado en _error.
+    notifyListeners();
+  }
+
+  /// Método PÚBLICO para eliminar MÚLTIPLES eventos en lote. Notifica una vez al final.
+  Future<void> eliminarEventosEnLote(Set<String> ids) async {
+    if (ids.isEmpty) return;
+    _error = null;
+
+    // Llama al método de eliminación individual para cada ID y espera a que todos terminen
+    final results = await Future.wait(
+      ids.map((id) => _eliminarUnEventoIndividual(id)).toList(),
+    );
+
+    final int exitoCount = results.where((success) => success).length;
+    final int falloCount = ids.length - exitoCount;
+
+    debugPrint(
+      "[BuscadorCtrl] Eliminación en lote finalizada. Éxitos: $exitoCount, Fallos: $falloCount",
+    );
+
+    if (falloCount > 0) {
+      _error = "No se pudieron eliminar $falloCount de ${ids.length} eventos.";
+    }
+
+    // Actualizar la lista local _eventos quitando todos los que se intentaron eliminar
+    // (o podrías quitar solo los exitosos si lo prefieres, pero esto limpia la selección)
+    if (exitoCount > 0) {
+      // Solo modificar la lista si algo se borró
+      _eventos.removeWhere((evento) => ids.contains(evento.id));
+    }
+
+    // Notificar a la UI UNA SOLA VEZ con el estado final
+    notifyListeners();
   }
 
   /// Crear un evento y sus relaciones usando los métodos `reemplazar...` atómicos.
