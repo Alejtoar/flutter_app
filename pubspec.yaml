@@ -52,6 +52,9 @@ dependencies:
   excel: ^4.0.6
   file_picker: ^10.1.5
   flutter_dotenv: ^5.2.1
+  syncfusion_flutter_xlsio: ^29.2.11
+  universal_html: ^2.2.4
+  file_selector: ^1.0.3
 
 dev_dependencies:
   integration_test:

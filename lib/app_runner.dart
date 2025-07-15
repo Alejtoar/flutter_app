@@ -17,7 +17,8 @@ import 'package:golo_app/repositories/insumo_repository_impl.dart';
 import 'package:golo_app/repositories/intermedio_repository_impl.dart';
 import 'package:golo_app/repositories/insumo_utilizado_repository_impl.dart';
 import 'package:golo_app/repositories/proveedor_repository_impl.dart';
-import 'package:golo_app/services/excel_export_service.dart';
+import 'package:golo_app/services/excel_export_service_sync.dart';
+//import 'package:golo_app/services/excel_export_service.dart';
 import 'package:golo_app/services/shopping_list_service.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -45,7 +46,7 @@ void runGoloApp() async {
   final intermedioRequeridoRepo = IntermedioRequeridoFirestoreRepository(db);
   final insumoUtilizadoRepo = InsumoUtilizadoFirestoreRepository(db);
   final proveedorRepo = ProveedorFirestoreRepository(db);
-  final excelExportService = ExcelExportService();
+  final excelExportService = ExcelExportServiceSync();
 
   final shoppingListService = ShoppingListService(
     eventoRepo: eventoRepo,
@@ -80,7 +81,7 @@ void runGoloApp() async {
 
         Provider<EventoRepository>(create: (_) => eventoRepo),
         Provider<ShoppingListService>(create: (_) => shoppingListService),
-        Provider<ExcelExportService>(create: (_) => excelExportService),
+        Provider<ExcelExportServiceSync>(create: (_) => excelExportService),
       ],
       child: const MyApp(), // Llama al widget raíz común
     ),

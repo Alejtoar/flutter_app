@@ -245,6 +245,7 @@ class _BuscadorEventosScreenState extends State<BuscadorEventosScreen> {
                 (_) => ShoppingListDisplayScreen(
                   groupedShoppingList: listaAgrupada,
                   eventoIds: idsACalcular,
+                  separateByFacturable: separarPorFacturable,
                 ),
           ),
         );
