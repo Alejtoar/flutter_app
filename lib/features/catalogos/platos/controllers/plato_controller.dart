@@ -65,6 +65,78 @@ class PlatoController extends ChangeNotifier {
     }
   }
 
+  Future<bool> _eliminarPlatoIndividual(String id) async {
+    try {
+      await _platoRepository.eliminar(id);
+      // Eliminar relaciones es opcional aquí si sabes que el repositorio ya lo hace en cascada
+      // o si la eliminación en lote lo manejará por separado. Por ahora lo dejamos.
+      await _intermedioRequeridoRepository.eliminarPorPlato(id);
+      await _insumoRequeridoRepository.eliminarPorPlato(id);
+      return true;
+    } on PlatoEnUsoException catch (e) {
+      _error = e.toString(); // Guardar el error
+      debugPrint('[PlatoController] Error al eliminar plato $id: $_error');
+      return false; // Indicar fallo
+    } catch (e) {
+      _error = 'Error inesperado al eliminar plato $id: $e';
+      debugPrint(_error);
+      return false; // Indicar fallo
+    }
+  }
+
+  /// Método PÚBLICO para eliminar un solo plato desde la UI (ej. botón de basura individual).
+  /// Este SÍ notifica a la UI.
+  Future<void> eliminarUnPlato(String id) async {
+    _error = null; // Limpiar error anterior
+    final success = await _eliminarPlatoIndividual(id);
+    if (success) {
+      _platos.removeWhere((p) => p.id == id);
+    }
+    // Siempre notificar para actualizar la UI, ya sea quitando el item o mostrando el error.
+    notifyListeners();
+  }
+
+
+  /// Método PÚBLICO para eliminar MÚLTIPLES platos.
+  /// Notifica UNA SOLA VEZ al final.
+  Future<Set<String>> eliminarPlatosEnLote(Set<String> ids) async { // <-- CAMBIA EL TIPO DE RETORNO
+    if (ids.isEmpty) return {}; // Devuelve set vacío
+    _error = null;
+
+    final List<Future<bool>> deleteFutures = [];
+    final List<String> idList = ids.toList(); // Convertir a lista para acceder por índice
+
+    for (final id in idList) {
+       deleteFutures.add(_eliminarPlatoIndividual(id));
+    }
+
+    final List<bool> results = await Future.wait(deleteFutures);
+    final Set<String> idsExitosos = {};
+
+    for (int i = 0; i < results.length; i++) {
+        if (results[i]) { // Si el resultado fue 'true' (éxito)
+            idsExitosos.add(idList[i]); // Añade el ID correspondiente a la lista de éxitos
+        }
+    }
+
+    final int falloCount = results.length - idsExitosos.length;
+    debugPrint("[PlatoController] Eliminación en lote finalizada. Éxitos: ${idsExitosos.length}, Fallos: $falloCount");
+
+    if (falloCount > 0) {
+      _error = "No se pudieron eliminar $falloCount de ${results.length} platos. (Verificar si están en uso)";
+    }
+
+    // Actualizar la lista local _platos quitando SOLO los que tuvieron éxito
+    if (idsExitosos.isNotEmpty) {
+        _platos.removeWhere((plato) => idsExitosos.contains(plato.id));
+    }
+
+    // Notificar a la UI UNA SOLA VEZ con el estado final.
+    notifyListeners();
+
+    return idsExitosos; // <-- DEVOLVER LOS IDs EXITOSOS
+  }
+
   /// Crear un plato y sus relaciones (intermedios e insumos requeridos)
   Future<Plato?> crearPlatoConRelaciones(
     Plato plato,
