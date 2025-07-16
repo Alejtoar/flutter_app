@@ -6,7 +6,7 @@ import 'package:golo_app/features/catalogos/intermedios/controllers/intermedio_c
 import 'package:golo_app/features/catalogos/platos/controllers/plato_controller.dart';
 import 'package:golo_app/features/common/utils/snackbar_helper.dart';
 import 'package:golo_app/features/common/widgets/lista_componentes_requeridos.dart';
-import 'package:golo_app/features/eventos/buscador_eventos/widgets/modal_personalizar_plato_evento.dart';
+import 'package:golo_app/features/eventos/widgets/modal_personalizar_plato_evento.dart';
 import 'package:golo_app/models/evento.dart';
 import 'package:golo_app/models/insumo.dart';
 import 'package:golo_app/models/insumo_requerido.dart';

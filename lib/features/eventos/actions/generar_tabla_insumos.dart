@@ -1,6 +1,6 @@
 // actions/generar_tabla_insumos.dart
 import 'package:flutter/material.dart';
-import 'package:golo_app/features/eventos/shoping_list/screens/shopping_list_display_screen.dart';
+import 'package:golo_app/features/eventos/screens/shopping_list_display_screen.dart';
 import 'package:golo_app/models/evento.dart';
 import 'package:golo_app/services/shopping_list_service.dart';
 import 'package:provider/provider.dart';

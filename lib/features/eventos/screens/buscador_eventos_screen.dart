@@ -1,20 +1,16 @@
 // buscador_eventos_screen.dart
 import 'package:flutter/material.dart';
-import 'package:golo_app/features/common/utils/snackbar_helper.dart';
 import 'package:golo_app/features/common/widgets/empty_data_widget.dart';
 import 'package:golo_app/features/common/widgets/generic_list_item_card.dart';
 import 'package:golo_app/features/common/widgets/generic_list_view.dart';
-import 'package:golo_app/features/eventos/buscador_eventos/screens/evento_detalle_screen.dart';
-import 'package:golo_app/features/eventos/shoping_list/screens/shopping_list_display_screen.dart';
+import 'package:golo_app/features/eventos/common/event_list_actions_mixin.dart';
 import 'package:golo_app/models/evento.dart';
-import 'package:golo_app/services/shopping_list_service.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 // Controladores y Widgets específicos de Eventos
 import '../controllers/buscador_eventos_controller.dart';
 import '../widgets/busqueda_bar_eventos.dart';
-import 'editar_evento_screen.dart';
 
 class BuscadorEventosScreen extends StatefulWidget {
   const BuscadorEventosScreen({Key? key}) : super(key: key);
@@ -23,12 +19,11 @@ class BuscadorEventosScreen extends StatefulWidget {
   State<BuscadorEventosScreen> createState() => _BuscadorEventosScreenState();
 }
 
-class _BuscadorEventosScreenState extends State<BuscadorEventosScreen> {
+class _BuscadorEventosScreenState extends State<BuscadorEventosScreen>
+    with EventListActionsMixin<BuscadorEventosScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   // Estado para selección múltiple
-  bool _isSelectionMode = false;
-  Set<String> _selectedEventoIds = {};
 
   @override
   void initState() {
@@ -65,101 +60,6 @@ class _BuscadorEventosScreenState extends State<BuscadorEventosScreen> {
       context,
       listen: false,
     ).setSearchText(_searchController.text);
-  }
-
-  // Para ver el detalle (navega a EventoDetalleScreen)
-  void _verDetalle(Evento evento) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => EventoDetalleScreen(eventoInicial: evento),
-      ),
-    );
-  }
-
-  // Para navegar a la pantalla de edición
-  void _editar(Evento? evento) {
-    // Acepta Evento? para poder crear (con null)
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => EditarEventoScreen(evento: evento)),
-    ).then((_) {
-      // Opcional: recargar al volver si es necesario
-      // context.read<BuscadorEventosController>().cargarEventos();
-    });
-  }
-
-  // Para confirmar y eliminar UN SOLO evento
-  void _eliminar(Evento evento) async {
-    final controller = context.read<BuscadorEventosController>();
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Eliminar Evento'),
-            content: Text(
-              '¿Seguro que deseas eliminar el evento "${evento.codigo} - ${evento.nombreCliente}"?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancelar'),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Eliminar'),
-              ),
-            ],
-          ),
-    );
-
-    if (confirm == true && mounted) {
-      // Reusa la lógica del controlador que ya es robusta
-      await controller.eliminarUnEvento(evento.id!);
-      if (mounted && controller.error != null) {
-        showAppSnackBar(context, controller.error!, isError: true);
-      } else if (mounted) {
-        showAppSnackBar(context, 'Evento "${evento.codigo}" eliminado.');
-      }
-    }
-  }
-
-  void _eliminarEventosSeleccionados() async {
-    final idsAEliminar = Set<String>.from(_selectedEventoIds);
-    final cantidad = idsAEliminar.length;
-    if (cantidad == 0) return;
-
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: Text('Eliminar $cantidad Eventos'),
-            content: const Text(
-              '¿Estás seguro? Esta acción no se puede deshacer.',
-            ),
-            actions: [/* ... botones ... */],
-          ),
-    );
-    if (confirm != true || !mounted) return;
-
-    final controller = context.read<BuscadorEventosController>();
-    await controller.eliminarEventosEnLote(idsAEliminar);
-
-    if (mounted) {
-      if (controller.error != null) {
-        showAppSnackBar(context, controller.error!, isError: true);
-      } else {
-        showAppSnackBar(context, '$cantidad eventos han sido eliminados.');
-      }
-      setState(() {
-        _isSelectionMode = false;
-        _selectedEventoIds.clear();
-      });
-    }
   }
 
   // Limpia todos los filtros aplicados
@@ -204,150 +104,13 @@ class _BuscadorEventosScreenState extends State<BuscadorEventosScreen> {
     }
   }
 
-  void _calcularListaDeComprasEnLote({
-    bool separarPorFacturable = false,
-  }) async {
-    final idsACalcular = _selectedEventoIds.toList();
-    if (idsACalcular.isEmpty) return;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
-    );
-
-    try {
-      final shoppingService = context.read<ShoppingListService>();
-      GroupedShoppingListResult listaAgrupada;
-
-      if (separarPorFacturable) {
-        // Llamar al método que separa los datos
-        listaAgrupada = await shoppingService.getSeparatedGroupedShoppingList(
-          idsACalcular,
-        );
-      } else {
-        // Llamar al método que combina los datos
-        listaAgrupada = await shoppingService.getCombinedGroupedShoppingList(
-          idsACalcular,
-        );
-      }
-
-      if (!mounted) return;
-      Navigator.pop(context); // Cerrar indicador
-
-      if (listaAgrupada.isEmpty) {
-        /* ... SnackBar lista vacía ... */
-      } else {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder:
-                (_) => ShoppingListDisplayScreen(
-                  groupedShoppingList: listaAgrupada,
-                  eventoIds: idsACalcular,
-                  separateByFacturable: separarPorFacturable,
-                ),
-          ),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      Navigator.pop(context);
-      showAppSnackBar(
-        context,
-        "Error al generar la lista de compras: $e",
-        isError: true,
-      );
-    }
-  }
-
-  AppBar _buildAppBar() {
-    if (_isSelectionMode) {
-      return AppBar(
-        backgroundColor:
-            Colors.blueGrey[700], // Color distintivo para modo selección
-        title: Text('${_selectedEventoIds.length} seleccionados'),
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () {
-            setState(() {
-              _isSelectionMode = false;
-              _selectedEventoIds.clear();
-            });
-          },
-        ),
-        actions: [
-          // --- Menú de Acciones en Lote ---
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert), // Icono de tres puntos
-            tooltip: 'Acciones en Lote',
-            onSelected: (value) {
-              // Llamar a la función correspondiente según la opción seleccionada
-              switch (value) {
-                case 'lista_compras_combinada':
-                  _calcularListaDeComprasEnLote(separarPorFacturable: false);
-                  break;
-                case 'lista_compras_separada':
-                  _calcularListaDeComprasEnLote(separarPorFacturable: true);
-                  break;
-                case 'eliminar':
-                  _eliminarEventosSeleccionados();
-                  break;
-              }
-            },
-            itemBuilder:
-                (BuildContext context) => <PopupMenuEntry<String>>[
-                  const PopupMenuItem<String>(
-                    value: 'lista_compras_combinada',
-                    child: ListTile(
-                      leading: Icon(Icons.shopping_cart_checkout),
-                      title: Text('Calcular Lista de Compras (Total)'),
-                    ),
-                  ),
-                  const PopupMenuItem<String>(
-                    value: 'lista_compras_separada',
-                    child: ListTile(
-                      leading: Icon(Icons.splitscreen_outlined),
-                      title: Text('Lista de Compras (Separar Facturable)'),
-                    ),
-                  ),
-                  const PopupMenuDivider(),
-                  PopupMenuItem<String>(
-                    value: 'eliminar',
-                    child: ListTile(
-                      leading: Icon(
-                        Icons.delete_sweep_outlined,
-                        color: Colors.red[700],
-                      ),
-                      title: Text(
-                        'Eliminar Seleccionados',
-                        style: TextStyle(color: Colors.red[700]),
-                      ),
-                    ),
-                  ),
-                ],
-          ),
-        ],
-      );
-    } else {
-      // AppBar normal (sin cambios)
-      return AppBar(
-        title: const Text('Eventos'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            tooltip: 'Crear Nuevo Evento',
-            onPressed: () => _editar(null),
-          ),
-        ],
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildAppBar(),
+      appBar: buildContextualAppBar(
+        defaultTitle: 'Eventos',
+        onAdd: () => editarEvento(null),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -588,12 +351,8 @@ class _BuscadorEventosScreenState extends State<BuscadorEventosScreen> {
                   return GenericListView<Evento>(
                     items: eventosFiltrados,
                     idGetter: (evento) => evento.id!,
-                    onSelectionModeChanged: (isSelectionMode) {
-                      setState(() => _isSelectionMode = isSelectionMode);
-                    },
-                    onSelectionChanged: (selectedIds) {
-                      setState(() => _selectedEventoIds = selectedIds);
-                    },
+                    onSelectionModeChanged: (isMode) => setState(() => isSelectionMode = isMode), // Actualiza la variable del mixin
+                    onSelectionChanged: (ids) => setState(() => selectedEventIds = ids),
                     itemBuilder: (context, evento, isSelected, onSelect) {
                       // Usar una Card o ListTile personalizado aquí
                       return GenericListItemCard(
@@ -604,13 +363,13 @@ class _BuscadorEventosScreenState extends State<BuscadorEventosScreen> {
                           'Fecha: ${DateFormat('dd/MM/yy').format(evento.fecha)}\nEstado: ${evento.estado.name}',
                         ),
                         // Opcional: un color de fondo como en tu ListaEventos original
-                        cardColor: _colorPorEstado(evento.estado),
+                        cardColor: colorPorEstado(evento.estado),
                         leading: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(
                               Icons.event,
-                              color: _colorPorEstado(evento.estado),
+                              color: colorPorEstado(evento.estado),
                             ), // Icono coloreado por estado
                             Text(
                               evento.codigo,
@@ -622,23 +381,27 @@ class _BuscadorEventosScreenState extends State<BuscadorEventosScreen> {
                           ],
                         ),
                         actions:
-                            _isSelectionMode
+                            isSelectionMode
                                 ? []
                                 : [
                                   IconButton(
                                     icon: const Icon(Icons.visibility),
                                     tooltip: 'Ver Detalle',
-                                    onPressed: () => _verDetalle(evento),
+                                    onPressed: () => verDetalle(evento),
                                   ),
                                   IconButton(
                                     icon: const Icon(Icons.edit),
                                     tooltip: 'Editar',
-                                    onPressed: () => _editar(evento),
+                                    onPressed: () => editarEvento(evento),
                                   ), // Llama a la nueva _editar
                                   IconButton(
-                                    icon: Icon(Icons.delete, color: Theme.of(context).colorScheme.error),
+                                    icon: Icon(
+                                      Icons.delete,
+                                      color:
+                                          Theme.of(context).colorScheme.error,
+                                    ),
                                     tooltip: 'Eliminar',
-                                    onPressed: () => _eliminar(evento),
+                                    onPressed: () => eliminarEvento(evento),
                                   ), // Llama a la nueva _eliminar
                                 ],
                       );
@@ -651,23 +414,5 @@ class _BuscadorEventosScreenState extends State<BuscadorEventosScreen> {
         ),
       ),
     );
-  }
-
-  // Helper para el color de estado (movido aquí desde ListaEventos)
-  Color _colorPorEstado(EstadoEvento estado) {
-    switch (estado) {
-      case EstadoEvento.cotizado:
-        return Colors.blue[100]!;
-      case EstadoEvento.confirmado:
-        return Colors.green[100]!;
-      case EstadoEvento.completado:
-        return Colors.grey[400]!;
-      case EstadoEvento.cancelado:
-        return Colors.red[200]!;
-      case EstadoEvento.enPruebaMenu:
-        return Colors.orange[200]!;
-      case EstadoEvento.enCotizacion:
-        return Colors.purple[100]!;
-    }
   }
 }

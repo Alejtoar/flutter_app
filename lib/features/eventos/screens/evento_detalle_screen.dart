@@ -2,8 +2,8 @@
 // ignore_for_file: prefer_interpolation_to_compose_strings
 
 import 'package:flutter/material.dart';
-import 'package:golo_app/features/eventos/buscador_eventos/actions/generar_tabla_insumos.dart';
-import 'package:golo_app/features/eventos/buscador_eventos/screens/editar_evento_screen.dart';
+import 'package:golo_app/features/eventos/actions/generar_tabla_insumos.dart';
+import 'package:golo_app/features/eventos/screens/editar_evento_screen.dart';
 import 'package:golo_app/models/evento.dart';
 import 'package:golo_app/models/plato_evento.dart';
 import 'package:golo_app/models/intermedio_evento.dart';
@@ -12,14 +12,14 @@ import 'package:golo_app/models/plato.dart';
 import 'package:golo_app/models/intermedio.dart';
 import 'package:golo_app/models/insumo.dart';
 
-import 'package:golo_app/features/eventos/buscador_eventos/controllers/buscador_eventos_controller.dart';
+import 'package:golo_app/features/eventos/controllers/buscador_eventos_controller.dart';
 import 'package:golo_app/features/catalogos/platos/controllers/plato_controller.dart';
 import 'package:golo_app/features/catalogos/intermedios/controllers/intermedio_controller.dart';
 import 'package:golo_app/features/catalogos/insumos/controllers/insumo_controller.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 // Importar el widget de botones
-import 'package:golo_app/features/eventos/buscador_eventos/widgets/botones_detalle_evento.dart';
+import 'package:golo_app/features/eventos/widgets/botones_detalle_evento.dart';
 // Importaciones para PDF
 import 'package:printing/printing.dart';
 import 'package:pdf/pdf.dart';

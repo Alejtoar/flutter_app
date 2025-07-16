@@ -23,7 +23,7 @@ import 'package:golo_app/services/shopping_list_service.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import 'features/eventos/buscador_eventos/controllers/buscador_eventos_controller.dart';
+import 'features/eventos/controllers/buscador_eventos_controller.dart';
 import 'repositories/evento_repository_impl.dart';
 import 'repositories/plato_evento_repository_impl.dart';
 import 'repositories/insumo_evento_repository_impl.dart';
