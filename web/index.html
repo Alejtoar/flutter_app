@@ -33,6 +33,26 @@
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
+  <script src="https://www.gstatic.com/firebasejs/9.20.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.20.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.20.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyD6LUAgPA1rp9xFmcR7diV6D6oBDDG4QF8",
+      authDomain: "golofirebase.firebaseapp.com",
+      projectId: "golofirebase",
+      storageBucket: "golofirebase.firebasestorage.app",
+      messagingSenderId: "1009699056186",
+      appId: "1:1009699056186:web:ae3cabb2a23742131fe303"
+    };
+    
+    // Inicialización correcta para el SDK de compatibilidad
+    firebase.initializeApp(firebaseConfig);
+    
+    // Si necesitas Analytics, asegúrate de importar el script y luego llama a firebase.analytics();
+  </script>
+
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

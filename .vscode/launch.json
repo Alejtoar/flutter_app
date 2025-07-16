@@ -1,41 +1,63 @@
 {
     "version": "0.2.0",
     "configurations": [
-        
         // --- Configuración de Desarrollo ---
         {
-            "name": "Run (Dev)", // Nombre para el menú
+            "name": "Launch Dev (Mobile/Desktop)", // Específico para nativo
             "request": "launch",
             "type": "dart",
-            "flutterMode": "debug", // Modo de depuración por defecto
-            "program": "lib/main_dev.dart", // Punto de entrada para desarrollo
+            "flutterMode": "debug",
+            "program": "lib/main_dev.dart",
             "args": [
                 "--flavor",
-                "dev" // Nombre del flavor
+                "dev"
             ]
         },
-        // --- Configuración de Producción (para probar localmente) ---
         {
-            "name": "Run (Prod)", // Nombre para el menú
+            "name": "Launch Dev (Web)", // Específico para web
             "request": "launch",
             "type": "dart",
-            "flutterMode": "debug", // Usar debug para poder depurar, pero con la config de prod
-            "program": "lib/main_prod.dart", // Punto de entrada para producción
+            "deviceId": "chrome", // O "edge"
+            "program": "web/web_entrypoint.dart",
             "args": [
-                "--flavor",
-                "prod" // Nombre del flavor
+                "--dart-define=FLUTTER_APP_FLAVOR=dev"
             ]
         },
-        // --- Configuración Release de Producción (similar a un build final) ---
+        
+        // --- Configuración de Producción ---
         {
-            "name": "Run (Prod Release Mode)", // Para pruebas de rendimiento
+            "name": "Launch Prod (Mobile/Desktop)",
             "request": "launch",
             "type": "dart",
-            "flutterMode": "release", // Modo release, optimizado
+            "flutterMode": "debug",
             "program": "lib/main_prod.dart",
             "args": [
                 "--flavor",
                 "prod"
+            ]
+        },
+        {
+            "name": "Run (Dev - Web)",
+            "request": "launch",
+            "type": "dart",
+            "deviceId": "chrome",
+            "args": [
+                // El target se pasa como un argumento
+                "-t",
+                "web/web_entrypoint.dart",
+                // La variable de entorno se pasa como otro argumento
+                "--dart-define=FLUTTER_APP_FLAVOR=dev"
+            ]
+        },
+        {
+            "name": "Run (Prod - Web)",
+            "request": "launch",
+            "type": "dart",
+            "deviceId": "chrome",
+            "args": [
+                "-t",
+                "web/web_entrypoint.dart",
+                "--dart-define=FLUTTER_APP_FLAVOR=prod"
             ]
         }
     ]

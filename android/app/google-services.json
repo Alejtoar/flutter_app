@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1009699056186",
+    "project_id": "golofirebase",
+    "storage_bucket": "golofirebase.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1009699056186:android:629658965ff420c71fe303",
+        "android_client_info": {
+          "package_name": "com.example.golo_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBPRRDUhyGlvy4Vb_grStf14rHzQcAqzRQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

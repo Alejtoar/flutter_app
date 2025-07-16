@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:golo_app/features/common/utils/snackbar_helper.dart';
 import 'package:golo_app/features/common/widgets/empty_data_widget.dart';
+import 'package:golo_app/features/common/widgets/generic_list_item_card.dart';
+import 'package:golo_app/features/common/widgets/generic_list_view.dart';
 import 'package:provider/provider.dart';
 import 'package:golo_app/features/catalogos/proveedores/controllers/proveedor_controller.dart';
 import 'package:golo_app/features/catalogos/proveedores/screens/proveedor_edit_screen.dart';
-import 'package:golo_app/features/catalogos/proveedores/widgets/proveedor_card.dart';
 import 'package:golo_app/models/proveedor.dart';
 
 class ProveedoresScreen extends StatefulWidget {
@@ -19,8 +21,12 @@ class _ProveedoresScreenState extends State<ProveedoresScreen> {
   @override
   void initState() {
     super.initState();
+    final controller = context.read<ProveedorController>();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ProveedorController>().cargarProveedores();
+      if (mounted) controller.cargarProveedores();
+    });
+    _searchController.addListener(() {
+      controller.buscarProveedoresPorNombre(_searchController.text);
     });
   }
 
@@ -30,78 +36,53 @@ class _ProveedoresScreenState extends State<ProveedoresScreen> {
     super.dispose();
   }
 
-  Widget _buildSearchBar(ProveedorController controller) {
-    return Padding(
-      padding: const EdgeInsets.all(12.0),
-      child: TextField(
-        controller: _searchController,
-        decoration: InputDecoration(
-          hintText: 'Buscar proveedores...',
-          prefixIcon: const Icon(Icons.search),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-          suffixIcon: IconButton(
-            icon: const Icon(Icons.clear),
-            onPressed: () {
-              _searchController.clear();
-              controller.cargarProveedores();
-            },
-          ),
-        ),
-        onChanged: (query) {
-          controller.buscarProveedoresPorNombre(query);
-        },
-      ),
-    );
-  }
+  
 
-  Future<void> _navigateToAddEditProveedor([Proveedor? proveedor]) async {
+  Future<void> _editar(Proveedor? proveedor) async {
+    // Navegar a la pantalla de edición
     final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder: (context) => ProveedorEditScreen(proveedor: proveedor),
       ),
     );
-    if (result == true) {
+    // Si se guardaron cambios (la pantalla de edición devuelve true), recargar la lista
+    if (result == true && mounted) {
       context.read<ProveedorController>().cargarProveedores();
     }
   }
 
-  Future<void> _confirmDeleteProveedor(String id) async {
+  Future<void> _eliminar(Proveedor proveedor) async {
+    // Mostrar diálogo de confirmación
     final confirmed = await showDialog<bool>(
       context: context,
-      builder:
-          (context) => AlertDialog(
+      builder: (ctx) => AlertDialog(
             title: const Text('Confirmar eliminación'),
-            content: const Text('¿Eliminar este proveedor?'),
+            content: Text('¿Estás seguro de eliminar al proveedor "${proveedor.nombre}"?'),
             actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancelar'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text(
-                  'Eliminar',
-                  style: TextStyle(color: Colors.red),
-                ),
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+                child: const Text('Eliminar'),
               ),
             ],
           ),
     );
-    if (confirmed != true) return;
+
+    if (confirmed != true || !mounted) return;
+
     final controller = context.read<ProveedorController>();
-    final success = await controller.eliminarProveedor(id);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          success
-              ? 'Proveedor eliminado correctamente'
-              : 'Error al eliminar el proveedor',
-        ),
-        backgroundColor: success ? Colors.green : Colors.red,
-      ),
-    );
+    final success = await controller.eliminarProveedor(proveedor.id!);
+
+    if (mounted) {
+      if (success) {
+        showAppSnackBar(context, 'Proveedor "${proveedor.nombre}" eliminado correctamente.');
+      } else {
+        // Mostrar el error específico que el controller pueda haber guardado
+        showAppSnackBar(context, 'Error al eliminar el proveedor.', isError: true);
+      }
+    }
   }
 
   @override
@@ -113,57 +94,105 @@ class _ProveedoresScreenState extends State<ProveedoresScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
-            onPressed: () => _navigateToAddEditProveedor(),
+            onPressed: () => _editar(null),
           ),
         ],
       ),
       body: Column(
-        // Usar Column para la barra de búsqueda y la lista
         children: [
-          Consumer<ProveedorController>(
-            // Consumer solo para la barra, para pasar el controller
-            builder: (context, controller, _) {
-              return _buildSearchBar(controller);
-            },
+          // Barra de búsqueda
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Buscar proveedores por nombre...',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    _searchController.clear();
+                    // La búsqueda se actualiza por el listener
+                  },
+                ),
+              ),
+            ),
           ),
+          // Lista de proveedores
           Expanded(
             child: Consumer<ProveedorController>(
-              // Consumer para la lista y el estado de carga/vacío
               builder: (context, controller, _) {
-                if (controller.loading) {
+                if (controller.loading && controller.proveedores.isEmpty) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
                 if (controller.proveedores.isEmpty) {
-                  // ANTES: const Center(child: Text('No hay proveedores registrados'))
-                  // DESPUÉS:
-                  return const EmptyDataWidget(
-                    message: 'No tienes proveedores registrados.',
-                    callToAction: 'Presiona + para añadir tu primer proveedor.',
-                    icon: Icons.store_mall_directory_outlined,
+                  return EmptyDataWidget(
+                    message: _searchController.text.isEmpty
+                        ? 'No tienes proveedores registrados.'
+                        : 'No se encontraron proveedores con ese nombre.',
+                    callToAction: _searchController.text.isEmpty
+                        ? 'Presiona + para añadir tu primer proveedor.'
+                        : '',
+                    icon: _searchController.text.isEmpty
+                        ? Icons.store_mall_directory_outlined
+                        : Icons.search_off_outlined,
                   );
                 }
 
-                // Si la búsqueda no da resultados (asumiendo que buscarProveedoresPorNombre actualiza controller.proveedores)
-                // Si buscarProveedoresPorNombre usa una lista separada para filtrados, necesitarías verificar esa.
-                // Por ahora, el mensaje de arriba cubre ambos casos si la lista principal se vacía por el filtro.
-                // Si quieres un mensaje específico para "no hay resultados de búsqueda", tendrías que
-                // mantener la lista original y la filtrada por separado.
-
-                return ListView.builder(
-                  itemCount: controller.proveedores.length,
-                  itemBuilder:
-                      (context, index) => ProveedorCard(
-                        proveedor: controller.proveedores[index],
-                        onEdit:
-                            () => _navigateToAddEditProveedor(
-                              controller.proveedores[index],
-                            ),
-                        onDelete:
-                            () => _confirmDeleteProveedor(
-                              controller.proveedores[index].id!,
-                            ),
-                      ),
+                return RefreshIndicator(
+                  onRefresh: controller.cargarProveedores,
+                  child: GenericListView<Proveedor>(
+                    items: controller.proveedores,
+                    idGetter: (proveedor) => proveedor.id!,
+                    // Deshabilitar selección múltiple
+                    onSelectionModeChanged: (isSelectionMode) {},
+                    onSelectionChanged: (selectedIds) {},
+                    itemBuilder: (context, proveedor, isSelected, onSelect) {
+                      return GenericListItemCard(
+                        isSelected: false,
+                        showCheckbox: false, // Ocultar el checkbox
+                        onSelect: () { /* Opcional: Navegar a una pantalla de detalle si la tuvieras */ },
+                        title: Text('${proveedor.nombre} (${proveedor.codigo})', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (proveedor.correo.isNotEmpty) Text(proveedor.correo),
+                            if (proveedor.telefono.isNotEmpty) Text(proveedor.telefono),
+                            if (proveedor.tiposInsumos.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4.0),
+                                child: Wrap(
+                                  spacing: 4,
+                                  runSpacing: 2,
+                                  children: proveedor.tiposInsumos.map((cat) {
+                                    return Chip(
+                                      label: Text(cat),
+                                      padding: EdgeInsets.zero,
+                                      visualDensity: VisualDensity.compact,
+                                      labelStyle: const TextStyle(fontSize: 11),
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                          ],
+                        ),
+                        actions: [
+                          IconButton(
+                            icon: const Icon(Icons.edit),
+                            tooltip: 'Editar',
+                            onPressed: () => _editar(proveedor),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.delete, color: Theme.of(context).colorScheme.error),
+                            tooltip: 'Eliminar',
+                            onPressed: () => _eliminar(proveedor),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
                 );
               },
             ),

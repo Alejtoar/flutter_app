@@ -636,7 +636,7 @@ class _BuscadorEventosScreenState extends State<BuscadorEventosScreen> {
                                     onPressed: () => _editar(evento),
                                   ), // Llama a la nueva _editar
                                   IconButton(
-                                    icon: const Icon(Icons.delete),
+                                    icon: Icon(Icons.delete, color: Theme.of(context).colorScheme.error),
                                     tooltip: 'Eliminar',
                                     onPressed: () => _eliminar(evento),
                                   ), // Llama a la nueva _eliminar

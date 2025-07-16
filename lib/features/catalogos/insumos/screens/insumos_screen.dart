@@ -2,8 +2,10 @@
 import 'package:flutter/material.dart';
 import 'package:golo_app/features/catalogos/insumos/controllers/insumo_controller.dart';
 import 'package:golo_app/features/catalogos/insumos/screens/insumo_edit_screen.dart';
-import 'package:golo_app/features/catalogos/insumos/widgets/insumo_card.dart';
+import 'package:golo_app/features/common/utils/snackbar_helper.dart';
 import 'package:golo_app/features/common/widgets/empty_data_widget.dart';
+import 'package:golo_app/features/common/widgets/generic_list_item_card.dart';
+import 'package:golo_app/features/common/widgets/generic_list_view.dart';
 import 'package:golo_app/features/common/widgets/selector_categorias.dart';
 import 'package:golo_app/models/insumo.dart';
 import 'package:provider/provider.dart';
@@ -61,76 +63,123 @@ class _InsumosScreenState extends State<InsumosScreen> {
           body: Column(
             children: [
               _buildSearchBar(controller),
-              Expanded(child: _insumosList(context, controller)),
+              Expanded(
+                child: Consumer<InsumoController>(
+                  builder: (context, controller, _) {
+                    if (controller.loading && controller.insumos.isEmpty) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (controller.insumos.isEmpty) {
+                      return const EmptyDataWidget(
+                        message: 'No hay insumos registrados.',
+                        callToAction: 'Presiona + para agregar uno nuevo.',
+                        icon: Icons.inventory_2_outlined,
+                      );
+                    }
+                    // La lógica de filtro del InsumoController ya actualiza insumosFiltrados
+                    final filtered = controller.insumosFiltrados;
+
+                    if (filtered.isEmpty) {
+                      return const EmptyDataWidget(
+                        message:
+                            'No se encontraron insumos que coincidan con tu búsqueda o filtros.',
+                        icon: Icons.search_off_outlined,
+                      );
+                    }
+
+                    return RefreshIndicator(
+                      onRefresh: () async {
+                        // Lógica de refresco como la tenías
+                        await controller.cargarInsumos();
+                        _searchController.clear();
+                        setState(() {
+                          _categoriasFiltro = [];
+                          _proveedorFiltro = null;
+                        });
+                        controller.buscarInsumos(
+                          '',
+                          categorias: [],
+                          proveedorId: null,
+                        );
+                      },
+                      child: GenericListView<Insumo>(
+                        items: filtered,
+                        idGetter: (insumo) => insumo.id!,
+                        // Deshabilitar selección múltiple pasando callbacks vacíos
+                        onSelectionModeChanged: (isSelectionMode) {},
+                        onSelectionChanged: (selectedIds) {},
+                        itemBuilder: (context, insumo, isSelected, onSelect) {
+                          return GenericListItemCard(
+                            isSelected: false, // Siempre false
+                            showCheckbox: false, // Ocultar el checkbox
+                            onSelect: () {},
+                            title: Text(
+                              insumo.nombre,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text("Código: ${insumo.codigo}"),
+                                Text(
+                                  'Precio: \$${insumo.precioUnitario.toStringAsFixed(2)} / ${insumo.unidad}',
+                                ),
+                                if (insumo.categorias.isNotEmpty)
+                                  Wrap(
+                                    spacing: 4,
+                                    runSpacing: 2,
+                                    children:
+                                        insumo.categorias.map((categoria) {
+                                          return Chip(
+                                            label: Text(categoria),
+                                            padding: EdgeInsets.zero,
+                                            visualDensity:
+                                                VisualDensity.compact,
+                                            labelStyle: const TextStyle(
+                                              fontSize: 11,
+                                            ),
+                                          );
+                                        }).toList(),
+                                  ),
+                              ],
+                            ),
+                            actions: [
+                              // Acciones individuales siempre visibles
+                              IconButton(
+                                icon: const Icon(Icons.edit),
+                                tooltip: 'Editar',
+                                onPressed:
+                                    () => _navigateToAddEditInsumo(
+                                      context,
+                                      insumo,
+                                    ),
+                              ),
+                              IconButton(
+                                icon: Icon(
+                                  Icons.delete,
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
+                                tooltip: 'Eliminar',
+                                onPressed:
+                                    () => _confirmDeleteInsumo(
+                                      context,
+                                      insumo,
+                                    ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
             ],
           ),
         );
       },
-    );
-  }
-
-  Widget _insumosList(BuildContext mainContext, InsumoController controller) {
-    if (controller.loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (controller.insumos.isEmpty) {
-      // return const Center(
-      //   child: Column(
-      //     mainAxisAlignment: MainAxisAlignment.center,
-      //     children: [
-      //       Icon(Icons.inventory_2, size: 50, color: Colors.grey),
-      //       SizedBox(height: 16),
-      //       Text(
-      //         'No hay insumos registrados\nPresiona + para agregar uno nuevo',
-      //         textAlign: TextAlign.center,
-      //         style: TextStyle(color: Colors.grey),
-      //       ),
-      //     ],
-      //   ),
-      // );
-      return const EmptyDataWidget(
-        message: 'No hay insumos registrados.',
-        callToAction: 'Presiona + para agregar uno nuevo.',
-        icon: Icons.inventory_2_outlined, // o Icons.inventory_2
-      );
-    }
-    if (controller.insumosFiltrados.isEmpty && controller.insumos.isNotEmpty) {
-      return const EmptyDataWidget(
-        message:
-            'No se encontraron insumos que coincidan con tu búsqueda o filtros.',
-        icon: Icons.search_off_outlined,
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: () async {
-        await controller.cargarInsumos();
-        // También es buena idea limpiar filtros aquí o que cargarInsumos lo haga
-        _searchController.clear();
-        setState(() {
-          _categoriasFiltro = [];
-          _proveedorFiltro = null;
-        });
-        controller.buscarInsumos('', categorias: [], proveedorId: null);
-      },
-      child: ListView.builder(
-        itemCount: controller.insumosFiltrados.length,
-        itemBuilder:
-            (itemContext, index) => InsumoCard(
-              insumo: controller.insumosFiltrados[index],
-              onEdit:
-                  () => _navigateToAddEditInsumo(
-                    mainContext,
-                    controller.insumosFiltrados[index],
-                  ),
-              onDelete:
-                  () => _confirmDeleteInsumo(
-                    mainContext,
-                    controller.insumosFiltrados[index].id!,
-                  ),
-            ),
-      ),
     );
   }
 
@@ -215,47 +264,35 @@ class _InsumosScreenState extends State<InsumosScreen> {
     }
   }
 
-  Future<void> _confirmDeleteInsumo(BuildContext context, String id) async {
-    // Diálogo de confirmación en la UI
+  Future<void> _confirmDeleteInsumo(BuildContext context, Insumo insumo) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder:
-          (context) => AlertDialog(
+      builder: (ctx) => AlertDialog(
             title: const Text('Confirmar eliminación'),
-            content: const Text('¿Estás seguro de eliminar este insumo?'),
+            content: Text('¿Estás seguro de eliminar el insumo "${insumo.nombre}"?'),
             actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
               TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancelar'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text(
-                  'Eliminar',
-                  style: TextStyle(color: Colors.red),
-                ),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
               ),
             ],
           ),
     );
 
-    if (confirmed != true) return;
+    if (confirmed != true || !mounted) return;
 
-    // Eliminar solo si confirmó
     final controller = context.read<InsumoController>();
-    final success = await controller.eliminarInsumo(id: id);
+    // el eliminarInsumo del controller ya maneja el error y lo guarda
+    final success = await controller.eliminarInsumo(id: insumo.id!);
 
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          success
-              ? 'Insumo eliminado correctamente'
-              : 'Error al eliminar el insumo',
-        ),
-        backgroundColor: success ? Colors.green : Colors.red,
-      ),
-    );
+    if (mounted) {
+      if (success) {
+        showAppSnackBar(context, 'Insumo "${insumo.nombre}" eliminado correctamente.');
+      } else {
+        // Muestra el error específico que el controller guardó
+        showAppSnackBar(context, controller.error ?? 'Error desconocido al eliminar.', isError: true);
+      }
+    }
   }
 }

@@ -8,6 +8,7 @@ class GenericListItemCard extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onSelect; // Callback para el Checkbox
   final Color? cardColor;
+  final bool showCheckbox;
 
   const GenericListItemCard({
     Key? key,
@@ -18,6 +19,7 @@ class GenericListItemCard extends StatelessWidget {
     required this.isSelected,
     required this.onSelect,
     this.cardColor,
+    this.showCheckbox = true,
   }) : super(key: key);
 
   @override
@@ -41,11 +43,17 @@ class GenericListItemCard extends StatelessWidget {
         child: Row(
           children: [
             // Checkbox para selección
-            Checkbox(
-              value: isSelected,
-              onChanged: (val) => onSelect(),
-              activeColor: Theme.of(context).primaryColor,
-            ),
+            if (showCheckbox) // Si showCheckbox es true, muestra el Checkbox
+              Padding(
+                padding: const EdgeInsets.only(left: 8.0), // Padding para que no esté pegado al borde
+                child: Checkbox(
+                  value: isSelected,
+                  onChanged: (val) => onSelect(),
+                  activeColor: Theme.of(context).primaryColor,
+                ),
+              )
+            else // Si no, añade un espacio para mantener el alineamiento
+              const SizedBox(width: 16),
             // Contenido principal
             Expanded(
               child: Column(

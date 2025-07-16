@@ -148,7 +148,7 @@ class _PlatosScreenState extends State<PlatosScreen> {
                                     onPressed: () => _editar(plato),
                                   ),
                                   IconButton(
-                                    icon: const Icon(Icons.delete),
+                                    icon: Icon(Icons.delete, color: Theme.of(context).colorScheme.error),
                                     tooltip: 'Eliminar',
                                     onPressed: () => _eliminar(plato),
                                   ),
