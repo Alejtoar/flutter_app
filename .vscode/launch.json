@@ -1,9 +1,8 @@
 {
     "version": "0.2.0",
     "configurations": [
-        // --- Configuración de Desarrollo ---
         {
-            "name": "Launch Dev (Mobile/Desktop)", // Específico para nativo
+            "name": "Launch Dev",
             "request": "launch",
             "type": "dart",
             "flutterMode": "debug",
@@ -14,19 +13,7 @@
             ]
         },
         {
-            "name": "Launch Dev (Web)", // Específico para web
-            "request": "launch",
-            "type": "dart",
-            "deviceId": "chrome", // O "edge"
-            "program": "web/web_entrypoint.dart",
-            "args": [
-                "--dart-define=FLUTTER_APP_FLAVOR=dev"
-            ]
-        },
-        
-        // --- Configuración de Producción ---
-        {
-            "name": "Launch Prod (Mobile/Desktop)",
+            "name": "Launch Prod",
             "request": "launch",
             "type": "dart",
             "flutterMode": "debug",
@@ -37,27 +24,25 @@
             ]
         },
         {
-            "name": "Run (Dev - Web)",
+            "name": "Launch Portfolio",
             "request": "launch",
             "type": "dart",
-            "deviceId": "chrome",
+            "flutterMode": "debug",
+            "program": "lib/main_portfolio.dart",
             "args": [
-                // El target se pasa como un argumento
-                "-t",
-                "web/web_entrypoint.dart",
-                // La variable de entorno se pasa como otro argumento
-                "--dart-define=FLUTTER_APP_FLAVOR=dev"
+                "--flavor",
+                "portfolio"
             ]
         },
         {
-            "name": "Run (Prod - Web)",
+            "name": "Launch Prod (Release)",
             "request": "launch",
             "type": "dart",
-            "deviceId": "chrome",
+            "flutterMode": "release",
+            "program": "lib/main_prod.dart",
             "args": [
-                "-t",
-                "web/web_entrypoint.dart",
-                "--dart-define=FLUTTER_APP_FLAVOR=prod"
+                "--flavor",
+                "prod"
             ]
         }
     ]
