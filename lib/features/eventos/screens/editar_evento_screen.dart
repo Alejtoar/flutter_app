@@ -123,9 +123,7 @@ class _EditarEventoScreenState extends State<EditarEventoScreen> {
           context,
           listen: false,
         );
-        final codigo =
-            await controller.eventoRepository
-                .generarNuevoCodigo(); // Llama al repo directamente
+        final codigo = await controller.generarNuevoCodigo();
         debugPrint("[EditarEventoScreen] Código generado: $codigo");
         if (mounted) {
           setState(() {
@@ -673,7 +671,7 @@ class _EditarEventoScreenState extends State<EditarEventoScreen> {
         );
         String codigoFinal = eventoData.codigo;
         if (codigoFinal.isEmpty) {
-          codigoFinal = await controller.eventoRepository.generarNuevoCodigo();
+          codigoFinal = await controller.generarNuevoCodigo();
           debugPrint(
             "[EditarEventoScreen] Código generado para nuevo evento: $codigoFinal",
           );
@@ -895,8 +893,9 @@ class _EditarEventoScreenState extends State<EditarEventoScreen> {
               ),
               keyboardType: TextInputType.emailAddress,
               validator: (value) {
-                if (value == null || value.trim().isEmpty)
+                if (value == null || value.trim().isEmpty) {
                   return 'Campo requerido';
+                }
                 final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
                 if (!emailRegex.hasMatch(value)) return 'Correo no válido';
                 return null;

@@ -45,7 +45,20 @@ mixin EventListActionsMixin<T extends StatefulWidget> on State<T> {
       builder: (ctx) => AlertDialog(
         title: const Text('Eliminar Evento'),
         content: Text('¿Seguro que deseas eliminar "${evento.codigo}"?'),
-        actions: [ /* ... botones ... */ ],
+        actions: [ 
+          TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Eliminar'),
+              ),
+         ],
       ),
     );
     if (confirm != true || !mounted) return;
@@ -69,7 +82,20 @@ mixin EventListActionsMixin<T extends StatefulWidget> on State<T> {
       builder: (ctx) => AlertDialog(
         title: Text('Eliminar $cantidad Eventos'),
         content: const Text('¿Estás seguro? Esta acción no se puede deshacer.'),
-        actions: [ /* ... botones ... */ ],
+        actions: [
+          TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Eliminar'),
+              ),
+        ],
       ),
     );
     if (confirm != true || !mounted) return;

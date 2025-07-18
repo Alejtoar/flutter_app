@@ -1,4 +1,5 @@
 // buscador_eventos_controller.dart
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:golo_app/models/insumo.dart';
@@ -9,26 +10,27 @@ import 'package:golo_app/models/evento.dart';
 import 'package:golo_app/models/insumo_evento.dart';
 import 'package:golo_app/models/intermedio_evento.dart';
 // Repositorios Principales
-import 'package:golo_app/repositories/evento_repository_impl.dart';
+import 'package:golo_app/repositories/evento_repository.dart';
 import 'package:golo_app/repositories/plato_repository.dart'; // Asegúrate que la interfaz abstracta exista
 import 'package:golo_app/repositories/intermedio_repository.dart'; // Asegúrate que la interfaz abstracta exista
 import 'package:golo_app/repositories/insumo_repository.dart'; // Asegúrate que la interfaz abstracta exista
 // Repositorios de Relaciones (usaremos las implementaciones directamente aquí)
-import 'package:golo_app/repositories/plato_evento_repository_impl.dart';
-import 'package:golo_app/repositories/insumo_evento_repository_impl.dart';
-import 'package:golo_app/repositories/intermedio_evento_repository_impl.dart';
+import 'package:golo_app/repositories/plato_evento_repository.dart';
+import 'package:golo_app/repositories/insumo_evento_repository.dart';
+import 'package:golo_app/repositories/intermedio_evento_repository.dart';
+
 
 class BuscadorEventosController extends ChangeNotifier {
   Future<String> generarNuevoCodigo() async {
-    return await eventoRepository.generarNuevoCodigo();
+    return await _eventoRepository.generarNuevoCodigo(uid: _uid);
   }
 
   // --- Repositorios ---
-  final EventoFirestoreRepository eventoRepository; // Repositorio principal
+  final EventoRepository _eventoRepository; // Repositorio principal
   // Repositorios de Relaciones
-  final PlatoEventoFirestoreRepository platoEventoRepository;
-  final InsumoEventoFirestoreRepository insumoEventoRepository;
-  final IntermedioEventoFirestoreRepository intermedioEventoRepository;
+  final PlatoEventoRepository _platoEventoRepository;
+  final InsumoEventoRepository _insumoEventoRepository;
+  final IntermedioEventoRepository _intermedioEventoRepository;
 
   // --- Estado Principal ---
   List<Evento> _eventos = [];
@@ -67,20 +69,23 @@ class BuscadorEventosController extends ChangeNotifier {
   List<Insumo> _insumosRelacionados = [];
   List<Insumo> get insumosRelacionados => _insumosRelacionados;
 
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  String? get _uid => _auth.currentUser?.uid;
+
   // --- Constructor ---
-  BuscadorEventosController({
-    required this.eventoRepository,
-    required this.platoEventoRepository,
-    required this.insumoEventoRepository,
-    required this.intermedioEventoRepository,
-  });
+  BuscadorEventosController(
+    this._eventoRepository,
+    this._platoEventoRepository,
+    this._insumoEventoRepository,
+    this._intermedioEventoRepository,
+  );
 
   // --- Métodos CRUD y Carga ---
 
   Future<void> cargarEventos() async {
     _setLoading(true);
     try {
-      _eventos = await eventoRepository.obtenerTodos();
+      _eventos = await _eventoRepository.obtenerTodos(uid: _uid);
       _clearError();
     } catch (e, st) {
       _setError('Error al cargar eventos: $e', st);
@@ -94,13 +99,13 @@ class BuscadorEventosController extends ChangeNotifier {
       // Usar Future.wait para eliminar relaciones en paralelo.
       // Cada uno de estos métodos ya usa un batch de Firestore, por lo que son eficientes.
       await Future.wait([
-        platoEventoRepository.eliminarPorEvento(id),
-        insumoEventoRepository.eliminarPorEvento(id),
-        intermedioEventoRepository.eliminarPorEvento(id),
+        _platoEventoRepository.eliminarPorEvento(id, uid: _uid),
+        _insumoEventoRepository.eliminarPorEvento(id, uid: _uid),
+        _intermedioEventoRepository.eliminarPorEvento(id, uid: _uid),
       ]);
 
       // Eliminar el documento principal del evento DESPUÉS de sus relaciones
-      await eventoRepository.eliminar(id);
+      await _eventoRepository.eliminar(id, uid: _uid);
 
       debugPrint(
         "[BuscadorCtrl] Evento $id y sus relaciones eliminados de la BD.",
@@ -178,20 +183,22 @@ class BuscadorEventosController extends ChangeNotifier {
       //     : evento;
       // El código se genera ANTES de llamar a este método ahora.
 
-      eventoCreado = await eventoRepository.crear(evento);
+      eventoCreado = await _eventoRepository.crear(evento, uid: _uid);
       final eventoId = eventoCreado.id!; // ¡Importante! Usar el ID asignado
 
       // 2. Reemplazar (añadir) las relaciones de forma atómica
       // Los métodos reemplazar... manejarán la creación ya que no hay relaciones previas
       await Future.wait([
-        platoEventoRepository.reemplazarPlatosDeEvento(eventoId, platosEvento),
-        insumoEventoRepository.reemplazarInsumosDeEvento(
+        _platoEventoRepository.reemplazarPlatosDeEvento(eventoId, platosEvento, uid: _uid),
+        _insumoEventoRepository.reemplazarInsumosDeEvento(
           eventoId,
           insumosEvento,
+          uid: _uid,
         ),
-        intermedioEventoRepository.reemplazarIntermediosDeEvento(
+        _intermedioEventoRepository.reemplazarIntermediosDeEvento(
           eventoId,
           intermediosEvento,
+          uid: _uid,
         ),
       ]);
 
@@ -231,23 +238,26 @@ class BuscadorEventosController extends ChangeNotifier {
     try {
       // 1. Actualizar el documento principal del evento
       // El repo se encarga de añadir FieldValue.serverTimestamp() para fechaActualizacion
-      await eventoRepository.actualizar(evento);
+      await _eventoRepository.actualizar(evento, uid: _uid);
 
       // 2. Reemplazar atómicamente TODAS las relaciones para este evento
       // Los métodos reemplazar... eliminarán las viejas y añadirán las nuevas en un batch
       await Future.wait([
-        platoEventoRepository.reemplazarPlatosDeEvento(
+        _platoEventoRepository.reemplazarPlatosDeEvento(
           eventoId,
           nuevosPlatosEvento,
+          uid: _uid,
         ),
-        insumoEventoRepository.reemplazarInsumosDeEvento(
+        _insumoEventoRepository.reemplazarInsumosDeEvento(
           eventoId,
           nuevosInsumosEvento,
+          uid: _uid,
         ),
-        intermedioEventoRepository.reemplazarIntermediosDeEvento(
+        _intermedioEventoRepository.reemplazarIntermediosDeEvento(
           eventoId,
           nuevosIntermediosEvento,
-        ),
+          uid: _uid,
+          ),
       ]);
 
       // 3. Actualizar la lista local
@@ -279,9 +289,9 @@ class BuscadorEventosController extends ChangeNotifier {
     try {
       // Cargar todas las relaciones en paralelo
       final results = await Future.wait([
-        platoEventoRepository.obtenerPorEvento(eventoId),
-        insumoEventoRepository.obtenerPorEvento(eventoId),
-        intermedioEventoRepository.obtenerPorEvento(eventoId),
+        _platoEventoRepository.obtenerPorEvento(eventoId, uid: _uid),
+        _insumoEventoRepository.obtenerPorEvento(eventoId, uid: _uid),
+        _intermedioEventoRepository.obtenerPorEvento(eventoId, uid: _uid),
       ]);
 
       _platosEvento = results[0] as List<PlatoEvento>;
@@ -324,8 +334,9 @@ class BuscadorEventosController extends ChangeNotifier {
     if (_platosEvento.isEmpty &&
         _intermediosEvento.isEmpty &&
         _insumosEvento.isEmpty) {
-      if (kDebugMode)
-        print('No hay relaciones cargadas para buscar datos base.');
+      if (kDebugMode) {
+        debugPrint('No hay relaciones cargadas para buscar datos base.');
+      }
       _platosRelacionados = [];
       _intermediosRelacionados = [];
       _insumosRelacionados = [];
@@ -360,15 +371,15 @@ class BuscadorEventosController extends ChangeNotifier {
       // Cargar los objetos base en paralelo
       final results = await Future.wait([
         if (platosIds.isNotEmpty)
-          platoRepository.obtenerVarios(platosIds)
+          platoRepository.obtenerVarios(platosIds, uid: _uid)
         else
           Future.value(<Plato>[]),
         if (intermediosIds.isNotEmpty)
-          intermedioRepository.obtenerPorIds(intermediosIds)
+          intermedioRepository.obtenerPorIds(intermediosIds, uid: _uid)
         else
           Future.value(<Intermedio>[]), // Asumiendo que existe obtenerPorIds
         if (insumosIds.isNotEmpty)
-          insumoRepository.obtenerVarios(insumosIds)
+          insumoRepository.obtenerVarios(insumosIds, uid: _uid)
         else
           Future.value(<Insumo>[]), // Asumiendo que existe obtenerVarios
       ]);
@@ -466,4 +477,6 @@ class BuscadorEventosController extends ChangeNotifier {
       });
     }
   }
+
+  
 }

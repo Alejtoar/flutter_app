@@ -245,22 +245,18 @@ class _PlatosScreenState extends State<PlatosScreen> {
     // 2. Si el usuario no confirmó, no hacer nada
     if (confirm != true || !mounted) return;
 
-    // 3. Llamar al controlador para eliminar
+    // 2. Llamar al controlador y capturar el resultado booleano
     final controller = context.read<PlatoController>();
-    try {
-      await controller.eliminarPlato(plato.id!);
-      if (mounted)
-        showAppSnackBar(
-          context,
-          'Plato "${plato.nombre}" eliminado con éxito.',
-        );
-    } catch (e) {
-      if (mounted)
-        showAppSnackBar(
-          context,
-          'Error al eliminar: ${e.toString()}',
-          isError: true,
-        );
+    final bool success = await controller.eliminarPlato(plato.id!);
+
+    // 3. Mostrar el SnackBar correcto basado en el resultado
+    if (mounted) {
+      if (success) {
+        showAppSnackBar(context, 'Plato "${plato.nombre}" eliminado correctamente.');
+      } else {
+        // Muestra el error específico que el controller guardó
+        showAppSnackBar(context, controller.error ?? 'Error desconocido al eliminar.', isError: true);
+      }
     }
     // El controller se encarga de llamar a notifyListeners, por lo que la lista se actualizará.
   }

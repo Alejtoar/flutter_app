@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:golo_app/config/app_config.dart';
 
@@ -28,7 +27,6 @@ import 'repositories/evento_repository_impl.dart';
 import 'repositories/plato_evento_repository_impl.dart';
 import 'repositories/insumo_evento_repository_impl.dart';
 import 'repositories/intermedio_evento_repository_impl.dart';
-
 
 void runGoloApp() async {
   final db = FirebaseFirestore.instance;
@@ -67,17 +65,32 @@ void runGoloApp() async {
       providers: [
         ChangeNotifierProvider(create: (_) => NavigationController()),
         ChangeNotifierProvider(
-          create: (_) => BuscadorEventosController(
-            eventoRepository: eventoRepo,
-            platoEventoRepository: platoEventoRepo,
-            insumoEventoRepository: insumoEventoRepo,
-            intermedioEventoRepository: intermedioEventoRepo,
-          ),
+          create:
+              (_) => BuscadorEventosController(
+                eventoRepo,
+                platoEventoRepo,
+                insumoEventoRepo,
+                intermedioEventoRepo,
+              ),
         ),
-        ChangeNotifierProvider(create: (_) => InsumoController(insumoRepo, proveedorRepo)),
-        ChangeNotifierProvider(create: (_) => ProveedorController(proveedorRepo)),
-        ChangeNotifierProvider(create: (_) => IntermedioController(intermedioRepo, insumoUtilizadoRepo)),
-        ChangeNotifierProvider(create: (_) => PlatoController(platoRepo, intermedioRequeridoRepo, insumoRequeridoRepo)),
+        ChangeNotifierProvider(
+          create: (_) => InsumoController(insumoRepo, proveedorRepo),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => ProveedorController(proveedorRepo),
+        ),
+        ChangeNotifierProvider(
+          create:
+              (_) => IntermedioController(intermedioRepo, insumoUtilizadoRepo),
+        ),
+        ChangeNotifierProvider(
+          create:
+              (_) => PlatoController(
+                platoRepo,
+                intermedioRequeridoRepo,
+                insumoRequeridoRepo,
+              ),
+        ),
 
         Provider<EventoRepository>(create: (_) => eventoRepo),
         Provider<ShoppingListService>(create: (_) => shoppingListService),
@@ -104,9 +117,9 @@ class MyApp extends StatelessWidget {
       homeWidget = AppRoutes.routes[AppRoutes.dashboard]!(context);
     }
 
-
     return MaterialApp(
-      debugShowCheckedModeBanner: AppConfig.instance.environment == Environment.dev,
+      debugShowCheckedModeBanner:
+          AppConfig.instance.environment == Environment.dev,
       title: AppConfig.instance.appTitle, // <-- Usa el título del flavor
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),

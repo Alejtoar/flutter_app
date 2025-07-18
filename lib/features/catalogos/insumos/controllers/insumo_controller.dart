@@ -1,6 +1,7 @@
 //inaumo_controller.dart
 import 'dart:async';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:golo_app/models/insumo.dart';
 import 'package:golo_app/repositories/insumo_repository.dart';
@@ -30,6 +31,8 @@ class InsumoController extends ChangeNotifier {
   List<Insumo> get insumos => _insumos;
   List<Insumo> get insumosFiltrados => _insumosFiltrados;
   bool get loading => _loading;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  String? get _uid => _auth.currentUser?.uid;
 
   InsumoController(this._repository, this._proveedorRepository);
 
@@ -39,7 +42,7 @@ class InsumoController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _insumos = await _repository.obtenerTodos();
+      _insumos = await _repository.obtenerTodos(uid: _uid);
       _insumosFiltrados = _insumos; // Inicializar la lista filtrada
       debugPrint('Insumos cargados: ${_insumos.length}');
     } catch (e) {
@@ -55,7 +58,7 @@ class InsumoController extends ChangeNotifier {
   // Cargar proveedores
   Future<void> cargarProveedores() async {
     try {
-      _proveedores = await _proveedorRepository.obtenerTodos();
+      _proveedores = await _proveedorRepository.obtenerTodos(uid: _uid);
       notifyListeners();
     } catch (e) {
       debugPrint('Error al cargar proveedores: $e');
@@ -80,6 +83,7 @@ class InsumoController extends ChangeNotifier {
       notifyListeners();
       _insumosFiltrados = await _repository.filtrarInsumosPorProveedor(
         proveedorId,
+        uid: _uid,
       );
     } catch (e) {
       debugPrint('Error al filtrar por proveedor: $e');
@@ -127,7 +131,7 @@ class InsumoController extends ChangeNotifier {
   // Método público para eliminar con confirmación (contexto pasado desde UI)
   Future<bool> eliminarInsumo({required String id}) async {
     try {
-      await _repository.eliminarInsumo(id);
+      await _repository.eliminarInsumo(id, uid: _uid);
       await cargarInsumos();
       _error = null;
       return true;
@@ -144,17 +148,17 @@ class InsumoController extends ChangeNotifier {
 
   // Métodos públicos para CRUD
   Future<void> crearInsumo(Insumo insumo) async {
-    await _repository.crear(insumo);
+    await _repository.crear(insumo, uid: _uid);
     await cargarInsumos();
   }
 
   Future<void> actualizarInsumo(Insumo insumo) async {
-    await _repository.actualizar(insumo);
+    await _repository.actualizar(insumo, uid: _uid);
     await cargarInsumos();
   }
 
   Future<String> generarNuevoCodigo() async {
-    return await _repository.generarNuevoCodigo();
+    return await _repository.generarNuevoCodigo(uid: _uid);
   }
 
   @override

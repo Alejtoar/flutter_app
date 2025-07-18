@@ -164,7 +164,6 @@ class _InsumosScreenState extends State<InsumosScreen> {
                                 tooltip: 'Eliminar',
                                 onPressed:
                                     () => _confirmDeleteInsumo(
-                                      context,
                                       insumo,
                                     ),
                               ),
@@ -264,7 +263,7 @@ class _InsumosScreenState extends State<InsumosScreen> {
     }
   }
 
-  Future<void> _confirmDeleteInsumo(BuildContext context, Insumo insumo) async {
+  void _confirmDeleteInsumo(Insumo insumo) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -283,14 +282,12 @@ class _InsumosScreenState extends State<InsumosScreen> {
     if (confirmed != true || !mounted) return;
 
     final controller = context.read<InsumoController>();
-    // el eliminarInsumo del controller ya maneja el error y lo guarda
     final success = await controller.eliminarInsumo(id: insumo.id!);
 
     if (mounted) {
       if (success) {
-        showAppSnackBar(context, 'Insumo "${insumo.nombre}" eliminado correctamente.');
+        showAppSnackBar(context, 'Insumo "${insumo.nombre}" eliminado correctamente.', isError: false);
       } else {
-        // Muestra el error específico que el controller guardó
         showAppSnackBar(context, controller.error ?? 'Error desconocido al eliminar.', isError: true);
       }
     }

@@ -1,20 +1,24 @@
 // plato_controller.dart
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:golo_app/models/plato.dart';
 import 'package:golo_app/models/intermedio_requerido.dart';
 import 'package:golo_app/models/insumo_requerido.dart';
-import 'package:golo_app/repositories/plato_repository_impl.dart';
+import 'package:golo_app/repositories/plato_repository.dart';
 import 'package:golo_app/exceptions/plato_en_uso_exception.dart';
-import 'package:golo_app/repositories/intermedio_requerido_repository_impl.dart';
-import 'package:golo_app/repositories/insumo_requerido_repository_impl.dart';
+import 'package:golo_app/repositories/intermedio_requerido_repository.dart';
+import 'package:golo_app/repositories/insumo_requerido_repository.dart';
 
 class PlatoController extends ChangeNotifier {
   Future<String> generarNuevoCodigo() async {
-    return await _platoRepository.generarNuevoCodigo();
+    return await _platoRepository.generarNuevoCodigo(uid: _uid);
   }
-  final PlatoFirestoreRepository _platoRepository;
-  final IntermedioRequeridoFirestoreRepository _intermedioRequeridoRepository;
-  final InsumoRequeridoFirestoreRepository _insumoRequeridoRepository;
+
+  final PlatoRepository _platoRepository;
+  final IntermedioRequeridoRepository _intermedioRequeridoRepository;
+  final InsumoRequeridoRepository _insumoRequeridoRepository;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  String? get _uid => _auth.currentUser?.uid;
 
   PlatoController(
     this._platoRepository,
@@ -39,7 +43,7 @@ class PlatoController extends ChangeNotifier {
     _loading = true;
     notifyListeners();
     try {
-      _platos = await _platoRepository.obtenerTodos();
+      _platos = await _platoRepository.obtenerTodos(uid: _uid);
       _error = null;
     } catch (e) {
       _error = e.toString();
@@ -48,30 +52,33 @@ class PlatoController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> eliminarPlato(String id) async {
-    try {
-      await _platoRepository.eliminar(id);
-      await _intermedioRequeridoRepository.eliminarPorPlato(id);
-      await _insumoRequeridoRepository.eliminarPorPlato(id);
-      _platos.removeWhere((p) => p.id == id);
-      _error = null;
-      notifyListeners();
-    } on PlatoEnUsoException catch (e) {
-      _error = e.toString();
-      notifyListeners();
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-    }
-  }
+  // Future<bool> eliminarPlato(String id) async {
+  //   try {
+  //     await _platoRepository.eliminar(id, uid: _uid);
+  //     await _intermedioRequeridoRepository.eliminarPorPlato(id, uid: _uid);
+  //     await _insumoRequeridoRepository.eliminarPorPlato(id, uid: _uid);
+  //     _platos.removeWhere((p) => p.id == id);
+  //     _error = null;
+  //     notifyListeners();
+  //     return true;
+  //   } on PlatoEnUsoException catch (e) {
+  //     _error = e.toString();
+  //     notifyListeners();
+  //     return false;
+  //   } catch (e) {
+  //     _error = e.toString();
+  //     notifyListeners();
+  //     return false;
+  //   }
+  // }
 
   Future<bool> _eliminarPlatoIndividual(String id) async {
     try {
-      await _platoRepository.eliminar(id);
+      await _platoRepository.eliminar(id, uid: _uid);
       // Eliminar relaciones es opcional aquí si sabes que el repositorio ya lo hace en cascada
       // o si la eliminación en lote lo manejará por separado. Por ahora lo dejamos.
-      await _intermedioRequeridoRepository.eliminarPorPlato(id);
-      await _insumoRequeridoRepository.eliminarPorPlato(id);
+      await _intermedioRequeridoRepository.eliminarPorPlato(id, uid: _uid);
+      await _insumoRequeridoRepository.eliminarPorPlato(id, uid: _uid);
       return true;
     } on PlatoEnUsoException catch (e) {
       _error = e.toString(); // Guardar el error
@@ -86,55 +93,59 @@ class PlatoController extends ChangeNotifier {
 
   /// Método PÚBLICO para eliminar un solo plato desde la UI (ej. botón de basura individual).
   /// Este SÍ notifica a la UI.
-  Future<void> eliminarUnPlato(String id) async {
-    _error = null; // Limpiar error anterior
+  Future<bool> eliminarPlato(String id) async {
     final success = await _eliminarPlatoIndividual(id);
+
     if (success) {
+      // Si la eliminación en la BD fue exitosa, quitarlo de la lista local
       _platos.removeWhere((p) => p.id == id);
     }
-    // Siempre notificar para actualizar la UI, ya sea quitando el item o mostrando el error.
+
     notifyListeners();
+    return success;
   }
 
-
-  /// Método PÚBLICO para eliminar MÚLTIPLES platos.
-  /// Notifica UNA SOLA VEZ al final.
-  Future<Set<String>> eliminarPlatosEnLote(Set<String> ids) async { // <-- CAMBIA EL TIPO DE RETORNO
-    if (ids.isEmpty) return {}; // Devuelve set vacío
+  Future<Set<String>> eliminarPlatosEnLote(Set<String> ids) async {
+    if (ids.isEmpty) return {};
     _error = null;
 
     final List<Future<bool>> deleteFutures = [];
-    final List<String> idList = ids.toList(); // Convertir a lista para acceder por índice
+    final List<String> idList =
+        ids.toList(); // Convertir a lista para acceder por índice
 
     for (final id in idList) {
-       deleteFutures.add(_eliminarPlatoIndividual(id));
+      deleteFutures.add(_eliminarPlatoIndividual(id));
     }
 
     final List<bool> results = await Future.wait(deleteFutures);
     final Set<String> idsExitosos = {};
 
     for (int i = 0; i < results.length; i++) {
-        if (results[i]) { // Si el resultado fue 'true' (éxito)
-            idsExitosos.add(idList[i]); // Añade el ID correspondiente a la lista de éxitos
-        }
+      if (results[i]) {
+        // Si el resultado fue 'true' (éxito)
+        idsExitosos.add(
+          idList[i],
+        ); // Añade el ID correspondiente a la lista de éxitos
+      }
     }
 
     final int falloCount = results.length - idsExitosos.length;
-    debugPrint("[PlatoController] Eliminación en lote finalizada. Éxitos: ${idsExitosos.length}, Fallos: $falloCount");
+    debugPrint(
+      "[PlatoController] Eliminación en lote finalizada. Éxitos: ${idsExitosos.length}, Fallos: $falloCount",
+    );
 
     if (falloCount > 0) {
-      _error = "No se pudieron eliminar $falloCount de ${results.length} platos. (Verificar si están en uso)";
+      _error =
+          "No se pudieron eliminar $falloCount de ${results.length} platos. (Verificar si están en uso)";
     }
 
-    // Actualizar la lista local _platos quitando SOLO los que tuvieron éxito
     if (idsExitosos.isNotEmpty) {
-        _platos.removeWhere((plato) => idsExitosos.contains(plato.id));
+      _platos.removeWhere((plato) => idsExitosos.contains(plato.id));
     }
 
-    // Notificar a la UI UNA SOLA VEZ con el estado final.
     notifyListeners();
 
-    return idsExitosos; // <-- DEVOLVER LOS IDs EXITOSOS
+    return idsExitosos;
   }
 
   /// Crear un plato y sus relaciones (intermedios e insumos requeridos)
@@ -143,29 +154,45 @@ class PlatoController extends ChangeNotifier {
     List<IntermedioRequerido> intermedios,
     List<InsumoRequerido> insumos,
   ) async {
-    debugPrint('===> [crearPlatoConRelaciones] Iniciando creación de plato: \n  Plato: \n  id: ${plato.id}, nombre: ${plato.nombre}, categorias: ${plato.categorias}, receta: ${plato.receta}, descripcion: ${plato.descripcion}');
-    debugPrint('===> [crearPlatoConRelaciones] Intermedios: ${intermedios.length}, Insumos: ${insumos.length}');
+    debugPrint(
+      '===> [crearPlatoConRelaciones] Iniciando creación de plato: \n  Plato: \n  id: ${plato.id}, nombre: ${plato.nombre}, categorias: ${plato.categorias}, receta: ${plato.receta}, descripcion: ${plato.descripcion}',
+    );
+    debugPrint(
+      '===> [crearPlatoConRelaciones] Intermedios: ${intermedios.length}, Insumos: ${insumos.length}',
+    );
     _loading = true;
     notifyListeners();
     try {
-      debugPrint('===> [crearPlatoConRelaciones] Creando plato en repositorio...');
-      final creado = await _platoRepository.crear(plato);
-      debugPrint('===> [crearPlatoConRelaciones] Plato creado con id: ${creado.id}');
-      final intermediosConId = intermedios.map((ir) => ir.copyWith(platoId: creado.id!)).toList();
-      final insumosConId = insumos.map((ir) => ir.copyWith(platoId: creado.id!)).toList();
-      debugPrint('===> [crearPlatoConRelaciones] Reemplazando intermedios requeridos...');
+      debugPrint(
+        '===> [crearPlatoConRelaciones] Creando plato en repositorio...',
+      );
+      final creado = await _platoRepository.crear(plato, uid: _uid);
+      debugPrint(
+        '===> [crearPlatoConRelaciones] Plato creado con id: ${creado.id}',
+      );
+      final intermediosConId =
+          intermedios.map((ir) => ir.copyWith(platoId: creado.id!)).toList();
+      final insumosConId =
+          insumos.map((ir) => ir.copyWith(platoId: creado.id!)).toList();
+      debugPrint(
+        '===> [crearPlatoConRelaciones] Reemplazando intermedios requeridos...',
+      );
       await _intermedioRequeridoRepository.reemplazarIntermediosDePlato(
         creado.id!,
-        { for (var i in intermediosConId) i.intermedioId: i.cantidad },
+        {for (var i in intermediosConId) i.intermedioId: i.cantidad},
+        uid: _uid,
       );
-      debugPrint('===> [crearPlatoConRelaciones] Reemplazando insumos requeridos...');
-      await _insumoRequeridoRepository.reemplazarInsumosDePlato(
-        creado.id!,
-        { for (var i in insumosConId) i.insumoId: i.cantidad },
+      debugPrint(
+        '===> [crearPlatoConRelaciones] Reemplazando insumos requeridos...',
       );
+      await _insumoRequeridoRepository.reemplazarInsumosDePlato(creado.id!, {
+        for (var i in insumosConId) i.insumoId: i.cantidad,
+      }, uid: _uid);
       _platos.add(creado);
       _error = null;
-      debugPrint('===> [crearPlatoConRelaciones] Plato y relaciones guardados correctamente.');
+      debugPrint(
+        '===> [crearPlatoConRelaciones] Plato y relaciones guardados correctamente.',
+      );
       notifyListeners();
       return creado;
     } catch (e, st) {
@@ -187,27 +214,39 @@ class PlatoController extends ChangeNotifier {
     List<IntermedioRequerido> nuevosIntermedios,
     List<InsumoRequerido> nuevosInsumos,
   ) async {
-    debugPrint('===> [actualizarPlatoConRelaciones] Iniciando actualización de plato: \n  Plato: \n  id: ${plato.id}, nombre: ${plato.nombre}, categorias: ${plato.categorias}, receta: ${plato.receta}, descripcion: ${plato.descripcion}');
-    debugPrint('===> [actualizarPlatoConRelaciones] Intermedios: ${nuevosIntermedios.length}, Insumos: ${nuevosInsumos.length}');
+    debugPrint(
+      '===> [actualizarPlatoConRelaciones] Iniciando actualización de plato: \n  Plato: \n  id: ${plato.id}, nombre: ${plato.nombre}, categorias: ${plato.categorias}, receta: ${plato.receta}, descripcion: ${plato.descripcion}',
+    );
+    debugPrint(
+      '===> [actualizarPlatoConRelaciones] Intermedios: ${nuevosIntermedios.length}, Insumos: ${nuevosInsumos.length}',
+    );
     _loading = true;
     notifyListeners();
     try {
-      debugPrint('===> [actualizarPlatoConRelaciones] Actualizando plato en repositorio...');
-      await _platoRepository.actualizar(plato);
-      debugPrint('===> [actualizarPlatoConRelaciones] Reemplazando intermedios requeridos...');
+      debugPrint(
+        '===> [actualizarPlatoConRelaciones] Actualizando plato en repositorio...',
+      );
+      await _platoRepository.actualizar(plato, uid: _uid);
+      debugPrint(
+        '===> [actualizarPlatoConRelaciones] Reemplazando intermedios requeridos...',
+      );
       await _intermedioRequeridoRepository.reemplazarIntermediosDePlato(
         plato.id!,
-        { for (var i in nuevosIntermedios) i.intermedioId: i.cantidad },
+        {for (var i in nuevosIntermedios) i.intermedioId: i.cantidad},
+        uid: _uid,
       );
-      debugPrint('===> [actualizarPlatoConRelaciones] Reemplazando insumos requeridos...');
-      await _insumoRequeridoRepository.reemplazarInsumosDePlato(
-        plato.id!,
-        { for (var i in nuevosInsumos) i.insumoId: i.cantidad },
+      debugPrint(
+        '===> [actualizarPlatoConRelaciones] Reemplazando insumos requeridos...',
       );
+      await _insumoRequeridoRepository.reemplazarInsumosDePlato(plato.id!, {
+        for (var i in nuevosInsumos) i.insumoId: i.cantidad,
+      }, uid: _uid);
       final idx = _platos.indexWhere((p) => p.id == plato.id);
       if (idx != -1) _platos[idx] = plato;
       _error = null;
-      debugPrint('===> [actualizarPlatoConRelaciones] Plato y relaciones actualizados correctamente.');
+      debugPrint(
+        '===> [actualizarPlatoConRelaciones] Plato y relaciones actualizados correctamente.',
+      );
       notifyListeners();
       return true;
     } catch (e, st) {
@@ -228,8 +267,12 @@ class PlatoController extends ChangeNotifier {
     _loading = true;
     notifyListeners();
     try {
-      _intermediosRequeridos = await _intermedioRequeridoRepository.obtenerPorPlato(platoId);
-      _insumosRequeridos = await _insumoRequeridoRepository.obtenerPorPlato(platoId);
+      _intermediosRequeridos = await _intermedioRequeridoRepository
+          .obtenerPorPlato(platoId, uid: _uid);
+      _insumosRequeridos = await _insumoRequeridoRepository.obtenerPorPlato(
+        platoId,
+        uid: _uid,
+      );
       _error = null;
     } catch (e) {
       _intermediosRequeridos = [];
