@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:golo_app/navigation/app_routes.dart';
 import 'package:golo_app/navigation/models/sub_menus.dart';
 import 'menu_item.dart';
 
@@ -8,33 +9,32 @@ class MainMenu {
       icon: Icons.dashboard_outlined,
       activeIcon: Icons.dashboard,
       label: 'Inicio',
-      route: '/inicio', // Usa AppRoutes.dashboard si está definido
+      route: AppRoutes.dashboard, // Usa AppRoutes.dashboard si está definido
     ),
     MenuItem(
       icon: Icons.event_outlined,
       activeIcon: Icons.event,
       label: 'Eventos',
-      route: '/eventos',
       subItems: EventSubMenu.items,
     ),
-    MenuItem(
-      icon: Icons.assignment_outlined,
-      activeIcon: Icons.assignment,
-      label: 'Planificación',
-      subItems: PlanningSubMenu.items,
-    ),
+    // MenuItem(
+    //   icon: Icons.assignment_outlined,
+    //   activeIcon: Icons.assignment,
+    //   label: 'Planificación',
+    //   subItems: PlanningSubMenu.items,
+    // ),
     MenuItem(
       icon: Icons.restaurant_menu_outlined,
       activeIcon: Icons.restaurant_menu,
       label: 'Catálogos',
       subItems: CatalogSubMenu.items,
     ),
-    MenuItem(
-      icon: Icons.analytics_outlined,
-      activeIcon: Icons.analytics,
-      label: 'Reportes',
-      subItems: ReportSubMenu.items,
-    ),
+    // MenuItem(
+    //   icon: Icons.analytics_outlined,
+    //   activeIcon: Icons.analytics,
+    //   label: 'Reportes',
+    //   subItems: ReportSubMenu.items,
+    // ),
     MenuItem(
       icon: Icons.settings_outlined,
       activeIcon: Icons.settings,

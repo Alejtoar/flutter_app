@@ -1,76 +1,44 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:golo_app/navigation/models/menu_item.dart';
-import '../models/main_menu.dart';
+import 'package:golo_app/navigation/app_routes.dart';
 
 class NavigationController extends ChangeNotifier {
-  int _mainMenuIndex = 0;
-  int _subMenuIndex = 0;
-  MenuItem? _expandedMenu;
+  final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-  List<MenuItem> get mainMenuItems => MainMenu.items;
-  List<MenuItem> get currentSubMenuItems => _expandedMenu?.subItems ?? [];
+  String _currentRoute = AppRoutes.dashboard; // Iniciar en el dashboard
 
-  int get mainMenuIndex => _mainMenuIndex;
-  int get subMenuIndex => _subMenuIndex;
-  bool get isSubMenuOpen => _expandedMenu != null;
+  String get currentRoute => _currentRoute;
 
-  void navigateToMain(int index) {
-    final isValidIndex = index >= 0 && index < MainMenu.items.length;
-    if (!isValidIndex) return;
-
-    _mainMenuIndex = index;
-    _subMenuIndex = 0;
-
-    if (MainMenu.items[index].subItems != null) {
-      _expandedMenu = MainMenu.items[index];
-    } else {
-      _expandedMenu = null;
+  void navigateTo(String route) {
+    if (route == '/logout') {
+      _handleLogout();
+      return;
     }
 
+    if (_currentRoute == route) return; // No navegar si ya estamos ahí
+
+    _currentRoute = route;
+    // Usar el navigatorKey para navegar sin necesitar BuildContext
+    navigatorKey.currentState?.pushNamedAndRemoveUntil(route, (r) => false);
+    
+    // Notificar para que los widgets de navegación puedan actualizar su estado seleccionado
     notifyListeners();
   }
 
-  void navigateToSub(int index) {
-    _subMenuIndex = index;
+
+  void syncRouteOnStartup(BuildContext context) {
+     // Se usa en didChangeDependencies para que el estado inicial sea correcto
+     final route = ModalRoute.of(context)?.settings.name;
+     if (route != null && route != _currentRoute) {
+        _currentRoute = route;
+        // No notificar para evitar bucles.
+     }
+  }
+
+  Future<void> _handleLogout() async {
+    await FirebaseAuth.instance.signOut();
+    _currentRoute = AppRoutes.login; // Actualizar estado interno
+    navigatorKey.currentState?.pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
     notifyListeners();
   }
-
-  void backToMain() {
-    _expandedMenu = null;
-    _subMenuIndex = 0;
-    notifyListeners();
-  }
-
-  /// Navegación inteligente para botón atrás
-  void back() {
-    if (isSubMenuOpen && _subMenuIndex == 0) {
-      // Si está en el primer submenú, volver a Home
-      _mainMenuIndex = 0;
-      _subMenuIndex = 0;
-      _expandedMenu = null;
-      notifyListeners();
-    } else if (isSubMenuOpen) {
-      // Si está en otro submenú, volver al primero
-      _subMenuIndex = 0;
-      notifyListeners();
-    }
-    // Si ya está en Home, no hace nada
-  }
-
-  /// Navega siempre a Home (Dashboard)
-  void goHome() {
-    _mainMenuIndex = 0;
-    _subMenuIndex = 0;
-    _expandedMenu = null;
-    notifyListeners();
-  }
-
-  // Nuevo: Verificar si el ítem principal tiene pantalla asociada
-  bool get hasMainScreen {
-    if (!isSubMenuOpen) return true;
-    return _expandedMenu?.subItems == null;
-  }
-
-  List<MenuItem> get currentMenuItems =>
-      isSubMenuOpen ? _expandedMenu!.subItems! : MainMenu.items;
 }

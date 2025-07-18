@@ -1,83 +1,66 @@
-//rail_navigation.dart
-
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:golo_app/navigation/app_routes.dart';
-
+import 'package:golo_app/navigation/controllers/navigation_controller.dart';
 import 'package:golo_app/navigation/models/main_menu.dart';
 import 'package:golo_app/navigation/models/menu_item.dart';
+import 'package:provider/provider.dart';
 
-class RailNavigation extends StatefulWidget {
+class RailNavigation extends StatelessWidget { // <-- AHORA ES STATELESS
   final bool isExpanded;
   const RailNavigation({Key? key, required this.isExpanded}) : super(key: key);
 
   @override
-  State<RailNavigation> createState() => _RailNavigationState();
-}
-
-class _RailNavigationState extends State<RailNavigation> {
-  int? selectedMainIndex;
-  int? selectedSubIndex;
-  bool inSubMenu = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _syncStateWithRoute();
-  }
-
-  void _syncStateWithRoute() {
-    final route = ModalRoute.of(context)?.settings.name;
-    final mainMenu = MainMenu.items;
-    selectedMainIndex = null;
-    selectedSubIndex = null;
-    inSubMenu = false;
-    for (int i = 0; i < mainMenu.length; i++) {
-      final item = mainMenu[i];
-      if (item.route != null && item.route == route) {
-        selectedMainIndex = i;
-        inSubMenu = false;
-        break;
-      }
-      if (item.subItems != null) {
-        for (int j = 0; j < item.subItems!.length; j++) {
-          final sub = item.subItems![j];
-          if (sub.route != null && sub.route == route) {
-            selectedMainIndex = i;
-            selectedSubIndex = j;
-            inSubMenu = true;
-            break;
-          }
-        }
-      }
-      if (selectedMainIndex != null) break;
-    }
-    setState(() {});
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    final bool isSmallScreen = width < 600;
+    final navCtrl = context.watch<NavigationController>();
     final mainMenu = MainMenu.items;
 
-    List<MenuItem> currentMenuItems;
-    if (inSubMenu && selectedMainIndex != null) {
-      currentMenuItems = mainMenu[selectedMainIndex!].subItems ?? [];
+    // --- Lógica de Decisión (Declarativa, sin estado local) ---
+
+    // 1. Determinar el menú principal activo basándose en la ruta actual
+    MenuItem? activeMainItem;
+    for (final item in mainMenu) {
+        if (item.route == navCtrl.currentRoute ||
+            (item.subItems?.any((sub) => sub.route == navCtrl.currentRoute) ?? false)) {
+            activeMainItem = item;
+            break;
+        }
+    }
+
+    // 2. Decidir si estamos en un submenú
+    // Para estar "en un submenú", el item principal activo debe tener subitems
+    // Y no tener una ruta principal propia que coincida con la ruta actual.
+    // (Ej: "Catálogos" no tiene ruta, así que si está activo, estamos en su submenú)
+    final bool inSubMenu = activeMainItem != null &&
+                           (activeMainItem.subItems?.isNotEmpty ?? false) &&
+                           activeMainItem.route != navCtrl.currentRoute;
+
+
+    // 3. Determinar qué lista de items mostrar
+    final List<MenuItem> currentMenuItems = inSubMenu
+        ? activeMainItem.subItems!
+        : mainMenu;
+
+    // 4. Calcular el índice seleccionado
+    int selectedIndex = 0;
+    if (inSubMenu) {
+       // El índice 0 es el botón "Atrás", sumamos 1
+       final subIndex = currentMenuItems.indexWhere((item) => item.route == navCtrl.currentRoute);
+       selectedIndex = subIndex != -1 ? subIndex + 1 : 0;
     } else {
-      currentMenuItems = mainMenu;
+       // El índice es la posición del item principal activo
+       final mainIndex = mainMenu.indexOf(activeMainItem ?? mainMenu.first);
+       selectedIndex = mainIndex != -1 ? mainIndex : 0;
     }
 
     return NavigationRail(
-      selectedIndex:
-          inSubMenu ? ((selectedSubIndex ?? 0) + 1) : (selectedMainIndex ?? 0),
-      extended: widget.isExpanded,
+      selectedIndex: selectedIndex,
+      extended: isExpanded,
       destinations: [
         if (inSubMenu)
-          NavigationRailDestination(
-            icon: const Icon(Icons.arrow_back),
-            selectedIcon: const Icon(Icons.arrow_back),
-            label: const Text('Atrás'),
+          const NavigationRailDestination(
+            icon: Icon(Icons.arrow_back),
+            selectedIcon: Icon(Icons.arrow_back),
+            label: Text('Atrás'),
           ),
         ...currentMenuItems.map(
           (item) => NavigationRailDestination(
@@ -87,123 +70,34 @@ class _RailNavigationState extends State<RailNavigation> {
           ),
         ),
       ],
-      onDestinationSelected:
-          isSmallScreen
-              ? null
-              : (index) {
-                if (inSubMenu) {
-                  if (index == 0) {
-                    // Atrás
-                    setState(() {
-                      inSubMenu = false;
-                      selectedSubIndex = null;
-                    });
-                  } else {
-                    setState(() {
-                      selectedSubIndex = index - 1;
-                    });
-                    _navigateToSubMenu(
-                      context,
-                      mainMenu[selectedMainIndex!],
-                      index - 1,
-                    );
-                    // Ya no volvemos automáticamente al menú principal, solo si el usuario presiona 'Atrás'.
-                  }
-                } else {
-                  setState(() {
-                    selectedMainIndex = index;
-                    selectedSubIndex = null;
-                  });
-                  if ((mainMenu[index].subItems?.isNotEmpty ?? false)) {
-                    setState(() {
-                      inSubMenu = true;
-                    });
-                  } else {
-                    _navigateToMainMenu(context, index);
-                  }
+      onDestinationSelected: (index) {
+          if (inSubMenu) {
+            if (index == 0) { // Botón "Atrás"
+              // Navegar a la ruta del menú principal padre.
+              // Si no tiene ruta (como "Catálogos"), no hace nada,
+              // lo que obliga al usuario a elegir otro menú principal.
+              // O mejor, navegamos al Dashboard como fallback.
+              navCtrl.navigateTo(activeMainItem?.route ?? AppRoutes.dashboard);
+            } else {
+              // Navegar al sub-item seleccionado
+              final subItem = currentMenuItems[index - 1];
+              if (subItem.route != null) navCtrl.navigateTo(subItem.route!);
+            }
+          } else { // Estamos en el menú principal
+             final mainItem = currentMenuItems[index];
+             // Si el item tiene sub-items, la acción correcta NO es navegar,
+             // sino navegar a su PRIMER sub-item.
+             if (mainItem.subItems != null && mainItem.subItems!.isNotEmpty) {
+                // Navegar al primer sub-item
+                if (mainItem.subItems!.first.route != null) {
+                    navCtrl.navigateTo(mainItem.subItems!.first.route!);
                 }
-              },
-    );
-  }
-
-  void _navigateToMainMenu(BuildContext context, int index) {
-    switch (index) {
-      case 0:
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          AppRoutes.dashboard,
-          (r) => false,
-        );
-        break;
-      case 1:
-        // Eventos (por defecto a buscador)
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          AppRoutes.eventosBuscador,
-          (r) => false,
-        );
-        break;
-      case 2:
-        // Planificación (no implementado)
-        break;
-      case 3:
-        // Catálogos (abre submenú)
-        break;
-      case 4:
-        // Reportes (no implementado)
-        break;
-      case 5:
-        // Admin (no implementado)
-        break;
-    }
-  }
-
-  void _navigateToSubMenu(
-    BuildContext context,
-    MenuItem mainItem,
-    int subIndex,
-  ) {
-    final subItem =
-        mainItem.subItems![subIndex]; // Obtener el MenuItem completo
-    // final subLabel = subItem.label;
-    final subRoute = subItem.route;
-
-    if (subRoute == '/logout') {
-      // Manejar cierre de sesión
-      _handleLogout(context);
-      return;
-    }
-
-    switch (mainItem.label) {
-      case 'Catálogos':
-        if (subRoute != null) {
-          Navigator.pushNamedAndRemoveUntil(context, subRoute, (r) => false);
-        }
-        break;
-      case 'Eventos':
-        if (subRoute != null) {
-          Navigator.pushNamedAndRemoveUntil(context, subRoute, (r) => false);
-        }
-        break;
-      case 'Admin': // Si 'Cerrar Sesión' está aquí
-        if (subRoute != null && subRoute != '/logout') {
-          // Si tiene otra ruta como /admin/config
-          Navigator.pushNamedAndRemoveUntil(context, subRoute, (r) => false);
-        }
-        // Si no hay otra acción para otros subitems de admin, puedes dejarlo.
-        break;
-      // Agrega lógica para otros menús con submenús si es necesario
-    }
-  }
-
-  Future<void> _handleLogout(BuildContext context) async {
-    await FirebaseAuth.instance.signOut();
-    // Navega a la pantalla de login.
-    // Asegúrate que LoginPage no esté dentro de MainScaffold.
-    Navigator.pushNamedAndRemoveUntil(
-      context,
-      AppRoutes.login,
-      (route) => false,
+             } else if (mainItem.route != null) {
+                // Navegar a la ruta principal si no hay sub-items
+                navCtrl.navigateTo(mainItem.route!);
+             }
+          }
+      },
     );
   }
 }

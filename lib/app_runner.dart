@@ -45,6 +45,7 @@ void runGoloApp() async {
   final insumoUtilizadoRepo = InsumoUtilizadoFirestoreRepository(db);
   final proveedorRepo = ProveedorFirestoreRepository(db);
   final excelExportService = ExcelExportServiceSync();
+  
 
   final shoppingListService = ShoppingListService(
     eventoRepo: eventoRepo,
@@ -108,6 +109,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     // Determinar la pantalla de inicio según el entorno
     final Widget homeWidget;
+    final navCtrl = Provider.of<NavigationController>(context, listen: false);
     if (AppConfig.instance.environment == Environment.prod) {
       homeWidget = const AuthWrapper(); // Prod usa autenticación
     } else {
@@ -125,6 +127,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
+      navigatorKey: navCtrl.navigatorKey,
       initialRoute: '/', // Definir una ruta raíz
       routes: {
         ...AppRoutes.routes, // Tus rutas existentes
