@@ -70,17 +70,19 @@ class PlatoEvento {
                   // Usa el factory ItemExtra.fromJson que definiste
                   return ItemExtra.fromJson(item);
                 } catch (e) {
-                  if (kDebugMode)
+                  if (kDebugMode) {
                     print(
                       "Error parseando ItemExtra en PlatoEvento ${doc.id}: $e, Item: $item",
                     );
+                  }
                   return null; // Ignorar item mal formado
                 }
               }
-              if (kDebugMode)
+              if (kDebugMode) {
                 print(
                   "Item en lista extra de PlatoEvento ${doc.id} no es un mapa: $item",
                 );
+              }
               return null; // Ignorar elementos que no son mapas
             })
             .where(

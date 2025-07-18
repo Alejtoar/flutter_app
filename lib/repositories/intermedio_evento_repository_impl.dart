@@ -1,23 +1,41 @@
 // lib/repositories/intermedio_evento_repository_impl.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
-import 'package:golo_app/models/intermedio_evento.dart'; // Ajusta la ruta si es necesario
-import 'package:golo_app/repositories/intermedio_evento_repository.dart'; // Ajusta la ruta si es necesario
+import 'package:golo_app/models/intermedio_evento.dart'; 
+import 'package:golo_app/repositories/intermedio_evento_repository.dart'; 
+import 'package:golo_app/config/app_config.dart';
 
 class IntermedioEventoFirestoreRepository implements IntermedioEventoRepository {
   final FirebaseFirestore _db;
   final String _coleccion = 'intermedios_eventos'; // Nombre de la colección en Firestore
+  final bool _isMultiUser =
+      AppConfig.instance.isMultiUser;
 
   IntermedioEventoFirestoreRepository(this._db);
 
+  CollectionReference _getCollection({String? uid}) {
+    if (_isMultiUser) {
+      if (uid == null || uid.isEmpty) {
+        throw Exception(
+          "UID de usuario es requerido para operaciones en modo multi-usuario.",
+        );
+      }
+      // Construye la ruta anidada
+      return _db.collection('usuarios').doc(uid).collection(_coleccion);
+    } else {
+      // Si no, usamos la colección a nivel raíz.
+      return _db.collection(_coleccion);
+    }
+  }
+
   @override
-  Future<IntermedioEvento> crear(IntermedioEvento relacion) async {
+  Future<IntermedioEvento> crear(IntermedioEvento relacion, {String? uid}) async {
     if (relacion.eventoId.isEmpty || relacion.intermedioId.isEmpty) {
       throw ArgumentError('eventoId y intermedioId son requeridos para crear la relación IntermedioEvento.');
     }
     try {
       final data = relacion.toFirestore(); // No incluye el 'id' de Firestore
-      final docRef = await _db.collection(_coleccion).add(data);
+      final docRef = await _getCollection(uid: uid).add(data);
       if (kDebugMode) {
         print('Relación IntermedioEvento creada con ID: ${docRef.id} para evento ${relacion.eventoId}');
       }
@@ -30,10 +48,10 @@ class IntermedioEventoFirestoreRepository implements IntermedioEventoRepository 
   }
 
   @override
-  Future<IntermedioEvento> obtener(String id) async {
+  Future<IntermedioEvento> obtener(String id, {String? uid}) async {
      if (id.isEmpty) throw ArgumentError('Se requiere un ID para obtener la relación IntermedioEvento.');
     try {
-      final doc = await _db.collection(_coleccion).doc(id).get();
+      final doc = await _getCollection(uid: uid).doc(id).get();
       if (!doc.exists) {
         throw Exception('Relación IntermedioEvento con ID $id no encontrada.');
       }
@@ -47,13 +65,13 @@ class IntermedioEventoFirestoreRepository implements IntermedioEventoRepository 
   }
 
   @override
-  Future<void> actualizar(IntermedioEvento relacion) async {
+  Future<void> actualizar(IntermedioEvento relacion, {String? uid}) async {
     if (relacion.id == null || relacion.id!.isEmpty) {
       throw ArgumentError('La relación IntermedioEvento debe tener un ID para ser actualizada.');
     }
     try {
       final data = relacion.toFirestore(); // Obtiene todos los campos actualizables
-      await _db.collection(_coleccion).doc(relacion.id!).update(data);
+      await _getCollection(uid: uid).doc(relacion.id!).update(data);
       if (kDebugMode) {
         print('Relación IntermedioEvento actualizada con ID: ${relacion.id}');
       }
@@ -68,10 +86,10 @@ class IntermedioEventoFirestoreRepository implements IntermedioEventoRepository 
   }
 
   @override
-  Future<void> eliminar(String id) async {
+  Future<void> eliminar(String id, {String? uid}) async {
     if (id.isEmpty) throw ArgumentError('Se requiere un ID para eliminar la relación IntermedioEvento.');
     try {
-      await _db.collection(_coleccion).doc(id).delete();
+      await _getCollection(uid: uid).doc(id).delete();
        if (kDebugMode) {
         print('Relación IntermedioEvento eliminada con ID: $id');
       }
@@ -87,13 +105,13 @@ class IntermedioEventoFirestoreRepository implements IntermedioEventoRepository 
   }
 
   @override
-  Future<List<IntermedioEvento>> obtenerPorEvento(String eventoId) async {
+  Future<List<IntermedioEvento>> obtenerPorEvento(String eventoId, {String? uid}) async {
      if (eventoId.isEmpty){
         if (kDebugMode) print('Se solicitó obtener IntermedioEvento por eventoId vacío.');
         return [];
      }
     try {
-      final querySnapshot = await _db.collection(_coleccion)
+      final querySnapshot = await _getCollection(uid: uid)
           .where('eventoId', isEqualTo: eventoId)
           .get();
       return querySnapshot.docs.map((doc) => IntermedioEvento.fromFirestore(doc)).toList();
@@ -105,13 +123,13 @@ class IntermedioEventoFirestoreRepository implements IntermedioEventoRepository 
   }
 
   @override
-  Future<List<IntermedioEvento>> obtenerPorIntermedio(String intermedioId) async {
+  Future<List<IntermedioEvento>> obtenerPorIntermedio(String intermedioId, {String? uid}) async {
     if (intermedioId.isEmpty){
         if (kDebugMode) print('Se solicitó obtener IntermedioEvento por intermedioId vacío.');
         return [];
      }
     try {
-      final querySnapshot = await _db.collection(_coleccion)
+      final querySnapshot = await _getCollection(uid: uid)
           .where('intermedioId', isEqualTo: intermedioId)
           .get();
       return querySnapshot.docs.map((doc) => IntermedioEvento.fromFirestore(doc)).toList();
@@ -123,13 +141,13 @@ class IntermedioEventoFirestoreRepository implements IntermedioEventoRepository 
   }
 
   @override
-  Future<void> reemplazarIntermediosDeEvento(String eventoId, List<IntermedioEvento> nuevosIntermedios) async {
+  Future<void> reemplazarIntermediosDeEvento(String eventoId, List<IntermedioEvento> nuevosIntermedios, {String? uid}) async {
      if (eventoId.isEmpty) throw ArgumentError('Se requiere un eventoId para reemplazar intermedios.');
     try {
       final batch = _db.batch();
 
       // 1. Obtener y marcar para eliminar todas las relaciones existentes para este evento
-      final querySnapshot = await _db.collection(_coleccion)
+      final querySnapshot = await _getCollection(uid: uid)
           .where('eventoId', isEqualTo: eventoId)
           .get();
       int eliminados = 0;
@@ -148,7 +166,7 @@ class IntermedioEventoFirestoreRepository implements IntermedioEventoRepository 
            continue; // Saltar este item si no tiene intermedioId
         }
         final data = intermedioEvento.copyWith(eventoId: eventoId).toFirestore();
-        final docRef = _db.collection(_coleccion).doc(); // Genera nuevo ID para la relación
+        final docRef = _getCollection(uid: uid).doc(); // Genera nuevo ID para la relación
         batch.set(docRef, data);
         anadidos++;
         if (kDebugMode) print('[IntermedioEvento Batch] Marcando para añadir nueva relación para intermedioId: ${intermedioEvento.intermedioId} (nuevo doc ID: ${docRef.id})');
@@ -168,10 +186,10 @@ class IntermedioEventoFirestoreRepository implements IntermedioEventoRepository 
   }
 
   @override
-  Future<bool> existeRelacion(String intermedioId, String eventoId) async {
+  Future<bool> existeRelacion(String intermedioId, String eventoId, {String? uid}) async {
     if (intermedioId.isEmpty || eventoId.isEmpty) return false;
     try {
-      final query = await _db.collection(_coleccion)
+      final query = await _getCollection(uid: uid)
           .where('intermedioId', isEqualTo: intermedioId)
           .where('eventoId', isEqualTo: eventoId)
           .limit(1)
@@ -185,11 +203,11 @@ class IntermedioEventoFirestoreRepository implements IntermedioEventoRepository 
   }
 
   @override
-  Future<void> eliminarPorEvento(String eventoId) async {
+  Future<void> eliminarPorEvento(String eventoId, {String? uid}) async {
      if (eventoId.isEmpty) throw ArgumentError('Se requiere un eventoId para eliminar IntermedioEvento por evento.');
     try {
       final batch = _db.batch();
-      final querySnapshot = await _db.collection(_coleccion)
+      final querySnapshot = await _getCollection(uid: uid)
           .where('eventoId', isEqualTo: eventoId)
           .get();
 

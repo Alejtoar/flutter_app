@@ -4,11 +4,13 @@ enum Environment { dev, prod }
 class AppConfig {
   final Environment environment;
   final String appTitle;
+  final bool isMultiUser;
  
 
   const AppConfig({
     required this.environment,
     required this.appTitle,
+    this.isMultiUser = false,
   
   });
 

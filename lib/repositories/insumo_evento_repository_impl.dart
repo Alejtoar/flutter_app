@@ -1,25 +1,46 @@
 // lib/repositories/insumo_evento_repository_impl.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
-import 'package:golo_app/models/insumo_evento.dart'; // Ajusta la ruta si es necesario
-import 'package:golo_app/repositories/insumo_evento_repository.dart'; // Ajusta la ruta si es necesario
+import 'package:golo_app/models/insumo_evento.dart'; 
+import 'package:golo_app/repositories/insumo_evento_repository.dart'; 
+import 'package:golo_app/config/app_config.dart';
 
 class InsumoEventoFirestoreRepository implements InsumoEventoRepository {
   final FirebaseFirestore _db;
-  final String _coleccion = 'insumos_eventos'; // Nombre de la colección en Firestore
+  final String _coleccion = 'insumos_eventos'; 
+  final bool _isMultiUser =
+      AppConfig
+          .instance
+          .isMultiUser; 
 
   InsumoEventoFirestoreRepository(this._db);
 
+  CollectionReference _getCollection({String? uid}) {
+    if (_isMultiUser) {
+      // Si es multi-usuario, DEBEMOS tener un uid.
+      if (uid == null || uid.isEmpty) {
+        throw Exception(
+          "UID de usuario es requerido para operaciones en modo multi-usuario.",
+        );
+      }
+      // Construye la ruta anidada
+      return _db.collection('usuarios').doc(uid).collection(_coleccion);
+    } else {
+      // Si no, usamos la colección a nivel raíz.
+      return _db.collection(_coleccion);
+    }
+  }
+
   @override
-  Future<InsumoEvento> crear(InsumoEvento relacion) async {
+  Future<InsumoEvento> crear(InsumoEvento relacion, {String? uid}) async {
     if (relacion.eventoId.isEmpty || relacion.insumoId.isEmpty) {
       throw ArgumentError('eventoId y insumoId son requeridos para crear la relación InsumoEvento.');
     }
     try {
       final data = relacion.toFirestore(); // No incluye el 'id' de Firestore
-      final docRef = await _db.collection(_coleccion).add(data);
+      final docRef = await _getCollection(uid: uid).add(data);
       if (kDebugMode) {
-        print('Relación InsumoEvento creada con ID: ${docRef.id} para evento ${relacion.eventoId}');
+        debugPrint('Relación InsumoEvento creada con ID: ${docRef.id} para evento ${relacion.eventoId}');
       }
       return relacion.copyWith(id: docRef.id); // Devuelve con el ID asignado
     } on FirebaseException catch (e) {
@@ -30,10 +51,10 @@ class InsumoEventoFirestoreRepository implements InsumoEventoRepository {
   }
 
   @override
-  Future<InsumoEvento> obtener(String id) async {
+  Future<InsumoEvento> obtener(String id, {String? uid}) async {
      if (id.isEmpty) throw ArgumentError('Se requiere un ID para obtener la relación InsumoEvento.');
     try {
-      final doc = await _db.collection(_coleccion).doc(id).get();
+      final doc = await _getCollection(uid: uid).doc(id).get();
       if (!doc.exists) {
         throw Exception('Relación InsumoEvento con ID $id no encontrada.');
       }
@@ -47,13 +68,13 @@ class InsumoEventoFirestoreRepository implements InsumoEventoRepository {
   }
 
   @override
-  Future<void> actualizar(InsumoEvento relacion) async {
+  Future<void> actualizar(InsumoEvento relacion, {String? uid}) async {
     if (relacion.id == null || relacion.id!.isEmpty) {
       throw ArgumentError('La relación InsumoEvento debe tener un ID para ser actualizada.');
     }
     try {
       final data = relacion.toFirestore(); // Obtiene todos los campos actualizables
-      await _db.collection(_coleccion).doc(relacion.id!).update(data);
+      await _getCollection(uid: uid).doc(relacion.id!).update(data);
       if (kDebugMode) {
         print('Relación InsumoEvento actualizada con ID: ${relacion.id}');
       }
@@ -68,10 +89,10 @@ class InsumoEventoFirestoreRepository implements InsumoEventoRepository {
   }
 
   @override
-  Future<void> eliminar(String id) async {
+  Future<void> eliminar(String id, {String? uid}) async {
     if (id.isEmpty) throw ArgumentError('Se requiere un ID para eliminar la relación InsumoEvento.');
     try {
-      await _db.collection(_coleccion).doc(id).delete();
+      await _getCollection(uid: uid).doc(id).delete();
        if (kDebugMode) {
         print('Relación InsumoEvento eliminada con ID: $id');
       }
@@ -87,15 +108,13 @@ class InsumoEventoFirestoreRepository implements InsumoEventoRepository {
   }
 
   @override
-  Future<List<InsumoEvento>> obtenerPorEvento(String eventoId) async {
+  Future<List<InsumoEvento>> obtenerPorEvento(String eventoId, {String? uid}) async {
      if (eventoId.isEmpty){
         if (kDebugMode) print('Se solicitó obtener InsumoEvento por eventoId vacío.');
         return [];
      }
     try {
-      final querySnapshot = await _db.collection(_coleccion)
-          .where('eventoId', isEqualTo: eventoId)
-          .get();
+      final querySnapshot = await _getCollection(uid: uid).where('eventoId', isEqualTo: eventoId).get();
       return querySnapshot.docs.map((doc) => InsumoEvento.fromFirestore(doc)).toList();
     } on FirebaseException catch (e) {
       throw _handleFirestoreError(e, 'obtenerPorEvento', eventoId: eventoId);
@@ -105,15 +124,13 @@ class InsumoEventoFirestoreRepository implements InsumoEventoRepository {
   }
 
   @override
-  Future<List<InsumoEvento>> obtenerPorInsumo(String insumoId) async {
+  Future<List<InsumoEvento>> obtenerPorInsumo(String insumoId, {String? uid}) async {
     if (insumoId.isEmpty){
         if (kDebugMode) print('Se solicitó obtener InsumoEvento por insumoId vacío.');
         return [];
      }
     try {
-      final querySnapshot = await _db.collection(_coleccion)
-          .where('insumoId', isEqualTo: insumoId)
-          .get();
+      final querySnapshot = await _getCollection(uid: uid).where('insumoId', isEqualTo: insumoId).get();
       return querySnapshot.docs.map((doc) => InsumoEvento.fromFirestore(doc)).toList();
     } on FirebaseException catch (e) {
       throw _handleFirestoreError(e, 'obtenerPorInsumo', insumoId: insumoId);
@@ -123,15 +140,13 @@ class InsumoEventoFirestoreRepository implements InsumoEventoRepository {
   }
 
   @override
-  Future<void> reemplazarInsumosDeEvento(String eventoId, List<InsumoEvento> nuevosInsumos) async {
+  Future<void> reemplazarInsumosDeEvento(String eventoId, List<InsumoEvento> nuevosInsumos, {String? uid}) async {
      if (eventoId.isEmpty) throw ArgumentError('Se requiere un eventoId para reemplazar insumos.');
     try {
       final batch = _db.batch();
 
       // 1. Obtener y marcar para eliminar todas las relaciones existentes para este evento
-      final querySnapshot = await _db.collection(_coleccion)
-          .where('eventoId', isEqualTo: eventoId)
-          .get();
+      final querySnapshot = await _getCollection(uid: uid).where('eventoId', isEqualTo: eventoId).get();
       int eliminados = 0;
       for (final doc in querySnapshot.docs) {
         batch.delete(doc.reference);
@@ -148,7 +163,7 @@ class InsumoEventoFirestoreRepository implements InsumoEventoRepository {
            continue; // Saltar este item si no tiene insumoId
         }
         final data = insumoEvento.copyWith(eventoId: eventoId).toFirestore();
-        final docRef = _db.collection(_coleccion).doc(); // Genera nuevo ID para la relación
+        final docRef = _getCollection(uid: uid).doc(); // Genera nuevo ID para la relación
         batch.set(docRef, data);
         anadidos++;
         if (kDebugMode) print('[InsumoEvento Batch] Marcando para añadir nueva relación para insumoId: ${insumoEvento.insumoId} (nuevo doc ID: ${docRef.id})');
@@ -168,10 +183,10 @@ class InsumoEventoFirestoreRepository implements InsumoEventoRepository {
   }
 
   @override
-  Future<bool> existeRelacion(String insumoId, String eventoId) async {
+  Future<bool> existeRelacion(String insumoId, String eventoId, {String? uid}) async {
     if (insumoId.isEmpty || eventoId.isEmpty) return false;
     try {
-      final query = await _db.collection(_coleccion)
+      final query = await _getCollection(uid: uid)
           .where('insumoId', isEqualTo: insumoId)
           .where('eventoId', isEqualTo: eventoId)
           .limit(1)
@@ -185,11 +200,11 @@ class InsumoEventoFirestoreRepository implements InsumoEventoRepository {
   }
 
   @override
-  Future<void> eliminarPorEvento(String eventoId) async {
+  Future<void> eliminarPorEvento(String eventoId, {String? uid}) async {
      if (eventoId.isEmpty) throw ArgumentError('Se requiere un eventoId para eliminar InsumoEvento por evento.');
     try {
       final batch = _db.batch();
-      final querySnapshot = await _db.collection(_coleccion)
+      final querySnapshot = await _getCollection(uid: uid)
           .where('eventoId', isEqualTo: eventoId)
           .get();
 

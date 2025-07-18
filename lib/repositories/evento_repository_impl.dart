@@ -2,7 +2,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart'; // Para kDebugMode
 import 'package:golo_app/models/evento.dart';
-import 'package:golo_app/repositories/evento_repository.dart'; // Asegúrate que la interfaz abstracta exista
+import 'package:golo_app/repositories/evento_repository.dart';
+import 'package:golo_app/config/app_config.dart';
 
 // Asumiendo que tienes una interfaz EventoRepository definida en alguna parte
 // abstract class EventoRepository { ... }
@@ -10,16 +11,37 @@ import 'package:golo_app/repositories/evento_repository.dart'; // Asegúrate que
 class EventoFirestoreRepository implements EventoRepository {
   final FirebaseFirestore _db;
   final String _coleccion = 'eventos';
+  final bool _isMultiUser =
+      AppConfig
+          .instance
+          .isMultiUser; //aca ya inicie la var pero aun no lo cambio todo
+
 
   EventoFirestoreRepository(this._db);
 
+  CollectionReference _getCollection({String? uid}) {
+    if (_isMultiUser) {
+      // Si es multi-usuario, DEBEMOS tener un uid.
+      if (uid == null || uid.isEmpty) {
+        throw Exception(
+          "UID de usuario es requerido para operaciones en modo multi-usuario.",
+        );
+      }
+      // Construye la ruta anidada
+      return _db.collection('usuarios').doc(uid).collection(_coleccion);
+    } else {
+      // Si no, usamos la colección a nivel raíz.
+      return _db.collection(_coleccion);
+    }
+  }
+
   @override
-  Future<Evento> crear(Evento evento) async {
+  Future<Evento> crear(Evento evento, {String? uid}) async {
     try {
       // La validación del código único y la generación se manejan mejor ANTES de llamar a este método,
       // posiblemente en el Controller o Service, para mantener el repo enfocado en la interacción con DB.
       // Sin embargo, si quieres mantener la verificación aquí:
-      if (await existeCodigo(evento.codigo)) {
+      if (await existeCodigo(evento.codigo, uid: uid)) {
         throw Exception('El código ${evento.codigo} ya está en uso para otro evento.');
       }
 
@@ -27,7 +49,7 @@ class EventoFirestoreRepository implements EventoRepository {
       // establecidas por Evento.crear()
       final eventoData = evento.toFirestore();
 
-      final docRef = await _db.collection(_coleccion).add(eventoData);
+      final docRef = await _getCollection(uid: uid).add(eventoData);
       if (kDebugMode) {
         print('Evento creado en Firestore con ID: ${docRef.id}');
       }
@@ -49,9 +71,9 @@ class EventoFirestoreRepository implements EventoRepository {
   }
 
   @override
-  Future<Evento> obtener(String id) async {
+  Future<Evento> obtener(String id, {String? uid}) async {
     try {
-      final doc = await _db.collection(_coleccion).doc(id).get();
+      final doc = await _getCollection(uid: uid).doc(id).get();
       if (!doc.exists) {
         throw Exception('Evento con ID $id no encontrado.');
       }
@@ -75,14 +97,14 @@ class EventoFirestoreRepository implements EventoRepository {
   }
 
   @override
-  Future<void> actualizar(Evento evento) async {
+  Future<void> actualizar(Evento evento, {String? uid}) async {
     // Validación básica
     if (evento.id == null || evento.id!.isEmpty) {
       throw ArgumentError('El evento debe tener un ID para ser actualizado.');
     }
 
     try {
-      final docRef = _db.collection(_coleccion).doc(evento.id!);
+      final docRef = _getCollection(uid: uid).doc(evento.id!);
 
       // Preparamos los datos usando toFirestore()
       final eventoData = evento.toFirestore();
@@ -114,14 +136,14 @@ class EventoFirestoreRepository implements EventoRepository {
   }
 
   @override
-  Future<void> eliminar(String id) async {
+  Future<void> eliminar(String id, {String? uid}) async {
      if (id.isEmpty) {
       throw ArgumentError('Se requiere un ID para eliminar un evento.');
     }
     try {
       // Considerar verificaciones de dependencia aquí si es necesario en el futuro
       // (ej. no eliminar si está 'confirmado' o 'completado'?)
-      await _db.collection(_coleccion).doc(id).delete();
+      await _getCollection(uid: uid).doc(id).delete();
       if (kDebugMode) {
         print('Evento eliminado de Firestore con ID: $id');
       }
@@ -145,9 +167,9 @@ class EventoFirestoreRepository implements EventoRepository {
   }
 
   @override
-  Future<List<Evento>> obtenerTodos() async {
+  Future<List<Evento>> obtenerTodos({String? uid}) async {
     try {
-      final querySnapshot = await _db.collection(_coleccion)
+      final querySnapshot = await _getCollection(uid: uid)
           // Puedes añadir un orderBy por defecto si lo deseas, ej. por fecha de evento o creación
           // .orderBy('fecha', descending: true)
           .get();
@@ -168,9 +190,9 @@ class EventoFirestoreRepository implements EventoRepository {
   }
 
   @override
-  Future<List<Evento>> obtenerPorEstado(EstadoEvento estado) async {
+  Future<List<Evento>> obtenerPorEstado(EstadoEvento estado, {String? uid}) async {
     try {
-      final querySnapshot = await _db.collection(_coleccion)
+      final querySnapshot = await _getCollection(uid: uid)
           .where('estado', isEqualTo: estado.name) // <<<--- Usar .name para la query
           .get();
       return querySnapshot.docs.map((doc) => Evento.fromFirestore(doc)).toList();
@@ -183,9 +205,9 @@ class EventoFirestoreRepository implements EventoRepository {
   }
 
   @override
-  Future<List<Evento>> obtenerPorTipo(TipoEvento tipo) async {
+  Future<List<Evento>> obtenerPorTipo(TipoEvento tipo, {String? uid}) async {
      try {
-      final querySnapshot = await _db.collection(_coleccion)
+      final querySnapshot = await _getCollection(uid: uid)
           .where('tipoEvento', isEqualTo: tipo.name) // <<<--- Usar .name para la query
           .get();
       return querySnapshot.docs.map((doc) => Evento.fromFirestore(doc)).toList();
@@ -198,11 +220,11 @@ class EventoFirestoreRepository implements EventoRepository {
   }
 
   @override
-  Future<List<Evento>> obtenerPorRangoFechas(DateTime desde, DateTime hasta) async {
+  Future<List<Evento>> obtenerPorRangoFechas(DateTime desde, DateTime hasta, {String? uid}) async {
     // Asegúrate de que 'hasta' incluya todo el día si es necesario
     final hastaEndOfDay = DateTime(hasta.year, hasta.month, hasta.day, 23, 59, 59);
     try {
-      final querySnapshot = await _db.collection(_coleccion)
+      final querySnapshot = await _getCollection(uid: uid)
           .where('fecha', isGreaterThanOrEqualTo: Timestamp.fromDate(desde))
           .where('fecha', isLessThanOrEqualTo: Timestamp.fromDate(hastaEndOfDay))
           .orderBy('fecha') // Es bueno ordenar por el campo del rango
@@ -217,12 +239,12 @@ class EventoFirestoreRepository implements EventoRepository {
   }
 
   @override
-  Future<String> generarNuevoCodigo() async {
+  Future<String> generarNuevoCodigo({String? uid}) async {
     // Esta implementación busca el último código numérico y lo incrementa.
     // Puede ser menos robusta si hay códigos no numéricos o eliminaciones.
     // Una alternativa es usar un contador separado en Firestore (más complejo).
     try {
-      final querySnapshot = await _db.collection(_coleccion)
+      final querySnapshot = await _getCollection(uid: uid)
           .orderBy('codigo', descending: true)
           .limit(1)
           .get();
@@ -265,10 +287,10 @@ class EventoFirestoreRepository implements EventoRepository {
   }
 
   @override
-  Future<bool> existeCodigo(String codigo) async {
+  Future<bool> existeCodigo(String codigo, {String? uid}) async {
      if (codigo.isEmpty) return false; // No buscar códigos vacíos
     try {
-      final querySnapshot = await _db.collection(_coleccion)
+      final querySnapshot = await _getCollection(uid: uid)
           .where('codigo', isEqualTo: codigo)
           .limit(1)
           .get();
@@ -284,9 +306,9 @@ class EventoFirestoreRepository implements EventoRepository {
   // --- Métodos que podrían no estar en uso activo (revisar si se necesitan) ---
 
   @override
-  Future<Evento> obtenerPorCodigo(String codigo) async {
+  Future<Evento> obtenerPorCodigo(String codigo, {String? uid}) async {
     try {
-      final query = await _db.collection(_coleccion)
+      final query = await _getCollection(uid: uid)
           .where('codigo', isEqualTo: codigo)
           .limit(1)
           .get();
@@ -299,12 +321,12 @@ class EventoFirestoreRepository implements EventoRepository {
   }
 
   @override
-  Future<List<Evento>> buscarPorNombre(String query) async {
+  Future<List<Evento>> buscarPorNombre(String query, {String? uid}) async {
      // Firestore no soporta búsqueda de subcadenas eficientemente.
      // Esta implementación trae todos y filtra en cliente (puede ser ineficiente).
      // Considerar soluciones como Algolia/Elasticsearch para búsquedas complejas.
     try {
-      final todosLosEventos = await obtenerTodos(); // Reutiliza obtenerTodos
+      final todosLosEventos = await obtenerTodos(uid: uid); // Reutiliza obtenerTodos
 
       if (query.isEmpty) return todosLosEventos; // Devuelve todos si no hay query
 
@@ -326,12 +348,12 @@ class EventoFirestoreRepository implements EventoRepository {
   }
 
   @override
-  Future<bool> existeEventoConNombre(String nombre) async {
+  Future<bool> existeEventoConNombre(String nombre, {String? uid}) async {
     // Nota: Firestore es sensible a mayúsculas/minúsculas en queries 'isEqualTo'.
     // Para búsqueda insensible, se necesita filtrar en cliente (como en buscarPorNombre)
     // o normalizar el campo (ej. guardar nombreClienteLower).
     try {
-       final query = await _db.collection(_coleccion)
+       final query = await _getCollection(uid: uid)
            .where('nombreCliente', isEqualTo: nombre) // Búsqueda exacta (case-sensitive)
            .limit(1)
            .get();

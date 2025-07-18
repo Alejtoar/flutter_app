@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart'; // Para kDebugMode
 import 'package:golo_app/repositories/plato_evento_repository.dart'; // Asegúrate que la interfaz abstracta exista
 import '../models/plato_evento.dart';
+import 'package:golo_app/config/app_config.dart';
 
 // Asumiendo que tienes una interfaz PlatoEventoRepository definida
 // abstract class PlatoEventoRepository { ... }
@@ -10,11 +11,31 @@ import '../models/plato_evento.dart';
 class PlatoEventoFirestoreRepository implements PlatoEventoRepository {
   final FirebaseFirestore _db;
   final String _coleccion = 'platos_eventos'; // Colección para la relación
+  final bool _isMultiUser =
+      AppConfig
+          .instance
+          .isMultiUser; //aca ya inicie la var pero aun no lo cambio todo
 
   PlatoEventoFirestoreRepository(this._db);
 
+  CollectionReference _getCollection({String? uid}) {
+    if (_isMultiUser) {
+      // Si es multi-usuario, DEBEMOS tener un uid.
+      if (uid == null || uid.isEmpty) {
+        throw Exception(
+          "UID de usuario es requerido para operaciones en modo multi-usuario.",
+        );
+      }
+      // Construye la ruta anidada
+      return _db.collection('usuarios').doc(uid).collection(_coleccion);
+    } else {
+      // Si no, usamos la colección a nivel raíz.
+      return _db.collection(_coleccion);
+    }
+  }
+
   @override
-  Future<PlatoEvento> crear(PlatoEvento relacion) async {
+  Future<PlatoEvento> crear(PlatoEvento relacion, {String? uid}) async {
     // No deberíamos permitir crear una relación sin IDs válidos
     if (relacion.eventoId.isEmpty || relacion.platoId.isEmpty) {
       throw ArgumentError('eventoId y platoId son requeridos para crear la relación.');
@@ -22,7 +43,7 @@ class PlatoEventoFirestoreRepository implements PlatoEventoRepository {
     try {
       // Usar el toFirestore del modelo, que no incluye el 'id' de la relación
       final data = relacion.toFirestore();
-      final docRef = await _db.collection(_coleccion).add(data);
+      final docRef = await _getCollection(uid: uid).add(data);
       if (kDebugMode) {
         print('Relación PlatoEvento creada con ID: ${docRef.id}');
       }
@@ -36,10 +57,10 @@ class PlatoEventoFirestoreRepository implements PlatoEventoRepository {
   }
 
   @override
-  Future<PlatoEvento> obtener(String id) async {
+  Future<PlatoEvento> obtener(String id, {String? uid}) async {
      if (id.isEmpty) throw ArgumentError('Se requiere un ID para obtener la relación.');
     try {
-      final doc = await _db.collection(_coleccion).doc(id).get();
+      final doc = await _getCollection(uid: uid).doc(id).get();
       if (!doc.exists) {
         throw Exception('Relación PlatoEvento con ID $id no encontrada.');
       }
@@ -54,14 +75,14 @@ class PlatoEventoFirestoreRepository implements PlatoEventoRepository {
   }
 
   @override
-  Future<void> actualizar(PlatoEvento relacion) async {
+  Future<void> actualizar(PlatoEvento relacion, {String? uid} ) async {
     if (relacion.id == null || relacion.id!.isEmpty) {
       throw ArgumentError('La relación debe tener un ID para ser actualizada.');
     }
     try {
       // Usar toFirestore, que incluye todos los campos personalizables
       final data = relacion.toFirestore();
-      await _db.collection(_coleccion).doc(relacion.id!).update(data);
+      await _getCollection(uid: uid).doc(relacion.id!).update(data);
       if (kDebugMode) {
         print('Relación PlatoEvento actualizada con ID: ${relacion.id}');
       }
@@ -76,10 +97,10 @@ class PlatoEventoFirestoreRepository implements PlatoEventoRepository {
   }
 
   @override
-  Future<void> eliminar(String id) async {
+  Future<void> eliminar(String id, {String? uid}) async {
     if (id.isEmpty) throw ArgumentError('Se requiere un ID para eliminar la relación.');
     try {
-      await _db.collection(_coleccion).doc(id).delete();
+      await _getCollection(uid: uid).doc(id).delete();
        if (kDebugMode) {
         print('Relación PlatoEvento eliminada con ID: $id');
       }
@@ -95,10 +116,10 @@ class PlatoEventoFirestoreRepository implements PlatoEventoRepository {
   }
 
   @override
-  Future<List<PlatoEvento>> obtenerPorEvento(String eventoId) async {
+  Future<List<PlatoEvento>> obtenerPorEvento(String eventoId, {String? uid}) async {
      if (eventoId.isEmpty) return []; // Devolver lista vacía si no hay eventoId
     try {
-      final querySnapshot = await _db.collection(_coleccion)
+      final querySnapshot = await _getCollection(uid: uid)
           .where('eventoId', isEqualTo: eventoId)
           .get();
       return querySnapshot.docs.map((doc) => PlatoEvento.fromFirestore(doc)).toList();
@@ -110,10 +131,10 @@ class PlatoEventoFirestoreRepository implements PlatoEventoRepository {
   }
 
   @override
-  Future<List<PlatoEvento>> obtenerPorPlato(String platoId) async {
+  Future<List<PlatoEvento>> obtenerPorPlato(String platoId, {String? uid}) async {
     if (platoId.isEmpty) return [];
     try {
-      final querySnapshot = await _db.collection(_coleccion)
+      final querySnapshot = await _getCollection(uid: uid)
           .where('platoId', isEqualTo: platoId)
           .get();
       return querySnapshot.docs.map((doc) => PlatoEvento.fromFirestore(doc)).toList();
@@ -126,13 +147,13 @@ class PlatoEventoFirestoreRepository implements PlatoEventoRepository {
 
   // --- Método Clave: Reemplazo Atómico ---
   @override
-  Future<void> reemplazarPlatosDeEvento(String eventoId, List<PlatoEvento> nuevosPlatos) async {
+  Future<void> reemplazarPlatosDeEvento(String eventoId, List<PlatoEvento> nuevosPlatos, {String? uid}) async {
      if (eventoId.isEmpty) throw ArgumentError('Se requiere un eventoId para reemplazar platos.');
     try {
       final batch = _db.batch();
 
       // 1. Obtener y marcar para eliminar todas las relaciones existentes para este evento
-      final querySnapshot = await _db.collection(_coleccion)
+      final querySnapshot = await _getCollection(uid: uid)
           .where('eventoId', isEqualTo: eventoId)
           .get();
       for (final doc in querySnapshot.docs) {
@@ -145,7 +166,7 @@ class PlatoEventoFirestoreRepository implements PlatoEventoRepository {
         // Asegurarse de que el eventoId sea el correcto y obtener los datos
         final data = platoEvento.copyWith(eventoId: eventoId).toFirestore();
         // Crear una referencia a un nuevo documento en la colección
-        final docRef = _db.collection(_coleccion).doc();
+        final docRef = _getCollection(uid: uid).doc();
         batch.set(docRef, data);
          if (kDebugMode) print('Marcando para añadir nuevo PlatoEvento para platoId: ${platoEvento.platoId}');
       }
@@ -166,10 +187,10 @@ class PlatoEventoFirestoreRepository implements PlatoEventoRepository {
   }
 
   @override
-  Future<bool> existeRelacion(String platoId, String eventoId) async {
+  Future<bool> existeRelacion(String platoId, String eventoId, {String? uid}) async {
     if (platoId.isEmpty || eventoId.isEmpty) return false;
     try {
-      final query = await _db.collection(_coleccion)
+      final query = await _getCollection(uid: uid)
           .where('platoId', isEqualTo: platoId)
           .where('eventoId', isEqualTo: eventoId)
           .limit(1)
@@ -181,12 +202,12 @@ class PlatoEventoFirestoreRepository implements PlatoEventoRepository {
   }
 
   @override
-  Future<void> eliminarPorEvento(String eventoId) async {
+  Future<void> eliminarPorEvento(String eventoId, {String? uid}) async {
     // Este método es básicamente lo que hace la primera parte de reemplazarPlatosDeEvento
      if (eventoId.isEmpty) throw ArgumentError('Se requiere un eventoId para eliminar por evento.');
     try {
       final batch = _db.batch();
-      final querySnapshot = await _db.collection(_coleccion)
+      final querySnapshot = await _getCollection(uid: uid)
           .where('eventoId', isEqualTo: eventoId)
           .get();
 

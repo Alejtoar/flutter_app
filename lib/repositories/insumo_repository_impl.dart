@@ -3,23 +3,65 @@ import 'package:flutter/material.dart';
 import 'package:golo_app/repositories/insumo_repository.dart';
 import '../models/insumo.dart';
 import 'package:golo_app/exceptions/insumo_en_uso_exception.dart';
+import 'package:golo_app/config/app_config.dart';
 
 class InsumoFirestoreRepository implements InsumoRepository {
   final FirebaseFirestore _db;
   final String _coleccion = 'insumos';
+  static const String _coleccionInsumosEventos = 'insumos_eventos';
+  static const String _coleccionInsumosPlatos = 'insumos_requeridos';
+  static const String _coleccionInsumosIntermedios = 'insumos_utilizados';
+
+  final bool _isMultiUser =
+      AppConfig.instance.isMultiUser;
 
   InsumoFirestoreRepository(this._db);
 
+  CollectionReference _getCollection({String? uid}) {
+    if (_isMultiUser) {
+      if (uid == null || uid.isEmpty) throw Exception("UID es requerido en modo multi-usuario.");
+      return _db.collection('usuarios').doc(uid).collection(_coleccion);
+    } else {
+      return _db.collection(_coleccion);
+    }
+  }
+  CollectionReference _getInsumosEventosCollection({String? uid}) {
+    if (_isMultiUser) {
+      if (uid == null || uid.isEmpty) throw Exception("UID es requerido en modo multi-usuario.");
+      return _db.collection('usuarios').doc(uid).collection(_coleccionInsumosEventos);
+    } else {
+      return _db.collection(_coleccionInsumosEventos);
+    }
+  }
+
+  CollectionReference _getInsumosPlatosCollection({String? uid}) {
+    if (_isMultiUser) {
+      if (uid == null || uid.isEmpty) throw Exception("UID es requerido en modo multi-usuario.");
+      return _db.collection('usuarios').doc(uid).collection(_coleccionInsumosPlatos);
+    } else {
+      return _db.collection(_coleccionInsumosPlatos);
+    }
+  }
+
+  CollectionReference _getInsumosIntermediosCollection({String? uid}) {
+    if (_isMultiUser) {
+      if (uid == null || uid.isEmpty) throw Exception("UID es requerido en modo multi-usuario.");
+      return _db.collection('usuarios').doc(uid).collection(_coleccionInsumosIntermedios);
+    } else {
+      return _db.collection(_coleccionInsumosIntermedios);
+    }
+  }
+
   @override
-  Future<Insumo> crear(Insumo insumo) async {
+  Future<Insumo> crear(Insumo insumo, {String? uid}) async {
     _validarCategorias(insumo.categorias);
     try {
       // Validar unicidad del código
-      if (await existeCodigo(insumo.codigo)) {
+      if (await existeCodigo(insumo.codigo, uid: uid)) {
         throw Exception('El código ${insumo.codigo} ya está registrado');
       }
 
-      final docRef = await _db.collection(_coleccion).add(insumo.toFirestore());
+      final docRef = await _getCollection(uid: uid).add(insumo.toFirestore());
       return insumo.copyWith(id: docRef.id);
     } on FirebaseException catch (e) {
       throw _handleFirestoreError(e);
@@ -27,9 +69,9 @@ class InsumoFirestoreRepository implements InsumoRepository {
   }
 
   @override
-  Future<Insumo> obtener(String id) async {
+  Future<Insumo> obtener(String id, {String? uid}) async {
     try {
-      final doc = await _db.collection(_coleccion).doc(id).get();
+      final doc = await _getCollection(uid: uid).doc(id).get();
       if (!doc.exists) throw Exception('Insumo no encontrado');
       return Insumo.fromFirestore(doc);
     } on FirebaseException catch (e) {
@@ -38,9 +80,9 @@ class InsumoFirestoreRepository implements InsumoRepository {
   }
 
   @override
-  Future<List<Insumo>> obtenerTodos() async {
+  Future<List<Insumo>> obtenerTodos({String? uid}) async {
     try {
-      Query query = _db.collection(_coleccion);
+      Query query = _getCollection(uid: uid);
       // .where('activo', isEqualTo: true)
       // .orderBy('nombre');
 
@@ -55,13 +97,12 @@ class InsumoFirestoreRepository implements InsumoRepository {
   }
 
   @override
-  Future<List<Insumo>> obtenerVarios(List<String> ids) async {
+  Future<List<Insumo>> obtenerVarios(List<String> ids, {String? uid}) async {
     try {
       if (ids.isEmpty) return [];
 
       final query =
-          await _db
-              .collection(_coleccion)
+          await _getCollection(uid: uid)
               .where(FieldPath.documentId, whereIn: ids)
               .where('activo', isEqualTo: true)
               .get();
@@ -73,11 +114,10 @@ class InsumoFirestoreRepository implements InsumoRepository {
   }
 
   @override
-  Future<void> actualizar(Insumo insumo) async {
+  Future<void> actualizar(Insumo insumo, {String? uid}) async {
     _validarCategorias(insumo.categorias);
     try {
-      await _db
-          .collection(_coleccion)
+      await _getCollection(uid: uid)
           .doc(insumo.id)
           .update(insumo.toFirestore());
       _codigoCache[insumo.codigo] = insumo; // Actualiza caché
@@ -87,16 +127,16 @@ class InsumoFirestoreRepository implements InsumoRepository {
   }
 
   @override
-  Future<void> desactivar(String id) async {
+  Future<void> desactivar(String id, {String? uid}) async {
     try {
       // 1. Primero obtenemos el insumo para saber su código
-      final doc = await _db.collection(_coleccion).doc(id).get();
+      final doc = await _getCollection(uid: uid).doc(id).get();
       if (!doc.exists) throw Exception('Insumo no encontrado');
 
       final insumo = Insumo.fromFirestore(doc);
 
       // 2. Actualizamos en Firestore
-      await _db.collection(_coleccion).doc(id).update({
+      await _getCollection(uid: uid).doc(id).update({
         'activo': false,
         'fechaActualizacion': FieldValue.serverTimestamp(),
       });
@@ -109,20 +149,24 @@ class InsumoFirestoreRepository implements InsumoRepository {
   }
 
   @override
-  Future<List<Insumo>> buscarPorNombre(String query) async {
+  Future<List<Insumo>> buscarPorNombre(String query, {String? uid}) async {
     try {
       // Crear una expresión regular con la opción 'i' para insensibilidad a mayúsculas
       final regex = RegExp(query, caseSensitive: false);
 
       final snapshot =
-          await _db
-              .collection(_coleccion)
+          await _getCollection(uid: uid)
               .where('activo', isEqualTo: true)
               .get();
 
       // Filtrar los resultados usando la expresión regular
       final docs = snapshot.docs.where((doc) {
-        final nombre = doc.data()['nombre'] as String;
+        final data = doc.data() as Map<String, dynamic>?;
+        if (data == null || data['nombre'] == null) {
+          return false;
+        }
+
+        final nombre = data['nombre'] as String;
         return regex.hasMatch(nombre);
       });
 
@@ -134,14 +178,13 @@ class InsumoFirestoreRepository implements InsumoRepository {
 
   final _codigoCache = <String, Insumo>{}; // Mapa en memoria
   @override
-  Future<Insumo> obtenerPorCodigo(String codigo) async {
+  Future<Insumo> obtenerPorCodigo(String codigo, {String? uid}) async {
     try {
       if (_codigoCache.containsKey(codigo)) {
         return _codigoCache[codigo]!;
       }
       final query =
-          await _db
-              .collection(_coleccion)
+          await _getCollection(uid: uid)
               .where('codigo', isEqualTo: codigo)
               .where('activo', isEqualTo: true)
               .limit(1)
@@ -159,7 +202,7 @@ class InsumoFirestoreRepository implements InsumoRepository {
   }
 
   @override
-  Future<String> generarNuevoCodigo() async {
+  Future<String> generarNuevoCodigo({String? uid}) async {
     try {
       String codigo;
       bool codigoExiste;
@@ -167,10 +210,10 @@ class InsumoFirestoreRepository implements InsumoRepository {
       const maxIntentos = 5;
 
       do {
-        final count = await _db.collection(_coleccion).count().get();
+        final count = await _getCollection(uid: uid).count().get();
         codigo =
             'I-${(count.count! + 1 + intentos).toString().padLeft(3, '0')}';
-        codigoExiste = await existeCodigo(codigo);
+        codigoExiste = await existeCodigo(codigo, uid: uid);
         intentos++;
 
         if (intentos > maxIntentos) {
@@ -187,12 +230,11 @@ class InsumoFirestoreRepository implements InsumoRepository {
   }
 
   @override
-  Future<void> desactivarPorProveedor(String proveedorId) async {
+  Future<void> desactivarPorProveedor(String proveedorId, {String? uid}) async {
     try {
       final batch = _db.batch();
       final insumos =
-          await _db
-              .collection(_coleccion)
+          await _getCollection(uid: uid)
               .where('proveedorId', isEqualTo: proveedorId)
               .where('activo', isEqualTo: true)
               .get();
@@ -211,11 +253,10 @@ class InsumoFirestoreRepository implements InsumoRepository {
   }
 
   @override
-  Future<int> contarActivosPorProveedor(String proveedorId) async {
+  Future<int> contarActivosPorProveedor(String proveedorId, {String? uid}) async {
     try {
       final snapshot =
-          await _db
-              .collection(_coleccion)
+          await _getCollection(uid: uid)
               .where('proveedorId', isEqualTo: proveedorId)
               .where('activo', isEqualTo: true)
               .count()
@@ -228,17 +269,17 @@ class InsumoFirestoreRepository implements InsumoRepository {
   }
 
   @override
-  Future<void> eliminarInsumo(String id) async {
+  Future<void> eliminarInsumo(String id, {String? uid}) async {
     // 1. Verificar relaciones en insumo_requerido, insumo_utilizado, insumo_evento
     final usos = <String>[];
     // Insumo requerido (en platos)
-    final insumoRequeridoSnap = await _db.collection('insumos_requeridos').where('insumoId', isEqualTo: id).limit(1).get();
+    final insumoRequeridoSnap = await _getInsumosPlatosCollection(uid: uid).where('insumoId', isEqualTo: id).limit(1).get();
     if (insumoRequeridoSnap.docs.isNotEmpty) usos.add('Platos');
     // Insumo utilizado (en intermedios)
-    final insumoUtilizadoSnap = await _db.collection('insumos_utilizados').where('insumoId', isEqualTo: id).limit(1).get();
+    final insumoUtilizadoSnap = await _getInsumosIntermediosCollection(uid: uid).where('insumoId', isEqualTo: id).limit(1).get();
     if (insumoUtilizadoSnap.docs.isNotEmpty) usos.add('Intermedios');
     // Insumo evento (en eventos)
-    final insumoEventoSnap = await _db.collection('insumos_eventos').where('insumoId', isEqualTo: id).limit(1).get();
+    final insumoEventoSnap = await _getInsumosEventosCollection(uid: uid).where('insumoId', isEqualTo: id).limit(1).get();
     if (insumoEventoSnap.docs.isNotEmpty) usos.add('Eventos');
     if (usos.isNotEmpty) {
       // Lanzar excepción personalizada
@@ -246,18 +287,17 @@ class InsumoFirestoreRepository implements InsumoRepository {
     }
     // Si no está en uso, borrar normalmente
     try {
-      await _db.collection(_coleccion).doc(id).delete();
+      await _getCollection(uid: uid).doc(id).delete();
     } on FirebaseException catch (e) {
       throw _handleFirestoreError(e);
     }
   }
 
   @override
-  Future<List<Insumo>> filtrarInsumosPorCategoria(String categoria) async {
+  Future<List<Insumo>> filtrarInsumosPorCategoria(String categoria, {String? uid}) async {
     try {
       final querySnapshot =
-          await _db
-              .collection(_coleccion)
+          await _getCollection(uid: uid)
               .where('categorias', arrayContains: categoria)
               .where('activo', isEqualTo: true)
               .get();
@@ -272,11 +312,11 @@ class InsumoFirestoreRepository implements InsumoRepository {
   @override
   Future<List<Insumo>> filtrarInsumosPorCategorias(
     List<String> categorias,
+    {String? uid}
   ) async {
     try {
       final querySnapshot =
-          await _db
-              .collection(_coleccion)
+          await _getCollection(uid: uid)
               .where('categorias', arrayContainsAny: categorias)
               .where('activo', isEqualTo: true)
               .get();
@@ -289,11 +329,10 @@ class InsumoFirestoreRepository implements InsumoRepository {
   }
 
   @override
-  Future<List<Insumo>> filtrarInsumosPorProveedor(String proveedorId) async {
+  Future<List<Insumo>> filtrarInsumosPorProveedor(String proveedorId, {String? uid}) async {
     try {
       final querySnapshot =
-          await _db
-              .collection(_coleccion)
+          await _getCollection(uid: uid)
               .where('proveedorId', isEqualTo: proveedorId)
               .where('activo', isEqualTo: true)
               .get();
@@ -306,11 +345,10 @@ class InsumoFirestoreRepository implements InsumoRepository {
   }
 
   @override
-  Future<List<Insumo>> obtenerInsumos() async {
+  Future<List<Insumo>> obtenerInsumos({String? uid}) async {
     try {
       final querySnapshot =
-          await _db
-              .collection(_coleccion)
+          await _getCollection(uid: uid)
               .where('activo', isEqualTo: true)
               .orderBy('nombre')
               .get();
@@ -336,11 +374,10 @@ class InsumoFirestoreRepository implements InsumoRepository {
   }
 
   @override
-  Future<bool> existeCodigo(String codigo) async {
+  Future<bool> existeCodigo(String codigo, {String? uid}) async {
     try {
       final query =
-          await _db
-              .collection(_coleccion)
+          await _getCollection(uid: uid)
               .where('codigo', isEqualTo: codigo)
               .limit(1)
               .get();

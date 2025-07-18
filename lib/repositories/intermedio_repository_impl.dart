@@ -2,22 +2,54 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:golo_app/repositories/intermedio_repository.dart';
 import '../models/intermedio.dart';
 import 'package:golo_app/exceptions/intermedio_en_uso_exception.dart';
+import 'package:golo_app/config/app_config.dart';
 
 class IntermedioFirestoreRepository implements IntermedioRepository {
   final FirebaseFirestore _db;
   final String _coleccion = 'intermedios';
+  static const String _coleccionIntermediosEventos = 'intermedios_eventos';
+  static const String _coleccionIntermediosPlatos = 'intermedios_requeridos';
+  
+  final bool _isMultiUser =
+      AppConfig.instance.isMultiUser;
 
   IntermedioFirestoreRepository(this._db);
 
+  CollectionReference _getCollection({String? uid}) {
+    if (_isMultiUser) {
+      if (uid == null || uid.isEmpty) throw Exception("UID es requerido en modo multi-usuario.");
+      return _db.collection('usuarios').doc(uid).collection(_coleccion);
+    } else {
+      return _db.collection(_coleccion);
+    }
+  }
+  CollectionReference _getIntermediosEventosCollection({String? uid}) {
+    if (_isMultiUser) {
+      if (uid == null || uid.isEmpty) throw Exception("UID es requerido en modo multi-usuario.");
+      return _db.collection('usuarios').doc(uid).collection(_coleccionIntermediosEventos);
+    } else {
+      return _db.collection(_coleccionIntermediosEventos);
+    }
+  }
+
+  CollectionReference _getIntermediosPlatosCollection({String? uid}) {
+    if (_isMultiUser) {
+      if (uid == null || uid.isEmpty) throw Exception("UID es requerido en modo multi-usuario.");
+      return _db.collection('usuarios').doc(uid).collection(_coleccionIntermediosPlatos);
+    } else {
+      return _db.collection(_coleccionIntermediosPlatos);
+    }
+  }
+
   @override
-  Future<Intermedio> crear(Intermedio intermedio) async {
+  Future<Intermedio> crear(Intermedio intermedio, {String? uid}) async {
     try {
       // Validar unicidad del código
-      if (await existeCodigo(intermedio.codigo)) {
+      if (await existeCodigo(intermedio.codigo, uid: uid)) {
         throw Exception('El código ${intermedio.codigo} ya está registrado');
       }
       
-      final docRef = await _db.collection(_coleccion).add(intermedio.toFirestore());
+      final docRef = await _getCollection(uid: uid).add(intermedio.toFirestore());
       return intermedio.copyWith(id: docRef.id);
     } on FirebaseException catch (e) {
       throw _handleFirestoreError(e);
@@ -25,9 +57,9 @@ class IntermedioFirestoreRepository implements IntermedioRepository {
   }
 
   @override
-  Future<Intermedio> obtener(String id) async {
+  Future<Intermedio> obtener(String id, {String? uid}) async {
     try {
-      final doc = await _db.collection(_coleccion).doc(id).get();
+      final doc = await _getCollection(uid: uid).doc(id).get();
       if (!doc.exists) throw Exception('Intermedio no encontrado');
       return Intermedio.fromFirestore(doc);
     } on FirebaseException catch (e) {
@@ -36,9 +68,9 @@ class IntermedioFirestoreRepository implements IntermedioRepository {
   }
 
   @override
-  Future<List<Intermedio>> obtenerTodos() async {
+  Future<List<Intermedio>> obtenerTodos({String? uid}) async {
     try {
-      final querySnapshot = await _db.collection(_coleccion)
+      final querySnapshot = await _getCollection(uid: uid)
           .get();
       return querySnapshot.docs.map((doc) => Intermedio.fromFirestore(doc)).toList();
     } on FirebaseException catch (e) {
@@ -47,11 +79,11 @@ class IntermedioFirestoreRepository implements IntermedioRepository {
   }
 
   @override
-  Future<List<Intermedio>> obtenerPorIds(List<String> ids) async {
+  Future<List<Intermedio>> obtenerPorIds(List<String> ids, {String? uid}) async {
     try {
       if (ids.isEmpty) return [];
       
-      final query = await _db.collection(_coleccion)
+      final query = await _getCollection(uid: uid)
           .where(FieldPath.documentId, whereIn: ids)
           .where('activo', isEqualTo: true)
           .get();
@@ -63,9 +95,9 @@ class IntermedioFirestoreRepository implements IntermedioRepository {
   }
 
   @override
-  Future<void> actualizar(Intermedio intermedio) async {
+  Future<void> actualizar(Intermedio intermedio, {String? uid}) async {
     try {
-      await _db.collection(_coleccion)
+      await _getCollection(uid: uid)
           .doc(intermedio.id)
           .update(intermedio.toFirestore());
     } on FirebaseException catch (e) {
@@ -74,9 +106,9 @@ class IntermedioFirestoreRepository implements IntermedioRepository {
   }
 
   @override
-  Future<void> desactivar(String id) async {
+  Future<void> desactivar(String id, {String? uid}) async {
     try {
-      await _db.collection(_coleccion)
+      await _getCollection(uid: uid)
           .doc(id)
           .update({
             'activo': false, 
@@ -88,16 +120,21 @@ class IntermedioFirestoreRepository implements IntermedioRepository {
   }
 
   @override
-  Future<List<Intermedio>> buscarPorNombre(String query) async {
+  Future<List<Intermedio>> buscarPorNombre(String query, {String? uid}) async {
     try {
       final regex = RegExp(query, caseSensitive: false);
       
-      final snapshot = await _db.collection(_coleccion)
+      final snapshot = await _getCollection(uid: uid)
           .where('activo', isEqualTo: true)
           .get();
           
       final docs = snapshot.docs.where((doc) {
-        final nombre = doc.data()['nombre'] as String;
+        final data = doc.data() as Map<String, dynamic>?;
+        if (data == null || data['nombre'] == null) {
+          return false;
+        }
+
+        final nombre = data['nombre'] as String;
         return regex.hasMatch(nombre);
       });
       
@@ -108,7 +145,7 @@ class IntermedioFirestoreRepository implements IntermedioRepository {
   }
 
   @override
-  Future<String> generarNuevoCodigo() async {
+  Future<String> generarNuevoCodigo({String? uid}) async {
   try {
     String codigo;
     bool codigoExiste;
@@ -116,9 +153,9 @@ class IntermedioFirestoreRepository implements IntermedioRepository {
     const maxIntentos = 5;
 
     do {
-      final count = await _db.collection(_coleccion).count().get();
+      final count = await _getCollection(uid: uid).count().get();
       codigo = 'INT-${(count.count! + 1 + intentos).toString().padLeft(3, '0')}';
-      codigoExiste = await existeCodigo(codigo);
+      codigoExiste = await existeCodigo(codigo, uid: uid);
       intentos++;
       
       if (intentos > maxIntentos) {
@@ -133,9 +170,9 @@ class IntermedioFirestoreRepository implements IntermedioRepository {
 }
 
   @override
-  Future<List<Intermedio>> filtrarPorTipo(String tipo) async {
+  Future<List<Intermedio>> filtrarPorTipo(String tipo, {String? uid}) async {
     try {
-      final querySnapshot = await _db.collection(_coleccion)
+      final querySnapshot = await _getCollection(uid: uid)
           .where('categorias', arrayContains: tipo)
           .where('activo', isEqualTo: true)
           .get();
@@ -147,14 +184,14 @@ class IntermedioFirestoreRepository implements IntermedioRepository {
 
 
   @override
-  Future<void> eliminar(String id) async {
+  Future<void> eliminar(String id, {String? uid}) async {
     // 1. Verificar relaciones en intermedio_requerido, intermedio_evento
     final usos = <String>[];
     // Intermedio requerido (en platos)
-    final intermedioRequeridoSnap = await _db.collection('intermedios_requeridos').where('intermedioId', isEqualTo: id).limit(1).get();
+    final intermedioRequeridoSnap = await _getIntermediosPlatosCollection(uid: uid).where('intermedioId', isEqualTo: id).limit(1).get();
     if (intermedioRequeridoSnap.docs.isNotEmpty) usos.add('Platos');
     // Intermedio evento (en eventos)
-    final intermedioEventoSnap = await _db.collection('intermedios_eventos').where('intermedioId', isEqualTo: id).limit(1).get();
+    final intermedioEventoSnap = await _getIntermediosEventosCollection(uid: uid).where('intermedioId', isEqualTo: id).limit(1).get();
     if (intermedioEventoSnap.docs.isNotEmpty) usos.add('Eventos');
     if (usos.isNotEmpty) {
       // Lanzar excepción personalizada
@@ -162,7 +199,7 @@ class IntermedioFirestoreRepository implements IntermedioRepository {
     }
     // Si no está en uso, borrar normalmente
     try {
-      await _db.collection(_coleccion).doc(id).delete();
+      await _getCollection(uid: uid).doc(id).delete();
     } on FirebaseException catch (e) {
       throw _handleFirestoreError(e);
     }
@@ -183,9 +220,9 @@ class IntermedioFirestoreRepository implements IntermedioRepository {
   }
 
   @override
-  Future<bool> existeCodigo(String codigo) async {
+  Future<bool> existeCodigo(String codigo, {String? uid}) async {
     try {
-      final query = await _db.collection(_coleccion)
+      final query = await _getCollection(uid: uid)
           .where('codigo', isEqualTo: codigo)
           .limit(1)
           .get();
