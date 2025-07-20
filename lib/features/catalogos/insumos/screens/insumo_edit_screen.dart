@@ -62,12 +62,13 @@ class AddEditInsumoScreenState extends State<AddEditInsumoScreen> {
         final codigo = await controller.generarNuevoCodigo();
         if (mounted) setState(() => _codigoGenerado = codigo);
       } catch (e) {
-        if (mounted)
+        if (mounted) {
           showAppSnackBar(
             context,
             'Error al generar código: $e',
             isError: true,
           );
+        }
         if (mounted) setState(() => _codigoGenerado = "I-ERR");
       } finally {
         if (mounted) setState(() => _isGeneratingCode = false);

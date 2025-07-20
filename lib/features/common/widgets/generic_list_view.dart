@@ -82,14 +82,12 @@ class _GenericListViewState<T> extends State<GenericListView<T>> {
             if (_isSelectionMode) {
               _toggleSelection(id);
             } else {
-              // Aquí podrías tener un callback onDefaultTap si quieres
               // widget.onDefaultTap(item);
-              // Por ahora, el tap normal no hace nada si no estamos en selección
             }
           },
           child: Container(
              // Cambiar color de fondo si está seleccionado
-             color: isSelected ? Theme.of(context).primaryColor.withOpacity(0.15) : null,
+             color: isSelected ? Theme.of(context).primaryColor.withValues(alpha: 0.15) : null,
              child: widget.itemBuilder(context, item, isSelected, () => _toggleSelection(id)),
           ),
         );

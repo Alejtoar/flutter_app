@@ -6,27 +6,72 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:golo_app/models/proveedor.dart';
-
 import 'package:golo_app/services/shopping_list_service.dart'; // Para typedefs y ShoppingListItem
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+/// Servicio encargado de exportar listas de compras a archivos Excel.
+///
+/// Este servicio proporciona funcionalidades para:
+/// - Exportar listas de compras a archivos Excel con múltiples hojas
+/// - Compartir los archivos generados a través de la interfaz de compartir nativa
+/// - Filtrar y organizar los datos por proveedor y tipo de facturación
+/// - Personalizar el formato y estilo de las hojas de cálculo generadas
+///
+/// Ejemplo de uso:
+/// ```dart
+/// final exportService = ExcelExportService();
+/// await exportService.exportSingleExcelWithMultipleSheets(
+///   context: context,
+///   data: groupedData,
+///   baseFileName: 'Lista de Compras',
+///   separateFacturableInResumen: true,
+///   separateFacturableInProviderSheets: true,
+/// );
+/// ```
 class ExcelExportService {
-  // --- MÉTODO PÚBLICO PRINCIPAL DE EXPORTACIÓN ---
-  /// Exporta la lista de compras a Excel.
+  /// Exporta la lista de compras a un archivo Excel con múltiples hojas.
   ///
-  /// [data]: La lista de compras agrupada por proveedor.
-  /// [baseFileName]: Nombre base sugerido para el archivo (se limpiará).
-  /// [separateFilesByProvider]: Si es true, genera un archivo por proveedor.
-  /// [separateByFacturable]: Si es true (y separateFilesByProvider es false),
-  ///                        crea hojas separadas para items facturables y no facturables.
-  ///                        **NOTA:** Requiere que `ShoppingListItem` tenga el campo `esFacturable`.
+  /// Este método es el punto de entrada principal para exportar listas de compras
+  /// a Excel, con opciones para organizar los datos en diferentes hojas y formatos.
+  ///
+  /// Parámetros:
+  /// - [context]: Contexto de Flutter para mostrar mensajes al usuario.
+  /// - [data]: Mapa que contiene la lista de compras agrupada por proveedor.
+  ///   Debe ser del tipo `GroupedShoppingListResult` (Proveedor? -> List<ShoppingListItem>).
+  /// - [baseFileName]: Nombre base sugerido para el archivo. Se limpiará de caracteres no válidos.
+  /// - [separateFacturableInResumen]: Si es `true`, la hoja de resumen general separará
+  ///   los ítems facturables de los no facturables en secciones diferentes.
+  /// - [separateFacturableInProviderSheets]: Si es `true`, las hojas individuales de cada
+  ///   proveedor separarán los ítems facturables de los no facturables.
+  ///
+  /// Retorna:
+  /// - `true` si la exportación fue exitosa.
+  /// - `false` si ocurrió un error o el usuario canceló la operación.
+  ///
+  /// Lanza:
+  /// - `Exception` si ocurre un error durante la generación del archivo.
+  ///
+  /// Requiere:
+  /// - Que los objetos `ShoppingListItem` en [data] tengan el campo `esFacturable`
+  ///   cuando se usen los parámetros de separación por facturabilidad.
+  ///
+  /// Ejemplo:
+  /// ```dart
+  /// final result = await excelExportService.exportSingleExcelWithMultipleSheets(
+  ///   context: context,
+  ///   data: shoppingListData,
+  ///   baseFileName: 'Lista de Compras ${evento.nombre}',
+  ///   separateFacturableInResumen: true,
+  ///   separateFacturableInProviderSheets: true,
+  /// );
+  /// ```
   Future<bool> exportSingleExcelWithMultipleSheets({
     required BuildContext context,
-    required GroupedShoppingListResult data, // Debe tener ShoppingListItem.esFacturable
+    required GroupedShoppingListResult data,
     required String baseFileName,
-    bool separateFacturableInResumen = false, // Flag para la hoja resumen
-    bool separateFacturableInProviderSheets = false, // Flag para las hojas de proveedor
+    bool separateFacturableInResumen = false,
+    bool separateFacturableInProviderSheets = false,
   }) async {
     final String operation = "Exportar Excel con Múltiples Hojas";
     debugPrint("[$operation] Iniciando. BaseName: $baseFileName, SepararResumen: $separateFacturableInResumen, SepararProv: $separateFacturableInProviderSheets");
@@ -297,12 +342,43 @@ class ExcelExportService {
   }
 
 
+  /// Exporta y comparte la lista de compras a través de la interfaz de compartir del dispositivo.
+  ///
+  /// Este método permite exportar la lista de compras y compartirla directamente
+  /// a través de las opciones de compartir del sistema operativo (correo, mensajes, etc.).
+  ///
+  /// Parámetros:
+  /// - [context]: Contexto de Flutter para mostrar mensajes al usuario.
+  /// - [data]: Mapa que contiene la lista de compras agrupada por proveedor.
+  /// - [baseFileName]: Nombre base sugerido para el archivo. Se limpiará de caracteres no válidos.
+  /// - [separateFilesByProvider]: Si es `true`, genera un archivo Excel por cada proveedor.
+  ///   Si es `false`, genera un solo archivo con múltiples hojas.
+  /// - [separateByFacturable]: Si es `true`, separa los ítems facturables de los no facturables
+  ///   en hojas o archivos diferentes según corresponda.
+  ///
+  /// Retorna:
+  /// - `true` si la exportación y compartición fue exitosa.
+  /// - `false` si ocurrió un error o el usuario canceló la operación.
+  ///
+  /// Lanza:
+  /// - `Exception` si ocurre un error durante la generación del archivo.
+  ///
+  /// Ejemplo:
+  /// ```dart
+  /// await excelExportService.shareShoppingList(
+  ///   context: context,
+  ///   data: shoppingListData,
+  ///   baseFileName: 'Lista de Compras ${evento.nombre}',
+  ///   separateFilesByProvider: false,
+  ///   separateByFacturable: true,
+  /// );
+  /// ```
   Future<bool> shareShoppingList({
-    required BuildContext context, // Para mostrar SnackBars
+    required BuildContext context,
     required GroupedShoppingListResult data,
     required String baseFileName,
     bool separateFilesByProvider = false,
-    bool separateByFacturable = false, // Nuevo flag
+    bool separateByFacturable = false,
   }) async {
     debugPrint(
       "ExcelExportService: Iniciando exportación. Separar Proveedor: $separateFilesByProvider, Separar Facturable: $separateByFacturable",
@@ -455,11 +531,35 @@ class ExcelExportService {
     }
   }
 
-  // --- MÉTODO INTERNO PARA CONSTRUIR EL CONTENIDO DE UNA HOJA ---
-  // Recibe la hoja, los datos a escribir, y flags opcionales de formato
+  /// Construye el contenido de una hoja de cálculo Excel con los datos de la lista de compras.
+  ///
+  /// Este método interno se encarga de formatear y organizar los datos en la hoja de cálculo,
+  /// aplicando estilos y agrupaciones según los parámetros proporcionados.
+  ///
+  /// Parámetros:
+  /// - [sheetObject]: Objeto que representa la hoja de cálculo donde se escribirán los datos.
+  /// - [data]: Mapa que contiene la lista de compras agrupada por proveedor.
+  /// - [includeTotalsRow]: Si es `true`, incluye una fila con el total general al final.
+  /// - [facturableFilter]: Filtro opcional para mostrar solo ítems facturables (`true`),
+  ///   no facturables (`false`), o todos (`null`).
+  ///
+  /// Notas:
+  /// - Los estilos se aplican automáticamente a las celdas de encabezado, datos y totales.
+  /// - Los valores numéricos se formatean según el estándar de la moneda local.
+  /// - Los totales se calculan automáticamente.
+  ///
+  /// Ejemplo de uso interno:
+  /// ```dart
+  /// _buildExcelSheetContent(
+  ///   sheetObject,
+  ///   shoppingListData,
+  ///   includeTotalsRow: true,
+  ///   facturableFilter: null, // Mostrar todos los ítems
+  /// );
+  /// ```
   void _buildExcelSheetContent(
     Sheet sheetObject,
-    GroupedShoppingListResult data, { // El mapa Proveedor? -> Lista Items
+    GroupedShoppingListResult data, {
     bool includeTotalsRow = true,
     required bool? facturableFilter,
   }) {

@@ -1,7 +1,9 @@
 // services/shopping_list_service.dart
 
 import 'package:flutter/foundation.dart';
-import 'package:collection/collection.dart'; // Para .groupListsBy
+import 'package:collection/collection.dart';
+
+// Modelos de datos
 import 'package:golo_app/models/evento.dart';
 import 'package:golo_app/models/plato_evento.dart';
 import 'package:golo_app/models/intermedio_evento.dart';
@@ -12,7 +14,7 @@ import 'package:golo_app/models/insumo.dart';
 import 'package:golo_app/models/insumo_requerido.dart';
 import 'package:golo_app/models/intermedio_requerido.dart';
 import 'package:golo_app/models/insumo_utilizado.dart';
-import 'package:golo_app/models/proveedor.dart'; // Necesario para agrupar
+import 'package:golo_app/models/proveedor.dart';
 
 // Repositorios
 import 'package:golo_app/repositories/evento_repository.dart';
@@ -25,22 +27,38 @@ import 'package:golo_app/repositories/insumo_repository.dart';
 import 'package:golo_app/repositories/insumo_requerido_repository.dart';
 import 'package:golo_app/repositories/intermedio_requerido_repository.dart';
 import 'package:golo_app/repositories/insumo_utilizado_repository.dart';
-import 'package:golo_app/repositories/proveedor_repository.dart'; // Necesario para agrupar
+import 'package:golo_app/repositories/proveedor_repository.dart';
 
-// --- Definiciones de Tipos (Fuera de la clase) ---
-
-// Estructura interna para acumular totales por unidad
-// insumoId -> { unidad -> cantidadTotal }
+/// Estructura de datos para acumular cantidades por unidad de medida.
+/// 
+/// Mapea un ID de insumo a un mapa de unidades y sus cantidades correspondientes.
 typedef ShoppingListTotals = Map<String, Map<String, double>>;
 
-// Estructura para representar un item individual en la lista final (con objeto Insumo)
+/// Representa un ítem individual en la lista de compras final.
+///
+/// Contiene toda la información necesaria para mostrar y procesar un ítem
+/// en la lista de compras, incluyendo su cantidad, unidad de medida y costo.
+/// Representa un ítem individual en la lista de compras final.
+///
+/// Contiene toda la información necesaria para mostrar y procesar un ítem
+/// en la lista de compras, incluyendo su cantidad, unidad de medida y costo.
 class ShoppingListItem {
+  /// El insumo asociado a este ítem de la lista de compras.
   final Insumo insumo;
+  
+  /// La unidad de medida en la que se expresa la cantidad.
   final String unidad;
+  
+  /// La cantidad necesaria del insumo.
   final double cantidad;
+  
+  /// El costo total calculado para esta cantidad del insumo.
   final double costoItem;
-  final bool? esFacturable; // Null si es combinado, true/false si está separado
+  
+  /// Indica si el ítem es facturable (true), no facturable (false), o combinado (null).
+  final bool? esFacturable;
 
+  /// Crea una nueva instancia de [ShoppingListItem].
   const ShoppingListItem({
     required this.insumo,
     required this.unidad,
@@ -49,30 +67,49 @@ class ShoppingListItem {
     this.esFacturable,
   });
 
-  // Para ordenar o mostrar
   @override
   String toString() =>
       '${insumo.nombre} - ${cantidad.toStringAsFixed(2)} $unidad (Costo: \$${costoItem.toStringAsFixed(2)})';
 }
 
-// Estructura para el resultado final agrupado por proveedor
-// Proveedor? (null para sin proveedor) -> Lista de ShoppingListItem
+/// Resultado de agrupar ítems de la lista de compras por proveedor.
+///
+/// La clave es un [Proveedor] o `null` para ítems sin proveedor asignado.
+/// El valor es la lista de [ShoppingListItem] asociados a ese proveedor.
 typedef GroupedShoppingListResult = Map<Proveedor?, List<ShoppingListItem>>;
 
+/// Desglose de cantidades por tipo de facturabilidad.
+///
+/// Mantiene un registro separado de cantidades facturables y no facturables
+/// para un mismo ítem, permitiendo un cálculo detallado de costos.
 class QuantityBreakdown {
+  /// Cantidad facturable del ítem.
   double facturable = 0.0;
+  
+  /// Cantidad no facturable del ítem.
   double noFacturable = 0.0;
 
+  /// Obtiene la cantidad total (facturable + no facturable).
   double get total => facturable + noFacturable;
 }
 
-// Nueva estructura intermedia: insumoId -> { unidad -> QuantityBreakdown }
-typedef DetailedShoppingListTotals =
-    Map<String, Map<String, QuantityBreakdown>>;
+/// Estructura de datos detallada para la lista de compras.
+///
+/// Organiza los ítems por ID de insumo y unidad de medida, manteniendo
+/// un desglose de cantidades facturables y no facturables.
+/// 
+/// Estructura: `Map<insumoId, Map<unidad, QuantityBreakdown>>`
+typedef DetailedShoppingListTotals = Map<String, Map<String, QuantityBreakdown>>;
 
-// --- Clase Principal del Servicio ---
+/// Servicio para la generación y gestión de listas de compras.
+///
+/// Este servicio se encarga de procesar eventos, platos, intermedios e insumos
+/// para generar listas de compras detalladas, con soporte para agrupación por
+/// proveedor y separación por facturabilidad.
+///
+/// Utiliza un sistema de caché para optimizar las consultas repetitivas a la base de datos.
 class ShoppingListService {
-  // Inyectar todos los repositorios necesarios
+  // Repositorios inyectados para acceder a los datos
   final EventoRepository eventoRepo;
   final PlatoEventoRepository platoEventoRepo;
   final IntermedioEventoRepository intermedioEventoRepo;
@@ -85,6 +122,9 @@ class ShoppingListService {
   final InsumoUtilizadoRepository insumoUtilizadoRepo;
   final ProveedorRepository proveedorRepo;
 
+  /// Crea una nueva instancia del servicio de lista de compras.
+  ///
+  /// Requiere todos los repositorios necesarios para acceder a los datos.
   ShoppingListService({
     required this.eventoRepo,
     required this.platoEventoRepo,
@@ -100,98 +140,36 @@ class ShoppingListService {
   });
 
   // --- Cachés Temporales ---
+  
+  /// Cache de platos por ID para evitar consultas repetitivas
   Map<String, Plato> _platoCache = {};
+  
+  /// Cache de intermedios por ID para evitar consultas repetitivas
   Map<String, Intermedio> _intermedioCache = {};
-  Map<String, Insumo> _insumoCache = {}; // Caché para insumos base también
+  
+  /// Cache de insumos por ID para evitar consultas repetitivas
+  Map<String, Insumo> _insumoCache = {};
+  
+  /// Cache de insumos requeridos por ID de plato
   Map<String, List<InsumoRequerido>> _insumoRequeridoCache = {};
+  
+  /// Cache de intermedios requeridos por ID de plato
   Map<String, List<IntermedioRequerido>> _intermedioRequeridoCache = {};
+  
+  /// Cache de insumos utilizados por ID de intermedio
   Map<String, List<InsumoUtilizado>> _insumoUtilizadoCache = {};
 
-  // // --- Método Principal Combinado ---
-  // Future<GroupedShoppingListResult> generateAndGroupShoppingList(
-  //   List<String> eventoIds,
-  // ) async {
-  //   debugPrint(
-  //     "[ShoppingListService] Iniciando generación COMBINADA y AGRUPADA para ${eventoIds.length} eventos.",
-  //   );
-  //   _clearCaches();
-  //   final ShoppingListTotals totals = {}; // Acumulador global por unidad
 
-  //   // 1. Procesar todos los eventos para obtener los totales acumulados
-  //   for (final eventoId in eventoIds) {
-  //     debugPrint(
-  //       "[ShoppingListService] Procesando evento combinado: $eventoId",
-  //     );
-  //     try {
-  //       await _processSingleEventIntoTotals(totals, eventoId);
-  //     } catch (e, st) {
-  //       debugPrint(
-  //         "[ShoppingListService][ERROR] Falló procesamiento $eventoId (combinado): $e\n$st",
-  //       );
-  //       // Continuar con los otros eventos
-  //     }
-  //   }
 
-  //   // 2. Convertir totales a lista de ShoppingListItem
-  //   debugPrint(
-  //     "[ShoppingListService] Totales por unidad calculados: ${totals.length} insumos únicos.",
-  //   );
-  //   final List<ShoppingListItem> flatList = await _mapTotalsToShoppingListItems(
-  //     totals,
-  //   );
 
-  //   // 3. Agrupar la lista plana por proveedor
-  //   debugPrint(
-  //     "[ShoppingListService] Agrupando ${flatList.length} items por proveedor...",
-  //   );
-  //   final groupedList = await _groupShoppingListByProvider(flatList);
-  //   debugPrint(
-  //     "[ShoppingListService] Agrupación finalizada. ${groupedList.length} grupos (incluyendo sin proveedor).",
-  //   );
-
-  //   return groupedList;
-  // }
-
-  // --- Función Interna para Procesar UN Evento y añadir a Totales ---
-  // Future<void> _processSingleEventIntoTotals(
-  //   ShoppingListTotals totals,
-  //   String eventoId,
-  // ) async {
-  //   // 1. Cargar relaciones de ESTE evento
-  //   final List<PlatoEvento> platosEvento = await platoEventoRepo
-  //       .obtenerPorEvento(eventoId);
-  //   final List<IntermedioEvento> intermediosEvento = await intermedioEventoRepo
-  //       .obtenerPorEvento(eventoId);
-  //   final List<InsumoEvento> insumosEvento = await insumoEventoRepo
-  //       .obtenerPorEvento(eventoId);
-
-  //   // 2. Procesar Insumos Directos (con unidad)
-  //   for (final insumoEv in insumosEvento) {
-  //     await _addInsumoQuantity(
-  //       totals,
-  //       insumoEv.insumoId,
-  //       insumoEv.unidad,
-  //       insumoEv.cantidad,
-  //     );
-  //   }
-
-  //   // 3. Procesar Intermedios Directos (recursivo)
-  //   for (final intermedioEv in intermediosEvento) {
-  //     await _processIntermedio(
-  //       totals,
-  //       intermedioEv.intermedioId,
-  //       intermedioEv.cantidad.toDouble(),
-  //     );
-  //   }
-
-  //   // 4. Procesar Platos (recursivo con personalización)
-  //   for (final platoEv in platosEvento) {
-  //     await _processPlatoEvento(totals, platoEv);
-  //   }
-  // }
 
   // --- Métodos Helper Internos ---
 
+  /// Limpia todas las cachés internas del servicio.
+  ///
+  /// Este método debe llamarse cuando se necesite forzar la actualización
+  /// de datos desde la base de datos, por ejemplo, después de realizar cambios
+  /// que afecten a los datos en caché.
   void _clearCaches() {
     _platoCache = {};
     _intermedioCache = {};
@@ -202,217 +180,20 @@ class ShoppingListService {
     debugPrint("[ShoppingListService] Cachés limpiadas.");
   }
 
-  // Añade cantidad a un insumo/unidad específicos
-  // Future<void> _addInsumoQuantity(
-  //   ShoppingListTotals totals,
-  //   String insumoId,
-  //   String? unidad,
-  //   double quantity,
-  // ) async {
-  //   if (insumoId.isEmpty || quantity <= 0) return;
 
-  //   String unidadNormalizada =
-  //       unidad?.trim().toLowerCase() ??
-  //       'unidad'; // Usar 'unidad' o similar si es null/vacío
-  //   if (unidadNormalizada.isEmpty) unidadNormalizada = 'unidad'; // Doble check
 
-  //   // Obtener el insumo base para referencia (opcional, podría hacerse al final)
-  //   // final insumoBase = await _getInsumoBase(insumoId);
-  //   // if (insumoBase == null) {
-  //   //    debugPrint("[ShoppingListService][WARN] No se encontró insumo base para ID $insumoId al añadir cantidad.");
-  //   //    // Podrías usar una unidad por defecto o manejar el error
-  //   // }
-  //   // String unidadFinal = unidadNormalizada ?? insumoBase?.unidad ?? 'unidad';
 
-  //   // Crear mapa de unidades para este insumo si no existe
-  //   totals.putIfAbsent(insumoId, () => {});
-  //   // Añadir cantidad a la unidad específica
-  //   totals[insumoId]![unidadNormalizada] =
-  //       (totals[insumoId]![unidadNormalizada] ?? 0) + quantity;
 
-  //   // debugPrint("[ShoppingListService] (+ ${quantity.toStringAsFixed(2)} $unidadNormalizada) -> Insumo ID: $insumoId (Total: ${totals[insumoId]![unidadNormalizada]?.toStringAsFixed(2)})");
-  // }
 
-  // Procesa un PlatoEvento, aplicando personalizaciones y descomponiendo
-  // Future<void> _processPlatoEvento(
-  //   ShoppingListTotals totals,
-  //   PlatoEvento platoEvento,
-  // ) async {
-  //   final platoBase = await _getPlatoBase(platoEvento.platoId);
-  //   if (platoBase == null) {
-  //     debugPrint(
-  //       "[ShoppingListService][WARN] Plato base ID ${platoEvento.platoId} no encontrado, omitiendo.",
-  //     );
-  //     return;
-  //   }
-  //   if (platoBase.porcionesMinimas <= 0) {
-  //     debugPrint(
-  //       "[ShoppingListService][WARN] Plato base ID ${platoBase.id} tiene porcionesMinimas <= 0, omitiendo para evitar división por cero.",
-  //     );
-  //     return;
-  //   }
 
-  //   // Cantidad de este plato solicitada en el evento
-  //   final double cantidadPlatoEvento = platoEvento.cantidad.toDouble();
-  //   if (cantidadPlatoEvento <= 0) return;
-
-  //   debugPrint(
-  //     "[ShoppingListService] Procesando PlatoEvento: ${platoBase.nombre} x ${platoEvento.cantidad} (Base: ${platoBase.porcionesMinimas} porciones)",
-  //   );
-
-  //   // --- Calcular Ratio del Plato ---
-  //   // Este ratio se aplicará a las cantidades de los componentes directos del plato.
-  //   final double ratioPlato = cantidadPlatoEvento / platoBase.porcionesMinimas;
-  //   debugPrint(
-  //     "    Ratio Plato (Rp): $cantidadPlatoEvento / ${platoBase.porcionesMinimas} = $ratioPlato",
-  //   );
-
-  //   final Set<String> insumosRemovidos = Set.from(
-  //     platoEvento.insumosRemovidos ?? [],
-  //   );
-  //   final Set<String> intermediosRemovidos = Set.from(
-  //     platoEvento.intermediosRemovidos ?? [],
-  //   );
-
-  //   // --- Procesar Insumos Requeridos del Plato Base ---
-  //   final List<InsumoRequerido> insumosBaseReq = await _getInsumosRequeridos(
-  //     platoBase.id!,
-  //   );
-  //   for (final irBase in insumosBaseReq) {
-  //     if (!insumosRemovidos.contains(irBase.insumoId)) {
-  //       final insumoBaseDef = await _getInsumoBase(irBase.insumoId);
-  //       // Aplicar Ratio del Plato
-  //       final cantidadNecesaria = irBase.cantidad * ratioPlato;
-  //       await _addInsumoQuantity(
-  //         totals,
-  //         irBase.insumoId,
-  //         insumoBaseDef?.unidad,
-  //         cantidadNecesaria,
-  //       );
-  //       debugPrint(
-  //         "      Insumo Req: ${insumoBaseDef?.nombre ?? irBase.insumoId} -> Cant: ${irBase.cantidad} * Rp $ratioPlato = $cantidadNecesaria",
-  //       );
-  //     } else {
-  //       debugPrint("      Insumo Req base ${irBase.insumoId} REMOVIDO.");
-  //     }
-  //   }
-
-  //   // --- Procesar Insumos Extra del PlatoEvento ---
-  //   // Se asume que la cantidad en ItemExtra es POR PORCIÓN del PlatoEvento (o por unidad de plato base).
-  //   // Si la cantidad del ItemExtra es TOTAL para las N unidades del platoEvento, no multiplicar por ratioPlato aquí.
-  //   // **Asumiremos que es POR PORCIÓN DEL PLATO BASE para consistencia con los requeridos base.**
-  //   for (final itemExtra in platoEvento.insumosExtra ?? []) {
-  //     final insumoBaseDef = await _getInsumoBase(itemExtra.id);
-  //     // La cantidad del extra se multiplica por el ratio del plato
-  //     final cantidadNecesariaExtra = itemExtra.cantidad * cantidadPlatoEvento;
-  //     await _addInsumoQuantity(
-  //       totals,
-  //       itemExtra.id,
-  //       insumoBaseDef?.unidad,
-  //       cantidadNecesariaExtra,
-  //     );
-  //     debugPrint(
-  //       "      Insumo Extra: ${insumoBaseDef?.nombre ?? itemExtra.id} -> Cant: ${itemExtra.cantidad} * Rp $ratioPlato = $cantidadNecesariaExtra",
-  //     );
-  //   }
-
-  //   // --- Procesar Intermedios Requeridos del Plato Base ---
-  //   final List<IntermedioRequerido> intermediosBaseReq =
-  //       await _getIntermediosRequeridos(platoBase.id!);
-  //   for (final irBase in intermediosBaseReq) {
-  //     if (!intermediosRemovidos.contains(irBase.intermedioId)) {
-  //       // La cantidad del intermedio requerido se multiplica por el Ratio del Plato
-  //       final cantidadIntermedioNecesaria = irBase.cantidad * ratioPlato;
-  //       await _processIntermedio(
-  //         totals,
-  //         irBase.intermedioId,
-  //         cantidadIntermedioNecesaria,
-  //       );
-  //       // El debugPrint del intermedio se hará dentro de _processIntermedio
-  //     } else {
-  //       debugPrint(
-  //         "      Intermedio Req base ${irBase.intermedioId} REMOVIDO.",
-  //       );
-  //     }
-  //   }
-
-  //   // --- Procesar Intermedios Extra del PlatoEvento ---
-  //   // Similar a insumos extra, asumimos que itemExtra.cantidad es por porción del plato base.
-  //   for (final itemExtra in platoEvento.intermediosExtra ?? []) {
-  //     final cantidadIntermedioExtraNecesaria =
-  //         itemExtra.cantidad * cantidadPlatoEvento;
-  //     await _processIntermedio(
-  //       totals,
-  //       itemExtra.id,
-  //       cantidadIntermedioExtraNecesaria,
-  //     );
-  //   }
-  // }
-
-  // // Procesa un Intermedio, obteniendo sus InsumosUtilizados
-  // Future<void> _processIntermedio(
-  //   ShoppingListTotals totals,
-  //   String intermedioId,
-  //   double cantidadTotalNecesariaIntermedio,
-  // ) async {
-  //   // cantidadTotalNecesariaIntermedio es la cantidad de este intermedio que se requiere
-  //   // por el componente padre (sea un PlatoEvento, IntermedioEvento, u otro Intermedio)
-  //   if (intermedioId.isEmpty || cantidadTotalNecesariaIntermedio <= 0) return;
-
-  //   final intermedioBase = await _getIntermedioBase(intermedioId);
-  //   if (intermedioBase == null) {
-  //     debugPrint(
-  //       "[ShoppingListService][WARN] Intermedio base ID $intermedioId no encontrado, omitiendo.",
-  //     );
-  //     return;
-  //   }
-  //   if (intermedioBase.cantidadEstandar <= 0) {
-  //     debugPrint(
-  //       "[ShoppingListService][WARN] Intermedio base ID ${intermedioBase.id} tiene cantidadEstandar <= 0, omitiendo para evitar división por cero.",
-  //     );
-  //     return;
-  //   }
-
-  //   debugPrint(
-  //     "    Procesando Intermedio: ${intermedioBase.nombre} - Se necesitan: $cantidadTotalNecesariaIntermedio ${intermedioBase.unidad} (Base: ${intermedioBase.cantidadEstandar} ${intermedioBase.unidad})",
-  //   );
-
-  //   // --- Calcular Ratio del Intermedio ---
-  //   // Este ratio se aplicará a las cantidades de los InsumosUtilizados de este intermedio.
-  //   final double ratioIntermedio =
-  //       cantidadTotalNecesariaIntermedio / intermedioBase.cantidadEstandar;
-  //   debugPrint(
-  //     "      Ratio Intermedio (Ri): $cantidadTotalNecesariaIntermedio / ${intermedioBase.cantidadEstandar} = $ratioIntermedio",
-  //   );
-
-  //   final List<InsumoUtilizado> insumosUtilizados = await _getInsumosUtilizados(
-  //     intermedioId,
-  //   );
-  //   for (final iu in insumosUtilizados) {
-  //     final insumoBaseDef = await _getInsumoBase(iu.insumoId);
-  //     // Aplicar Ratio del Intermedio
-  //     final cantidadNecesaria = iu.cantidad * ratioIntermedio;
-  //     await _addInsumoQuantity(
-  //       totals,
-  //       iu.insumoId,
-  //       insumoBaseDef?.unidad,
-  //       cantidadNecesaria,
-  //     );
-  //     debugPrint(
-  //       "        Insumo Utilizado: ${insumoBaseDef?.nombre ?? iu.insumoId} -> Cant: ${iu.cantidad} * Ri $ratioIntermedio = $cantidadNecesaria",
-  //     );
-
-  //     // Si este iu.insumoId fuera OTRO intermedio (anidamiento), llamarías a _processIntermedio de nuevo:
-  //     // await _processIntermedio(totals, iu.insumoId, cantidadNecesaria);
-  //     // PERO, `InsumoUtilizado` parece enlazar directamente a `Insumo`, no a otro Intermedio.
-  //     // Si permites Intermedios dentro de Intermedios, la estructura del modelo `InsumoUtilizado` necesitaría
-  //     // un campo tipo 'tipoComponente' (insumo o intermedio) y 'componenteId'.
-  //   }
-  // }
 
   // --- Métodos para obtener datos base (con caché simple) ---
+  
+  /// Obtiene un plato por su ID, utilizando la caché si está disponible.
+  ///
+  /// [platoId] El ID del plato a obtener.
+  /// Retorna el [Plato] correspondiente o `null` si no se encuentra.
   Future<Plato?> _getPlatoBase(String platoId) async {
-    // ... (igual que antes)
     if (_platoCache.containsKey(platoId)) return _platoCache[platoId];
     try {
       final p = await platoRepo.obtener(platoId);
@@ -423,10 +204,14 @@ class ShoppingListService {
     }
   }
 
+  /// Obtiene un intermedio por su ID, utilizando la caché si está disponible.
+  ///
+  /// [intermedioId] El ID del intermedio a obtener.
+  /// Retorna el [Intermedio] correspondiente o `null` si no se encuentra.
   Future<Intermedio?> _getIntermedioBase(String intermedioId) async {
-    // ... (igual que antes, usando obtener(id))
-    if (_intermedioCache.containsKey(intermedioId))
+    if (_intermedioCache.containsKey(intermedioId)) {
       return _intermedioCache[intermedioId];
+    }
     try {
       final i = await intermedioRepo.obtener(intermedioId);
       _intermedioCache[intermedioId] = i;
@@ -436,14 +221,15 @@ class ShoppingListService {
     }
   }
 
+  /// Obtiene un insumo por su ID, utilizando la caché si está disponible.
+  ///
+  /// [insumoId] El ID del insumo a obtener.
+  /// Retorna el [Insumo] correspondiente o `null` si no se encuentra.
   Future<Insumo?> _getInsumoBase(String insumoId) async {
     if (_insumoCache.containsKey(insumoId)) return _insumoCache[insumoId];
     try {
-      // Usar obtenerVarios si obtener(id) no existe en InsumoRepository
-      // O añadir obtener(id) a InsumoRepository
-      final insumos = await insumoRepo.obtenerVarios([
-        insumoId,
-      ]); // Asume obtenerVarios existe
+      // Usar obtenerVarios para optimizar la carga de múltiples insumos
+      final insumos = await insumoRepo.obtenerVarios([insumoId]);
       final insumo = insumos.isNotEmpty ? insumos.first : null;
       if (insumo != null) _insumoCache[insumoId] = insumo;
       return insumo;
@@ -452,90 +238,50 @@ class ShoppingListService {
     }
   }
 
+  /// Obtiene los insumos requeridos para un plato específico, con soporte de caché.
+  ///
+  /// [platoId] El ID del plato del que se requieren los insumos.
+  /// Retorna una lista de [InsumoRequerido] para el plato especificado.
   Future<List<InsumoRequerido>> _getInsumosRequeridos(String platoId) async {
-    // ... (igual que antes)
-    if (_insumoRequeridoCache.containsKey(platoId))
+    if (_insumoRequeridoCache.containsKey(platoId)) {
       return _insumoRequeridoCache[platoId]!;
+    }
     final lista = await insumoRequeridoRepo.obtenerPorPlato(platoId);
     _insumoRequeridoCache[platoId] = lista;
     return lista;
   }
 
+  /// Obtiene los intermedios requeridos para un plato específico, con soporte de caché.
+  ///
+  /// [platoId] El ID del plato del que se requieren los intermedios.
+  /// Retorna una lista de [IntermedioRequerido] para el plato especificado.
   Future<List<IntermedioRequerido>> _getIntermediosRequeridos(
     String platoId,
   ) async {
-    // ... (igual que antes)
-    if (_intermedioRequeridoCache.containsKey(platoId))
+    if (_intermedioRequeridoCache.containsKey(platoId)) {
       return _intermedioRequeridoCache[platoId]!;
+    }
     final lista = await intermedioRequeridoRepo.obtenerPorPlato(platoId);
     _intermedioRequeridoCache[platoId] = lista;
     return lista;
   }
 
+  /// Obtiene los insumos utilizados en un intermedio específico, con soporte de caché.
+  ///
+  /// [intermedioId] El ID del intermedio del que se requieren los insumos utilizados.
+  /// Retorna una lista de [InsumoUtilizado] para el intermedio especificado.
   Future<List<InsumoUtilizado>> _getInsumosUtilizados(
     String intermedioId,
   ) async {
-    // ... (igual que antes)
-    if (_insumoUtilizadoCache.containsKey(intermedioId))
+    if (_insumoUtilizadoCache.containsKey(intermedioId)) {
       return _insumoUtilizadoCache[intermedioId]!;
+    }
     final lista = await insumoUtilizadoRepo.obtenerPorIntermedio(intermedioId);
     _insumoUtilizadoCache[intermedioId] = lista;
     return lista;
   }
 
-  // Convierte el mapa de totales por unidad a una lista plana de ShoppingListItem
-  // Future<List<ShoppingListItem>> _mapTotalsToShoppingListItems(
-  //   ShoppingListTotals totals,
-  // ) async {
-  //   if (totals.isEmpty) return [];
 
-  //   final List<ShoppingListItem> flatList = [];
-  //   final allInsumoIds = totals.keys.toList();
-
-  //   // Obtener todos los objetos Insumo necesarios de una vez
-  //   final insumos = await insumoRepo.obtenerVarios(allInsumoIds);
-  //   final mapaInsumos = {
-  //     for (var i in insumos)
-  //       if (i.id != null) i.id!: i,
-  //   };
-
-  //   totals.forEach((insumoId, unidadesMap) {
-  //     final insumoBase = mapaInsumos[insumoId];
-  //     if (insumoBase != null) {
-  //       unidadesMap.forEach((unidad, cantidad) {
-  //         if (cantidad > 0) {
-  //           // Solo añadir si la cantidad es positiva
-  //           double costoDelItem = 0;
-  //           if (insumoBase.precioUnitario > 0) {
-  //             // Solo si hay precio
-  //             costoDelItem = cantidad * insumoBase.precioUnitario;
-  //           } else {
-  //             debugPrint(
-  //               "[ShoppingListService][WARN] Insumo ${insumoBase.nombre} no tiene precioUnitario, costo será 0.",
-  //             );
-  //           }
-  //           flatList.add(
-  //             ShoppingListItem(
-  //               insumo: insumoBase,
-  //               unidad: unidad, // La unidad normalizada
-  //               cantidad: cantidad,
-  //               costoItem: costoDelItem,
-  //             ),
-  //           );
-  //         }
-  //       });
-  //     } else {
-  //       debugPrint(
-  //         "[ShoppingListService][WARN] No se encontró Insumo ID $insumoId al mapear resultado final.",
-  //       );
-  //       // Opcional: añadir un item 'fantasma' para indicar el problema
-  //       // unidadesMap.forEach((unidad, cantidad) {
-  //       //    if (cantidad > 0) flatList.add(ShoppingListItem(insumo: Insumo(id: insumoId, nombre: 'Insumo Faltante ($insumoId)', ...defaults...), unidad: unidad, cantidad: cantidad));
-  //       // });
-  //     }
-  //   });
-  //   return flatList;
-  // }
 
   // Agrupa una lista plana de ShoppingListItem por proveedor
   Future<GroupedShoppingListResult> _groupShoppingListByProvider(
@@ -579,61 +325,82 @@ class ShoppingListService {
     return {for (var k in sortedKeys) k: finalGroupedList[k]!};
   }
 
-  // --- Método Principal (Adaptado) ---
-  // Ahora devuelve la estructura detallada intermedia, el agrupamiento y filtrado se hacen después.
+  /// Genera los totales detallados de la lista de compras para los eventos especificados.
+  ///
+  /// Este es el método principal que inicia el proceso de generación de la lista de compras.
+  /// Procesa todos los eventos, platos, intermedios e insumos para calcular las cantidades
+  /// totales necesarias, manteniendo un desglose por facturabilidad.
+  ///
+  /// [eventoIds] Lista de IDs de eventos a incluir en la lista de compras.
+  /// Retorna un [Future] que se completa con un [DetailedShoppingListTotals] que contiene
+  /// los totales detallados de todos los insumos requeridos.
   Future<DetailedShoppingListTotals> generateDetailedTotals(
     List<String> eventoIds,
   ) async {
     debugPrint(
       "[ShoppingListService] Iniciando generación DETALLADA para ${eventoIds.length} eventos.",
     );
+    
+    // Limpiar cachés para asegurar datos actualizados
     _clearCaches();
-    final DetailedShoppingListTotals detailedTotals =
-        {}; // <--- Nuevo tipo de acumulador
+    
+    // Estructura para acumular los totales detallados
+    final DetailedShoppingListTotals detailedTotals = {};
 
+    // Procesar cada evento individualmente
     for (final eventoId in eventoIds) {
       debugPrint(
         "[ShoppingListService] Procesando evento detallado: $eventoId",
       );
+      
       try {
-        // Necesitamos el objeto Evento para saber si es facturable
-        final Evento evento = await eventoRepo.obtener(
-          eventoId,
-        ); // Asegúrate que eventoRepo esté disponible
-        await _processSingleEventIntoDetailedTotals(
-          detailedTotals,
-          evento,
-        ); // <--- Pasa el evento completo
+        // Obtener el evento completo para acceder a sus propiedades (como facturable)
+        final Evento evento = await eventoRepo.obtener(eventoId);
+        
+        // Procesar el evento y acumular sus insumos en detailedTotals
+        await _processSingleEventIntoDetailedTotals(detailedTotals, evento);
       } catch (e, st) {
+        // Registrar errores pero continuar con los demás eventos
         debugPrint(
           "[ShoppingListService][ERROR] Falló procesamiento detallado $eventoId: $e\n$st",
         );
       }
     }
+    
     debugPrint(
       "[ShoppingListService] Totales detallados calculados: ${detailedTotals.length} insumos únicos.",
     );
+    
     return detailedTotals;
   }
 
-  // --- Procesar UN Evento (Recibe Evento completo) ---
+  /// Procesa un único evento y acumula sus insumos en la estructura de totales.
+  ///
+  /// Este método es llamado por [generateDetailedTotals] para cada evento que se
+  /// incluirá en la lista de compras. Se encarga de procesar los insumos directos,
+  /// intermedios y platos asociados al evento, manteniendo un registro de si son
+  /// facturables o no según la configuración del evento.
+  ///
+  /// [totals] La estructura donde se acumularán los totales.
+  /// [evento] El evento que se está procesando.
   Future<void> _processSingleEventIntoDetailedTotals(
     DetailedShoppingListTotals totals,
     Evento evento,
   ) async {
-    // <--- Recibe Evento
-    final eventoId = evento.id!; // Asumir que tiene ID
-    final bool esFacturable = evento.facturable; // Obtener el flag
+    if (evento.id == null) {
+      debugPrint("[ShoppingListService] Intento de procesar evento sin ID");
+      return;
+    }
+    
+    final eventoId = evento.id!;
+    final bool esFacturable = evento.facturable;
 
-    // 1. Cargar relaciones (igual que antes)
-    final List<PlatoEvento> platosEvento = await platoEventoRepo
-        .obtenerPorEvento(eventoId);
-    final List<IntermedioEvento> intermediosEvento = await intermedioEventoRepo
-        .obtenerPorEvento(eventoId);
-    final List<InsumoEvento> insumosEvento = await insumoEventoRepo
-        .obtenerPorEvento(eventoId);
+    // 1. Cargar todas las relaciones del evento
+    final List<PlatoEvento> platosEvento = await platoEventoRepo.obtenerPorEvento(eventoId);
+    final List<IntermedioEvento> intermediosEvento = await intermedioEventoRepo.obtenerPorEvento(eventoId);
+    final List<InsumoEvento> insumosEvento = await insumoEventoRepo.obtenerPorEvento(eventoId);
 
-    // 2. Procesar Insumos Directos (Pasar esFacturable)
+    // 2. Procesar Insumos Directos
     for (final insumoEv in insumosEvento) {
       await _addDetailedInsumoQuantity(
         totals,
@@ -641,30 +408,36 @@ class ShoppingListService {
         insumoEv.unidad,
         insumoEv.cantidad,
         esFacturable,
-      ); // <--- Pasa esFacturable
+      );
     }
 
-    // 3. Procesar Intermedios Directos (Pasar esFacturable)
+    // 3. Procesar Intermedios Directos
     for (final intermedioEv in intermediosEvento) {
       await _processIntermedioDetailed(
         totals,
         intermedioEv.intermedioId,
         intermedioEv.cantidad.toDouble(),
         esFacturable,
-      ); // <--- Pasa esFacturable
+      );
     }
 
-    // 4. Procesar Platos (Pasar esFacturable)
+    // 4. Procesar Platos (que a su vez pueden contener insumos e intermedios)
     for (final platoEv in platosEvento) {
-      await _processPlatoEventoDetailed(
-        totals,
-        platoEv,
-        esFacturable,
-      ); // <--- Pasa esFacturable
+      await _processPlatoEventoDetailed(totals, platoEv, esFacturable);
     }
   }
 
-  // --- Añadir Cantidad Detallada ---
+  /// Añade una cantidad de insumo a los totales, manteniendo el desglose por facturabilidad.
+  ///
+  /// Este método se encarga de acumular las cantidades de cada insumo en la estructura
+  /// de totales, normalizando las unidades de medida y separando las cantidades
+  /// según sean facturables o no.
+  ///
+  /// [totals] La estructura donde se acumularán los totales.
+  /// [insumoId] El ID del insumo a agregar.
+  /// [unidad] La unidad de medida del insumo (se normalizará).
+  /// [quantity] La cantidad a agregar.
+  /// [esFacturable] Indica si la cantidad es facturable o no.
   Future<void> _addDetailedInsumoQuantity(
     DetailedShoppingListTotals totals,
     String insumoId,
@@ -672,75 +445,103 @@ class ShoppingListService {
     double quantity,
     bool esFacturable,
   ) async {
+    // Validar parámetros
     if (insumoId.isEmpty || quantity <= 0) return;
+    
+    // Normalizar la unidad de medida
     String unidadNormalizada = unidad?.trim().toLowerCase() ?? 'unidad';
     if (unidadNormalizada.isEmpty) unidadNormalizada = 'unidad';
 
-    // Asegurar mapa para insumoId
+    // Asegurar que exista el mapa para este insumo
     totals.putIfAbsent(insumoId, () => {});
-    // Asegurar QuantityBreakdown para la unidad
+    
+    // Asegurar que exista el desglose para esta unidad
     final breakdown = totals[insumoId]!.putIfAbsent(
       unidadNormalizada,
       () => QuantityBreakdown(),
     );
 
-    // Sumar a la categoría correspondiente
+    // Acumular la cantidad en la categoría correspondiente (facturable o no)
     if (esFacturable) {
       breakdown.facturable += quantity;
     } else {
       breakdown.noFacturable += quantity;
     }
-    // debugPrint(...); // Log opcional
+    
+    // Opcional: Descomentar para depuración
+    // debugPrint('Añadido $quantity $unidadNormalizada de insumo $insumoId (facturable: $esFacturable)');
   }
 
+  /// Procesa un plato de un evento, incluyendo todos sus insumos e intermedios.
+  ///
+  /// Este método se encarga de procesar un plato asociado a un evento, calculando
+  /// las cantidades necesarias de cada insumo e intermedio según la cantidad de
+  /// porciones del evento y la configuración del plato.
+  ///
+  /// [totals] La estructura donde se acumularán los totales.
+  /// [platoEvento] El plato del evento a procesar.
+  /// [esFacturable] Indica si los insumos de este plato son facturables.
   Future<void> _processPlatoEventoDetailed(
     DetailedShoppingListTotals totals,
     PlatoEvento platoEvento,
     bool esFacturable,
   ) async {
-    // ... (Obtener platoBase, ratioPlato, etc., igual que antes) ...
+    // Obtener la definición base del plato
     final platoBase = await _getPlatoBase(platoEvento.platoId);
-    if (platoBase == null || platoBase.porcionesMinimas <= 0) return;
+    
+    // Validar que el plato existe y tiene una configuración válida
+    if (platoBase == null || platoBase.porcionesMinimas <= 0) {
+      debugPrint('[ShoppingListService] Plato no encontrado o sin porciones válidas: ${platoEvento.platoId}');
+      return;
+    }
+    
+    // Calcular cantidades y ratios
     final double cantidadPlatoEvento = platoEvento.cantidad.toDouble();
     if (cantidadPlatoEvento <= 0) return;
+    
+    // Calcular el ratio de escalado basado en las porciones del evento vs. el estándar del plato
     final double ratioPlato = cantidadPlatoEvento / platoBase.porcionesMinimas;
-    final Set<String> insumosRemovidos = Set.from(
-      platoEvento.insumosRemovidos ?? [],
-    );
-    final Set<String> intermediosRemovidos = Set.from(
-      platoEvento.intermediosRemovidos ?? [],
-    );
+    
+    // Obtener listas de insumos e intermedios removidos (si los hay)
+    final Set<String> insumosRemovidos = Set.from(platoEvento.insumosRemovidos ?? []);
+    final Set<String> intermediosRemovidos = Set.from(platoEvento.intermediosRemovidos ?? []);
 
     debugPrint(
       "[ShoppingListService] Procesando Plato (Facturable: $esFacturable): ${platoBase.nombre} x ${platoEvento.cantidad}",
     );
 
-    // Insumos Requeridos Base
+    // 1. Procesar insumos base del plato (no removidos)
     final insumosBaseReq = await _getInsumosRequeridos(platoBase.id!);
     for (final irBase in insumosBaseReq) {
       if (!insumosRemovidos.contains(irBase.insumoId)) {
         final insumoBase = await _getInsumoBase(irBase.insumoId);
-        await _addDetailedInsumoQuantity(
-          totals,
-          irBase.insumoId,
-          insumoBase?.unidad,
-          irBase.cantidad * ratioPlato,
-          esFacturable,
-        ); // <-- Pasar esFacturable
+        if (insumoBase != null) {
+          await _addDetailedInsumoQuantity(
+            totals,
+            irBase.insumoId,
+            insumoBase.unidad,
+            irBase.cantidad * ratioPlato,
+            esFacturable,
+          );
+        }
       }
     }
-    // Insumos Extra
+    
+    // 2. Procesar insumos extra agregados al plato
     for (final itemExtra in platoEvento.insumosExtra ?? []) {
       final insumoBase = await _getInsumoBase(itemExtra.id);
-      await _addDetailedInsumoQuantity(
-        totals,
-        itemExtra.id,
-        insumoBase?.unidad,
-        itemExtra.cantidad * ratioPlato,
-        esFacturable,
-      ); // <-- Pasar esFacturable
+      if (insumoBase != null) {
+        await _addDetailedInsumoQuantity(
+          totals,
+          itemExtra.id,
+          insumoBase.unidad,
+          itemExtra.cantidad * ratioPlato,
+          esFacturable,
+        );
+      }
     }
-    // Intermedios Requeridos Base
+    
+    // 3. Procesar intermedios base del plato (no removidos)
     final intermediosBaseReq = await _getIntermediosRequeridos(platoBase.id!);
     for (final irBase in intermediosBaseReq) {
       if (!intermediosRemovidos.contains(irBase.intermedioId)) {
@@ -749,76 +550,121 @@ class ShoppingListService {
           irBase.intermedioId,
           irBase.cantidad * ratioPlato,
           esFacturable,
-        ); // <-- Pasar esFacturable
+        );
       }
     }
-    // Intermedios Extra
+    
+    // 4. Procesar intermedios extra agregados al plato
     for (final itemExtra in platoEvento.intermediosExtra ?? []) {
       await _processIntermedioDetailed(
         totals,
         itemExtra.id,
         itemExtra.cantidad * ratioPlato,
         esFacturable,
-      ); // <-- Pasar esFacturable
+      );
     }
   }
 
+  /// Procesa un intermedio, incluyendo todos los insumos que lo componen.
+  ///
+  /// Este método se encarga de descomponer un intermedio en sus insumos constituyentes,
+  /// calculando las cantidades necesarias de cada insumo en función de la cantidad
+  /// total requerida del intermedio.
+  ///
+  /// [totals] La estructura donde se acumularán los totales.
+  /// [intermedioId] El ID del intermedio a procesar.
+  /// [cantidadTotalNecesariaIntermedio] La cantidad total necesaria de este intermedio.
+  /// [esFacturable] Indica si los insumos de este intermedio son facturables.
   Future<void> _processIntermedioDetailed(
     DetailedShoppingListTotals totals,
     String intermedioId,
     double cantidadTotalNecesariaIntermedio,
     bool esFacturable,
   ) async {
-    // ... (Obtener intermedioBase, ratioIntermedio, etc., igual que antes) ...
-    if (intermedioId.isEmpty || cantidadTotalNecesariaIntermedio <= 0) return;
-    final intermedioBase = await _getIntermedioBase(intermedioId);
-    if (intermedioBase == null || intermedioBase.cantidadEstandar <= 0) return;
-    final double ratioIntermedio =
-        cantidadTotalNecesariaIntermedio / intermedioBase.cantidadEstandar;
+    // Validar parámetros
+    if (cantidadTotalNecesariaIntermedio <= 0) return;
+
+    // Obtener la definición base del intermedio (con caché)
+    final intermedio = await _getIntermedioBase(intermedioId);
+    if (intermedio == null) {
+      debugPrint(
+        "[ShoppingListService][WARN] Intermedio no encontrado: $intermedioId");
+      return;
+    }
+
     debugPrint(
-      "    Procesando Intermedio (Facturable: $esFacturable): ${intermedioBase.nombre} - Necesario: $cantidadTotalNecesariaIntermedio, Ratio: $ratioIntermedio",
+      "[ShoppingListService] Procesando Intermedio (Facturable: $esFacturable): ${intermedio.nombre} x $cantidadTotalNecesariaIntermedio",
     );
 
+    // Obtener los insumos utilizados en este intermedio (con caché)
     final insumosUtilizados = await _getInsumosUtilizados(intermedioId);
-    for (final iu in insumosUtilizados) {
-      final insumoBase = await _getInsumoBase(iu.insumoId);
-      await _addDetailedInsumoQuantity(
-        totals,
-        iu.insumoId,
-        insumoBase?.unidad,
-        iu.cantidad * ratioIntermedio,
-        esFacturable,
-      ); // <-- Pasar esFacturable
+
+    // Calcular el factor de conversión basado en la cantidad estándar del intermedio
+    final double cantidadBaseIntermedio = intermedio.cantidadEstandar;
+    final double factorConversion = cantidadTotalNecesariaIntermedio /
+        (cantidadBaseIntermedio > 0 ? cantidadBaseIntermedio : 1);
+
+    // Procesar cada insumo utilizado en el intermedio
+    for (final insumoUsado in insumosUtilizados) {
+      final insumo = await _getInsumoBase(insumoUsado.insumoId);
+      if (insumo != null) {
+        // Calcular la cantidad necesaria de este insumo para la cantidad total del intermedio
+        final double cantidadNecesaria = insumoUsado.cantidad * factorConversion;
+
+        // Agregar al total de insumos (con su facturabilidad)
+        await _addDetailedInsumoQuantity(
+          totals,
+          insumoUsado.insumoId,
+          insumo.unidad,
+          cantidadNecesaria,
+          esFacturable,
+        );
+      }
     }
   }
 
-  // --- Modificar Mapeo Final y Agrupación ---
-  // Ahora mapeamos desde DetailedShoppingListTotals
-
-  // Crea la lista plana, pero ahora puede tener items separados por facturable/no facturable si quieres
+  /// Convierte los totales detallados en una lista de ítems de compra.
+  ///
+  /// Este método transforma la estructura interna de totales detallados en una
+  /// lista plana de [ShoppingListItem], con opción de separar los ítems
+  /// según sean facturables o no.
+  ///
+  /// [detailedTotals] Los totales detallados a convertir.
+  /// [separateByFacturable] Si es `true`, genera ítems separados para cantidades
+  ///                       facturables y no facturables. Si es `false`, combina
+  ///                       ambas cantidades en un solo ítem.
+  ///
+  /// Retorna una lista de [ShoppingListItem] lista para mostrar o exportar.
   Future<List<ShoppingListItem>> _mapDetailedTotalsToShoppingListItems(
     DetailedShoppingListTotals detailedTotals, {
-    bool separateByFacturable = false, // Flag para decidir si separar
+    bool separateByFacturable = false,
   }) async {
     if (detailedTotals.isEmpty) return [];
+    
     final List<ShoppingListItem> flatList = [];
     final allInsumoIds = detailedTotals.keys.toList();
+    
+    // Obtener todos los insumos necesarios en una sola consulta
     final insumos = await insumoRepo.obtenerVarios(allInsumoIds);
     final mapaInsumos = {
       for (var i in insumos)
         if (i.id != null) i.id!: i,
     };
 
+    // Procesar cada insumo en los totales detallados
     detailedTotals.forEach((insumoId, unidadesMap) {
       final insumoBase = mapaInsumos[insumoId];
       if (insumoBase != null) {
         unidadesMap.forEach((unidad, breakdown) {
-          // Calcular costo base (asumiendo unidad consistente con precio)
-          double precioUnit =
-              insumoBase.precioUnitario > 0 ? insumoBase.precioUnitario : 0;
+          // Obtener el precio unitario del insumo (o 0 si no está definido)
+          double precioUnit = insumoBase.precioUnitario > 0 
+              ? insumoBase.precioUnitario 
+              : 0;
 
           if (separateByFacturable) {
-            // Crear dos items separados si hay cantidad en ambos
+            // --- Opción 1: Separar en ítems distintos para facturable y no facturable ---
+            
+            // Crear ítem facturable si hay cantidad
             if (breakdown.facturable > 0) {
               flatList.add(
                 ShoppingListItem(
@@ -826,10 +672,12 @@ class ShoppingListService {
                   unidad: unidad,
                   cantidad: breakdown.facturable,
                   costoItem: breakdown.facturable * precioUnit,
-                  esFacturable: true,
+                  esFacturable: true, // Ítem marcado como facturable
                 ),
               );
             }
+            
+            // Crear ítem no facturable si hay cantidad
             if (breakdown.noFacturable > 0) {
               flatList.add(
                 ShoppingListItem(
@@ -837,13 +685,15 @@ class ShoppingListService {
                   unidad: unidad,
                   cantidad: breakdown.noFacturable,
                   costoItem: breakdown.noFacturable * precioUnit,
-                  esFacturable: false,
+                  esFacturable: false, // Ítem marcado como no facturable
                 ),
               );
             }
           } else {
-            // Crear un solo item con la cantidad total
+            // --- Opción 2: Un solo ítem con cantidades combinadas ---
             final double cantidadTotal = breakdown.total;
+            
+            // Solo agregar si hay cantidad total
             if (cantidadTotal > 0) {
               flatList.add(
                 ShoppingListItem(
@@ -851,7 +701,7 @@ class ShoppingListService {
                   unidad: unidad,
                   cantidad: cantidadTotal,
                   costoItem: cantidadTotal * precioUnit,
-                  esFacturable: null,
+                  // No establecemos esFacturable ya que está combinado
                 ),
               );
             }
@@ -863,34 +713,81 @@ class ShoppingListService {
         );
       }
     });
+    
     return flatList;
   }
 
   // --- Nuevos Métodos Públicos Expuestos ---
 
-  /// Genera lista de compras detallada por facturabilidad (estructura interna)
+  /// Genera los totales detallados de la lista de compras para los eventos especificados.
+  ///
+  /// Este método es el punto de entrada principal para obtener los totales detallados
+  /// de la lista de compras. Procesa todos los eventos, platos, intermedios e insumos
+  /// para calcular las cantidades totales necesarias, manteniendo un desglose por facturabilidad.
+  ///
+  /// [eventoIds] Lista de IDs de eventos a incluir en la lista de compras.
+  /// Retorna un [Future] que se completa con un [DetailedShoppingListTotals] que contiene
+  /// los totales detallados de todos los insumos requeridos.
+  ///
+  /// Ejemplo de uso:
+  /// ```dart
+  /// final totals = await shoppingListService.getDetailedShoppingTotals(['evento1', 'evento2']);
+  /// ```
   Future<DetailedShoppingListTotals> getDetailedShoppingTotals(
     List<String> eventoIds,
   ) async {
-    return await generateDetailedTotals(eventoIds);
+    if (eventoIds.isEmpty) {
+      debugPrint('[ShoppingListService] Se solicitó lista de compras sin eventos');
+      return {};
+    }
+    return generateDetailedTotals(eventoIds);
   }
 
-  /// Genera la lista final agrupada, combinando facturables/no facturables
+  /// Genera una lista de compras agrupada por proveedor, combinando cantidades facturables y no facturables.
+  ///
+  /// Este método es útil cuando se necesita una vista consolidada de la lista de compras,
+  /// donde las cantidades de cada insumo se combinan sin importar su facturabilidad.
+  ///
+  /// [eventoIds] Lista de IDs de eventos a incluir en la lista de compras.
+  /// Retorna un [Future] que se completa con un [GroupedShoppingListResult] que contiene
+  /// los ítems de compra agrupados por proveedor.
+  ///
+  /// Ejemplo de uso:
+  /// ```dart
+  /// final resultado = await shoppingListService.getCombinedGroupedShoppingList(['evento1']);
+  /// // resultado.groupedItems contendrá los ítems agrupados por proveedor
+  /// ```
   Future<GroupedShoppingListResult> getCombinedGroupedShoppingList(
     List<String> eventoIds,
   ) async {
+    if (eventoIds.isEmpty) {
+      debugPrint('[ShoppingListService] Se solicitó lista agrupada sin eventos');
+      return GroupedShoppingListResult();
+    }
+    
+    // Obtener los totales detallados
     final detailedTotals = await generateDetailedTotals(eventoIds);
+    
+    // Convertir a lista plana sin separar por facturabilidad
     final flatList = await _mapDetailedTotalsToShoppingListItems(
       detailedTotals,
-      separateByFacturable: false,
+      separateByFacturable: false, // Combinar facturables y no facturables
     );
-    return await _groupShoppingListByProvider(flatList);
+    
+    // Agrupar y ordenar los resultados
+    return _groupShoppingListByProvider(flatList);
   }
 
   /// Genera la lista final agrupada, separando items facturables/no facturables
   Future<GroupedShoppingListResult> getSeparatedGroupedShoppingList(
     List<String> eventoIds,
   ) async {
+    if (eventoIds.isEmpty) {
+      debugPrint('[ShoppingListService] Se solicitó lista agrupada sin eventos');
+      return GroupedShoppingListResult();
+    }
+    
+    // Obtener los totales detallados
     final detailedTotals = await generateDetailedTotals(eventoIds);
     // Nota: Si separas, un mismo insumo/unidad puede aparecer dos veces en la lista plana
     // si tiene cantidad facturable Y no facturable. La agrupación por proveedor las juntará

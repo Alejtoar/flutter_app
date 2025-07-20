@@ -1,4 +1,3 @@
-// plato_controller.dart
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:golo_app/models/plato.dart';
@@ -9,36 +8,68 @@ import 'package:golo_app/exceptions/plato_en_uso_exception.dart';
 import 'package:golo_app/repositories/intermedio_requerido_repository.dart';
 import 'package:golo_app/repositories/insumo_requerido_repository.dart';
 
+/// Controlador que gestiona la lógica de negocio para los platos.
+///
+/// Este controlador maneja las operaciones CRUD para los platos,
+/// así como la gestión de los insumos e intermedios requeridos para cada plato.
+/// También se encarga de la generación de códigos únicos para nuevos platos.
 class PlatoController extends ChangeNotifier {
   Future<String> generarNuevoCodigo() async {
     return await _platoRepository.generarNuevoCodigo(uid: _uid);
   }
 
+  // Repositorios
   final PlatoRepository _platoRepository;
   final IntermedioRequeridoRepository _intermedioRequeridoRepository;
   final InsumoRequeridoRepository _insumoRequeridoRepository;
+  
+  // Autenticación
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  
+  // Estado de la aplicación
+  List<Plato> _platos = [];
+  bool _loading = false;
+  String? _error;
+  
+  // Relaciones cargadas para edición
+  List<IntermedioRequerido> _intermediosRequeridos = [];
+  List<InsumoRequerido> _insumosRequeridos = [];
+  
+  // Getters públicos
+  
+  /// ID del usuario actual
   String? get _uid => _auth.currentUser?.uid;
-
+  
+  /// Lista completa de platos
+  List<Plato> get platos => _platos;
+  
+  /// Indica si se está cargando información
+  bool get loading => _loading;
+  
+  /// Mensaje de error, si existe
+  String? get error => _error;
+  
+  /// Lista de intermedios requeridos para el plato actual
+  List<IntermedioRequerido> get intermediosRequeridos => _intermediosRequeridos;
+  
+  /// Lista de insumos requeridos para el plato actual
+  List<InsumoRequerido> get insumosRequeridos => _insumosRequeridos;
+  
+  /// Crea una nueva instancia del controlador de platos
+  /// 
+  /// [platoRepository] Repositorio para acceder a los datos de platos
+  /// [intermedioRequeridoRepository] Repositorio para acceder a los datos de intermedios requeridos
+  /// [insumoRequeridoRepository] Repositorio para acceder a los datos de insumos requeridos
   PlatoController(
     this._platoRepository,
     this._intermedioRequeridoRepository,
     this._insumoRequeridoRepository,
   );
 
-  List<Plato> _platos = [];
-  List<Plato> get platos => _platos;
-  bool _loading = false;
-  bool get loading => _loading;
-  String? _error;
-  String? get error => _error;
-
-  // Relaciones actuales cargadas para edición
-  List<IntermedioRequerido> _intermediosRequeridos = [];
-  List<IntermedioRequerido> get intermediosRequeridos => _intermediosRequeridos;
-  List<InsumoRequerido> _insumosRequeridos = [];
-  List<InsumoRequerido> get insumosRequeridos => _insumosRequeridos;
-
+  /// Carga todos los platos del usuario actual
+  /// 
+  /// Actualiza el estado de carga y notifica a los listeners cuando finaliza.
+  /// En caso de error, establece el mensaje de error correspondiente.
   Future<void> cargarPlatos() async {
     _loading = true;
     notifyListeners();
@@ -47,23 +78,30 @@ class PlatoController extends ChangeNotifier {
       _error = null;
     } catch (e) {
       _error = e.toString();
+    } finally {
+      _loading = false;
+      notifyListeners();
     }
-    _loading = false;
-    notifyListeners();
   }
 
-  // Future<bool> eliminarPlato(String id) async {
-  //   try {
-  //     await _platoRepository.eliminar(id, uid: _uid);
-  //     await _intermedioRequeridoRepository.eliminarPorPlato(id, uid: _uid);
-  //     await _insumoRequeridoRepository.eliminarPorPlato(id, uid: _uid);
-  //     _platos.removeWhere((p) => p.id == id);
-  //     _error = null;
-  //     notifyListeners();
-  //     return true;
-  //   } on PlatoEnUsoException catch (e) {
-  //     _error = e.toString();
-  //     notifyListeners();
+  /// Carga las relaciones (insumos e intermedios) de un plato específico
+  /// 
+  /// [platoId] ID del plato del cual cargar las relaciones
+  /// 
+  /// Lanza una excepción si ocurre un error al cargar las relaciones.
+  /// Notifica a los listeners cuando finaliza la operación.
+  Future<void> cargarRelacionesPlato(String platoId) async {
+    try {
+      _intermediosRequeridos = await _intermedioRequeridoRepository.obtenerPorPlato(platoId, uid: _uid);
+      _insumosRequeridos = await _insumoRequeridoRepository.obtenerPorPlato(platoId, uid: _uid);
+      _error = null;
+    } catch (e) {
+      _error = e.toString();
+      rethrow;
+    } finally {
+      notifyListeners();
+    }
+  }
   //     return false;
   //   } catch (e) {
   //     _error = e.toString();

@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:golo_app/features/auth/screens/login_page.dart';
 import 'package:golo_app/navigation/app_routes.dart';
 
+/// Widget que maneja la autenticación de la aplicación.
+/// 
+/// Este widget se encarga de redirigir al usuario a la pantalla de inicio de sesión
+/// si no está autenticado, o al dashboard si ya ha iniciado sesión.
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
 
@@ -11,19 +15,22 @@ class AuthWrapper extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
+        // Muestra un indicador de carga mientras se verifica el estado de autenticación
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
+        
+        // Si el usuario está autenticado, redirigir al dashboard
         if (snapshot.hasData) {
-          // Si el usuario está logueado, vamos al dashboard
-          // Usar pushReplacementNamed es más seguro que microtask
+          // Usar addPostFrameCallback para evitar problemas con el contexto durante la navegación
           WidgetsBinding.instance.addPostFrameCallback((_) {
             Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
           });
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
-        // Si no, vamos a la página de login
-        return const LoginPage(); // Asegúrate de que esta pantalla exista
+
+        // Si no hay usuario autenticado, mostrar la pantalla de inicio de sesión
+        return const LoginPage();
       },
     );
   }
