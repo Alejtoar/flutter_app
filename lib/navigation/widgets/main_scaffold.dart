@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:golo_app/navigation/widgets/rail_navigation.dart';
+import 'package:golo_app/navigation/widgets/rail_navigationv2.dart';
 import 'package:golo_app/navigation/widgets/bottom_navigation.dart';
 
 class MainScaffold extends StatelessWidget {

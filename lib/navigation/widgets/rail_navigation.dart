@@ -14,7 +14,6 @@ class RailNavigation extends StatelessWidget { // <-- AHORA ES STATELESS
     final navCtrl = context.watch<NavigationController>();
     final mainMenu = MainMenu.items;
 
-    // --- Lógica de Decisión (Declarativa, sin estado local) ---
 
     // 1. Determinar el menú principal activo basándose en la ruta actual
     MenuItem? activeMainItem;
@@ -27,9 +26,6 @@ class RailNavigation extends StatelessWidget { // <-- AHORA ES STATELESS
     }
 
     // 2. Decidir si estamos en un submenú
-    // Para estar "en un submenú", el item principal activo debe tener subitems
-    // Y no tener una ruta principal propia que coincida con la ruta actual.
-    // (Ej: "Catálogos" no tiene ruta, así que si está activo, estamos en su submenú)
     final bool inSubMenu = activeMainItem != null &&
                            (activeMainItem.subItems?.isNotEmpty ?? false) &&
                            activeMainItem.route != navCtrl.currentRoute;
@@ -72,21 +68,14 @@ class RailNavigation extends StatelessWidget { // <-- AHORA ES STATELESS
       ],
       onDestinationSelected: (index) {
           if (inSubMenu) {
-            if (index == 0) { // Botón "Atrás"
-              // Navegar a la ruta del menú principal padre.
-              // Si no tiene ruta (como "Catálogos"), no hace nada,
-              // lo que obliga al usuario a elegir otro menú principal.
-              // O mejor, navegamos al Dashboard como fallback.
+            if (index == 0) { 
               navCtrl.navigateTo(activeMainItem?.route ?? AppRoutes.dashboard);
             } else {
-              // Navegar al sub-item seleccionado
               final subItem = currentMenuItems[index - 1];
               if (subItem.route != null) navCtrl.navigateTo(subItem.route!);
             }
           } else { // Estamos en el menú principal
              final mainItem = currentMenuItems[index];
-             // Si el item tiene sub-items, la acción correcta NO es navegar,
-             // sino navegar a su PRIMER sub-item.
              if (mainItem.subItems != null && mainItem.subItems!.isNotEmpty) {
                 // Navegar al primer sub-item
                 if (mainItem.subItems!.first.route != null) {
