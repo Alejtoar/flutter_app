@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:golo_app/navigation/app_routes.dart';
-import 'package:golo_app/navigation/controllers/navigation_controller.dart';
 import 'package:golo_app/navigation/models/main_menu.dart';
 import 'package:golo_app/navigation/models/menu_item.dart';
-import 'package:provider/provider.dart';
 
 class RailNavigation extends StatelessWidget { // <-- AHORA ES STATELESS
   final bool isExpanded;
@@ -11,15 +10,15 @@ class RailNavigation extends StatelessWidget { // <-- AHORA ES STATELESS
 
   @override
   Widget build(BuildContext context) {
-    final navCtrl = context.watch<NavigationController>();
     final mainMenu = MainMenu.items;
+    final String currentRoute = GoRouter.of(context).routerDelegate.currentConfiguration.fullPath;
 
 
     // 1. Determinar el menú principal activo basándose en la ruta actual
     MenuItem? activeMainItem;
     for (final item in mainMenu) {
-        if (item.route == navCtrl.currentRoute ||
-            (item.subItems?.any((sub) => sub.route == navCtrl.currentRoute) ?? false)) {
+        if (item.route == currentRoute ||
+            (item.subItems?.any((sub) => sub.route == currentRoute) ?? false)) {
             activeMainItem = item;
             break;
         }
@@ -28,7 +27,7 @@ class RailNavigation extends StatelessWidget { // <-- AHORA ES STATELESS
     // 2. Decidir si estamos en un submenú
     final bool inSubMenu = activeMainItem != null &&
                            (activeMainItem.subItems?.isNotEmpty ?? false) &&
-                           activeMainItem.route != navCtrl.currentRoute;
+                           activeMainItem.route != currentRoute;
 
 
     // 3. Determinar qué lista de items mostrar
@@ -40,7 +39,7 @@ class RailNavigation extends StatelessWidget { // <-- AHORA ES STATELESS
     int selectedIndex = 0;
     if (inSubMenu) {
        // El índice 0 es el botón "Atrás", sumamos 1
-       final subIndex = currentMenuItems.indexWhere((item) => item.route == navCtrl.currentRoute);
+       final subIndex = currentMenuItems.indexWhere((item) => item.route == currentRoute);
        selectedIndex = subIndex != -1 ? subIndex + 1 : 0;
     } else {
        // El índice es la posición del item principal activo
@@ -69,21 +68,21 @@ class RailNavigation extends StatelessWidget { // <-- AHORA ES STATELESS
       onDestinationSelected: (index) {
           if (inSubMenu) {
             if (index == 0) { 
-              navCtrl.navigateTo(activeMainItem?.route ?? AppRoutes.dashboard);
+              GoRouter.of(context).go(activeMainItem?.route ?? AppRoutes.dashboard);
             } else {
               final subItem = currentMenuItems[index - 1];
-              if (subItem.route != null) navCtrl.navigateTo(subItem.route!);
+              if (subItem.route != null) GoRouter.of(context).go(subItem.route!);
             }
           } else { // Estamos en el menú principal
              final mainItem = currentMenuItems[index];
              if (mainItem.subItems != null && mainItem.subItems!.isNotEmpty) {
                 // Navegar al primer sub-item
                 if (mainItem.subItems!.first.route != null) {
-                    navCtrl.navigateTo(mainItem.subItems!.first.route!);
+                    GoRouter.of(context).go(mainItem.subItems!.first.route!);
                 }
              } else if (mainItem.route != null) {
                 // Navegar a la ruta principal si no hay sub-items
-                navCtrl.navigateTo(mainItem.route!);
+                GoRouter.of(context).go(mainItem.route!);
              }
           }
       },

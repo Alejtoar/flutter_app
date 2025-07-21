@@ -2,7 +2,7 @@
   "projects": {
     "dev": "golofirebase",
     "prod": "golo-foodcatering",
-    "default": "golo-foodcatering"
+    "default": "portafolio-flutter-catering"
   },
   "targets": {},
   "etags": {}

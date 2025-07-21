@@ -1,9 +1,8 @@
 // lib/navigation/widgets/rail_navigation.dart (Reemplazado por versión personalizada)
 
 import 'package:flutter/material.dart';
-import 'package:golo_app/navigation/controllers/navigation_controller.dart';
+import 'package:go_router/go_router.dart';
 import 'package:golo_app/navigation/models/main_menu.dart';
-import 'package:provider/provider.dart';
 // Importar el nuevo widget de item
 import 'package:golo_app/navigation/widgets/hover_rail_item.dart';
 
@@ -13,15 +12,17 @@ class RailNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final navCtrl = context.watch<NavigationController>();
+    
     final mainMenu = MainMenu.items;
+    final String currentRoute = GoRouter.of(context).routerDelegate.currentConfiguration.fullPath;
+    final router = GoRouter.of(context);
 
     // Calcular índice seleccionado (igual que antes)
     int selectedIndex = 0;
     for (int i = 0; i < mainMenu.length; i++) {
       final item = mainMenu[i];
-      if (item.route == navCtrl.currentRoute ||
-          (item.subItems?.any((sub) => sub.route == navCtrl.currentRoute) ??
+      if (item.route == currentRoute ||
+          (item.subItems?.any((sub) => sub.route == currentRoute) ??
               false)) {
         selectedIndex = i;
         break;
@@ -43,20 +44,20 @@ class RailNavigation extends StatelessWidget {
               isExpanded: isExpanded,
               onSubItemSelect: (route) {
                 // Pasar la función de navegación del controlador
-                navCtrl.navigateTo(route);
+                router.go(route);
               },
               onSelect: () {
                 // --- LÓGICA DEL CLIC PRINCIPAL ---
                 // Si tiene una ruta directa (como "Inicio"), navega
                 if (item.route != null) {
-                  navCtrl.navigateTo(item.route!);
+                  router.go(item.route!);
                 }
                 // Si tiene sub-items, el clic principal puede no hacer nada,
                 // o navegar al primer sub-item.
                 else if (item.subItems != null && item.subItems!.isNotEmpty) {
                   final firstSubItem = item.subItems!.first;
                   if (firstSubItem.route != null) {
-                    navCtrl.navigateTo(firstSubItem.route!);
+                    router.go(firstSubItem.route!);
                   }
                 }
               },

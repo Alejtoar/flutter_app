@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:golo_app/features/dashboards/widgets/quick_action_button.dart';
-import 'package:golo_app/navigation/app_routes.dart';
+import 'package:golo_app/navigation/app_router.dart';
+
 
 class QuickActionsSection extends StatelessWidget {
   const QuickActionsSection({super.key});
@@ -12,7 +14,6 @@ class QuickActionsSection extends StatelessWidget {
        children: [
           Text('Acciones Rápidas', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
-           // Usar Card da una mejor separación visual
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -22,16 +23,16 @@ class QuickActionsSection extends StatelessWidget {
                 alignment: WrapAlignment.center,
                 children: [
                   QuickActionButton(label: 'Nuevo Evento', icon: Icons.add, onTap: () {
-                     Navigator.pushNamed(context, AppRoutes.eventosBuscador); // O a la pantalla de edición directamente
+                     context.go(AppRouter.eventosBuscador); // O a la pantalla de edición directamente
                   }),
                   QuickActionButton(label: 'Ver Insumos', icon: Icons.inventory_2_outlined, onTap: () {
-                     Navigator.pushNamed(context, AppRoutes.insumos);
+                     context.go(AppRouter.insumos);
                   }),
                   QuickActionButton(label: 'Ver Platos', icon: Icons.restaurant_menu_outlined, onTap: () {
-                      Navigator.pushNamed(context, AppRoutes.platos);
+                      context.go(AppRouter.platos);
                   }),
                    QuickActionButton(label: 'Calendario', icon: Icons.calendar_month_outlined, onTap: () {
-                      Navigator.pushNamed(context, AppRoutes.eventosCalendario); // Si creas la ruta
+                      context.go(AppRouter.eventosCalendario); // Si creas la ruta
                    }),
                 ],
               ),

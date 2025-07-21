@@ -49,6 +49,7 @@ app.*.map.json
 /integration_test
 /lib/firebase_options_dev.dart
 /lib/firebase_options_prod.dart
+/lib/firebase_options_port.dart
 /firebase.json
 
 .firebase

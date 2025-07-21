@@ -3,30 +3,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:golo_app/navigation/models/menu_item.dart';
 
-/// Tipo de callback para la navegación a sub-ítems
 typedef SubItemNavCallback = void Function(String route);
 
-/// Widget que representa un ítem en la barra lateral de navegación.
-/// 
-/// Muestra un elemento de menú con soporte para sub-ítems desplegables,
-/// estados de selección y efectos visuales al pasar el ratón.
 class HoverRailItem extends StatefulWidget {
-  /// Elemento del menú a mostrar
   final MenuItem menuItem;
-  
-  /// Indica si este ítem está actualmente seleccionado
   final bool isSelected;
-  
-  /// Indica si el panel lateral está expandido
   final bool isExpanded;
-  
-  /// Callback que se ejecuta cuando se selecciona el ítem
   final VoidCallback onSelect;
-  
-  /// Callback que se ejecuta cuando se selecciona un sub-ítem
   final SubItemNavCallback onSubItemSelect;
 
-  /// Crea una instancia de HoverRailItem
   const HoverRailItem({
     Key? key,
     required this.menuItem,
@@ -41,26 +26,21 @@ class HoverRailItem extends StatefulWidget {
 }
 
 class _HoverRailItemState extends State<HoverRailItem> {
-  /// Controlador para gestionar la visualización del menú flotante
+  // Controlador para el portal del overlay
   final _overlayController = OverlayPortalController();
-  
-  /// Vínculo que conecta la posición del botón con el menú flotante
+  // Vínculo para conectar la posición del botón con la del menú flotante
   final _layerLink = LayerLink();
 
-  /// Timer para gestionar el cierre automático del menú
   Timer? _hideTimer;
 
-  /// Cancela el temporizador de cierre del menú si está activo
+  // Cancela cualquier timer de cierre pendiente
   void _cancelHideTimer() {
     _hideTimer?.cancel();
   }
 
-  /// Inicia un temporizador para cerrar el menú después de un breve retraso
-  /// 
-  /// Este método se utiliza para implementar un retraso antes de ocultar
-  /// el menú cuando el cursor sale del área del ítem o del menú desplegable.
+  // Inicia un timer para cerrar el menú después de un breve retraso
   void _startHideTimer() {
-    _cancelHideTimer();
+    _cancelHideTimer(); // Cancela cualquier timer anterior
     _hideTimer = Timer(const Duration(milliseconds: 200), () {
       if (mounted) {
         _overlayController.hide();

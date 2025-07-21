@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
-import 'package:golo_app/navigation/controllers/navigation_controller.dart';
 import 'package:golo_app/navigation/models/main_menu.dart';
 
-import 'package:provider/provider.dart';
 
 class BottomNavigation extends StatelessWidget {
   const BottomNavigation({Key? key}) : super(key: key);
@@ -14,8 +13,9 @@ class BottomNavigation extends StatelessWidget {
     final mainMenu = MainMenu.items;
 
     // Escuchar cambios en NavigationController para reconstruir la barra
-    final navCtrl = context.watch<NavigationController>();
-    final selectedIndex = _calculateSelectedIndex(navCtrl.currentRoute);
+    final router = GoRouter.of(context);
+    final currentRoute = router.routerDelegate.currentConfiguration.fullPath;
+    final selectedIndex = _calculateSelectedIndex(currentRoute);
 
     return BottomNavigationBar(
       items:
@@ -33,7 +33,6 @@ class BottomNavigation extends StatelessWidget {
           (index) => _handleMainItemTap(
             context,
             index,
-            navCtrl,
           ), // Pasar el controller
       selectedItemColor: theme.primaryColor,
       unselectedItemColor: theme.disabledColor,
@@ -56,12 +55,12 @@ class BottomNavigation extends StatelessWidget {
     return 0; // Por defecto a Inicio
   }
 
-  void _handleMainItemTap(BuildContext context, int index, NavigationController navCtrl) {
+  void _handleMainItemTap(BuildContext context, int index) {
       final item = MainMenu.items[index];
 
       // Si el item tiene una ruta directa, navegar.
       if (item.route != null) {
-        navCtrl.navigateTo(item.route!);
+        context.go(item.route!);
         return;
       }
 
@@ -80,7 +79,7 @@ class BottomNavigation extends StatelessWidget {
                     onTap: () {
                       Navigator.pop(ctx);
                       if (subItem.route != null) {
-                         navCtrl.navigateTo(subItem.route!); // <<-- Delegar
+                         context.go(subItem.route!);
                       }
                     },
                   ),

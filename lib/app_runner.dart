@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:golo_app/config/app_config.dart';
-
-import 'package:golo_app/features/auth/widgets/auth_wrapper.dart';
-import 'package:golo_app/navigation/app_routes.dart';
+import 'package:golo_app/navigation/app_router.dart';
 import 'package:golo_app/features/catalogos/insumos/controllers/insumo_controller.dart';
 import 'package:golo_app/features/catalogos/intermedios/controllers/intermedio_controller.dart';
 import 'package:golo_app/features/catalogos/platos/controllers/plato_controller.dart';
@@ -11,12 +9,12 @@ import 'package:golo_app/repositories/plato_repository_impl.dart';
 import 'package:golo_app/repositories/intermedio_requerido_repository_impl.dart';
 import 'package:golo_app/repositories/insumo_requerido_repository_impl.dart';
 import 'package:golo_app/features/catalogos/proveedores/controllers/proveedor_controller.dart';
-import 'package:golo_app/navigation/controllers/navigation_controller.dart';
 import 'package:golo_app/repositories/insumo_repository_impl.dart';
 import 'package:golo_app/repositories/intermedio_repository_impl.dart';
 import 'package:golo_app/repositories/insumo_utilizado_repository_impl.dart';
 import 'package:golo_app/repositories/proveedor_repository_impl.dart';
 import 'package:golo_app/services/excel_export_service_sync.dart';
+import 'package:golo_app/services/seed_data_service.dart';
 //import 'package:golo_app/services/excel_export_service.dart';
 import 'package:golo_app/services/shopping_list_service.dart';
 import 'package:provider/provider.dart';
@@ -45,6 +43,7 @@ void runGoloApp() async {
   final insumoUtilizadoRepo = InsumoUtilizadoFirestoreRepository(db);
   final proveedorRepo = ProveedorFirestoreRepository(db);
   final excelExportService = ExcelExportServiceSync();
+  final seedDataService = SeedDataService(db);
   
 
   final shoppingListService = ShoppingListService(
@@ -64,7 +63,6 @@ void runGoloApp() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => NavigationController()),
         ChangeNotifierProvider(
           create:
               (_) => BuscadorEventosController(
@@ -96,8 +94,9 @@ void runGoloApp() async {
         Provider<EventoRepository>(create: (_) => eventoRepo),
         Provider<ShoppingListService>(create: (_) => shoppingListService),
         Provider<ExcelExportServiceSync>(create: (_) => excelExportService),
+        Provider<SeedDataService>(create: (_) => seedDataService),
       ],
-      child: const MyApp(), // Llama al widget raíz común
+      child: const MyApp(), 
     ),
   );
 }
@@ -107,32 +106,17 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Determinar la pantalla de inicio según el entorno
-    final Widget homeWidget;
-    final navCtrl = Provider.of<NavigationController>(context, listen: false);
-    if (AppConfig.instance.environment == Environment.prod) {
-      homeWidget = const AuthWrapper(); // Prod usa autenticación
-    } else {
-      // Dev va directo al dashboard (o lo que definas)
-      // Asegúrate que AppRoutes.dashboard esté configurado
-      // O instancia la pantalla directamente
-      homeWidget = AppRoutes.routes[AppRoutes.dashboard]!(context);
-    }
+    final environment = AppConfig.instance.environment;
 
-    return MaterialApp(
+    return MaterialApp.router(
+      routerConfig: AppRouter.router,
       debugShowCheckedModeBanner:
-          AppConfig.instance.environment == Environment.dev,
+          environment == Environment.dev,
       title: AppConfig.instance.appTitle, // <-- Usa el título del flavor
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      navigatorKey: navCtrl.navigatorKey,
-      initialRoute: '/', // Definir una ruta raíz
-      routes: {
-        ...AppRoutes.routes, // Tus rutas existentes
-        '/': (context) => homeWidget, // La ruta raíz apunta al widget de inicio
-      },
     );
   }
 }

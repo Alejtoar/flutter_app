@@ -1,5 +1,5 @@
 
-enum Environment { dev, prod }
+enum Environment { dev, prod, port }
 
 class AppConfig {
   final Environment environment;
