@@ -1,5 +1,6 @@
 // services/shopping_list_service.dart
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:collection/collection.dart';
 
@@ -57,6 +58,8 @@ class ShoppingListItem {
   
   /// Indica si el ítem es facturable (true), no facturable (false), o combinado (null).
   final bool? esFacturable;
+
+
 
   /// Crea una nueva instancia de [ShoppingListItem].
   const ShoppingListItem({
@@ -158,6 +161,9 @@ class ShoppingListService {
   
   /// Cache de insumos utilizados por ID de intermedio
   Map<String, List<InsumoUtilizado>> _insumoUtilizadoCache = {};
+  
+ final FirebaseAuth _auth = FirebaseAuth.instance;
+  String? get _uid => _auth.currentUser?.uid;
 
 
 
@@ -196,7 +202,7 @@ class ShoppingListService {
   Future<Plato?> _getPlatoBase(String platoId) async {
     if (_platoCache.containsKey(platoId)) return _platoCache[platoId];
     try {
-      final p = await platoRepo.obtener(platoId);
+      final p = await platoRepo.obtener(platoId, uid: _uid);
       _platoCache[platoId] = p;
       return p;
     } catch (_) {
@@ -213,7 +219,7 @@ class ShoppingListService {
       return _intermedioCache[intermedioId];
     }
     try {
-      final i = await intermedioRepo.obtener(intermedioId);
+      final i = await intermedioRepo.obtener(intermedioId, uid: _uid);
       _intermedioCache[intermedioId] = i;
       return i;
     } catch (_) {
@@ -229,7 +235,7 @@ class ShoppingListService {
     if (_insumoCache.containsKey(insumoId)) return _insumoCache[insumoId];
     try {
       // Usar obtenerVarios para optimizar la carga de múltiples insumos
-      final insumos = await insumoRepo.obtenerVarios([insumoId]);
+      final insumos = await insumoRepo.obtenerVarios([insumoId], uid: _uid);
       final insumo = insumos.isNotEmpty ? insumos.first : null;
       if (insumo != null) _insumoCache[insumoId] = insumo;
       return insumo;
@@ -246,7 +252,7 @@ class ShoppingListService {
     if (_insumoRequeridoCache.containsKey(platoId)) {
       return _insumoRequeridoCache[platoId]!;
     }
-    final lista = await insumoRequeridoRepo.obtenerPorPlato(platoId);
+    final lista = await insumoRequeridoRepo.obtenerPorPlato(platoId, uid: _uid);
     _insumoRequeridoCache[platoId] = lista;
     return lista;
   }
@@ -261,7 +267,7 @@ class ShoppingListService {
     if (_intermedioRequeridoCache.containsKey(platoId)) {
       return _intermedioRequeridoCache[platoId]!;
     }
-    final lista = await intermedioRequeridoRepo.obtenerPorPlato(platoId);
+    final lista = await intermedioRequeridoRepo.obtenerPorPlato(platoId, uid: _uid);
     _intermedioRequeridoCache[platoId] = lista;
     return lista;
   }
@@ -276,7 +282,7 @@ class ShoppingListService {
     if (_insumoUtilizadoCache.containsKey(intermedioId)) {
       return _insumoUtilizadoCache[intermedioId]!;
     }
-    final lista = await insumoUtilizadoRepo.obtenerPorIntermedio(intermedioId);
+    final lista = await insumoUtilizadoRepo.obtenerPorIntermedio(intermedioId, uid: _uid);
     _insumoUtilizadoCache[intermedioId] = lista;
     return lista;
   }
@@ -290,7 +296,7 @@ class ShoppingListService {
     if (flatList.isEmpty) return {};
 
     // 1. Cargar todos los proveedores para mapeo (podría optimizarse si son muchos)
-    final todosProveedores = await proveedorRepo.obtenerTodos();
+    final todosProveedores = await proveedorRepo.obtenerTodos(uid: _uid);
     final mapaProveedores = {
       for (var p in todosProveedores)
         if (p.id != null) p.id!: p,
@@ -355,7 +361,7 @@ class ShoppingListService {
       
       try {
         // Obtener el evento completo para acceder a sus propiedades (como facturable)
-        final Evento evento = await eventoRepo.obtener(eventoId);
+        final Evento evento = await eventoRepo.obtener(eventoId, uid: _uid);
         
         // Procesar el evento y acumular sus insumos en detailedTotals
         await _processSingleEventIntoDetailedTotals(detailedTotals, evento);
@@ -396,9 +402,9 @@ class ShoppingListService {
     final bool esFacturable = evento.facturable;
 
     // 1. Cargar todas las relaciones del evento
-    final List<PlatoEvento> platosEvento = await platoEventoRepo.obtenerPorEvento(eventoId);
-    final List<IntermedioEvento> intermediosEvento = await intermedioEventoRepo.obtenerPorEvento(eventoId);
-    final List<InsumoEvento> insumosEvento = await insumoEventoRepo.obtenerPorEvento(eventoId);
+    final List<PlatoEvento> platosEvento = await platoEventoRepo.obtenerPorEvento(eventoId, uid: _uid);
+    final List<IntermedioEvento> intermediosEvento = await intermedioEventoRepo.obtenerPorEvento(eventoId, uid: _uid);
+    final List<InsumoEvento> insumosEvento = await insumoEventoRepo.obtenerPorEvento(eventoId, uid: _uid);
 
     // 2. Procesar Insumos Directos
     for (final insumoEv in insumosEvento) {
@@ -645,7 +651,7 @@ class ShoppingListService {
     final allInsumoIds = detailedTotals.keys.toList();
     
     // Obtener todos los insumos necesarios en una sola consulta
-    final insumos = await insumoRepo.obtenerVarios(allInsumoIds);
+    final insumos = await insumoRepo.obtenerVarios(allInsumoIds, uid: _uid);
     final mapaInsumos = {
       for (var i in insumos)
         if (i.id != null) i.id!: i,

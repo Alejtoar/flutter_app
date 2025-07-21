@@ -1,5 +1,6 @@
 // features/eventos/shopping_list/screens/shopping_list_display_screen.dart
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:golo_app/repositories/evento_repository.dart';
 import 'package:golo_app/services/excel_export_service_sync.dart'; // Importar el nuevo servicio
@@ -11,7 +12,7 @@ import 'package:provider/provider.dart';
 class ShoppingListDisplayScreen extends StatefulWidget {
   final GroupedShoppingListResult groupedShoppingList;
   final List<String>? eventoIds;
-  final bool separateByFacturable; // Flag para saber cómo mostrar los datos
+  final bool separateByFacturable;
 
   const ShoppingListDisplayScreen({
     Key? key,
@@ -26,6 +27,8 @@ class ShoppingListDisplayScreen extends StatefulWidget {
 
 class _ShoppingListDisplayScreenState extends State<ShoppingListDisplayScreen> {
   late TextEditingController _titleController;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  String? get _uid => _auth.currentUser?.uid;
 
   @override
   void initState() {
@@ -42,7 +45,7 @@ class _ShoppingListDisplayScreenState extends State<ShoppingListDisplayScreen> {
       if (ids.length == 1) {
         try {
           final eventoRepo = context.read<EventoRepository>();
-          final evento = await eventoRepo.obtener(ids.first);
+          final evento = await eventoRepo.obtener(ids.first, uid: _uid);
           initialTitle = 'Lista de Compras - Evento ${evento.codigo}';
         } catch (e) {
           initialTitle = 'Lista de Compras - Evento ID: ${ids.first}';

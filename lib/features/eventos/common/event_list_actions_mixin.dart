@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:golo_app/features/common/utils/loading_dialog_helper.dart';
 import 'package:golo_app/features/eventos/screens/evento_detalle_screen.dart';
 import 'package:golo_app/models/evento.dart';
 import 'package:golo_app/features/eventos/controllers/buscador_eventos_controller.dart';
@@ -121,18 +122,18 @@ mixin EventListActionsMixin<T extends StatefulWidget> on State<T> {
     final idsACalcular = selectedEventIds.toList();
     if (idsACalcular.isEmpty) return;
 
-    showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
+    final closeLoadingDialog = showLoadingDialog(context, message: 'Calculando...');
     try {
       final shoppingService = context.read<ShoppingListService>();
-      GroupedShoppingListResult listaAgrupada;
-      if (separarPorFacturable) {
-         listaAgrupada = await shoppingService.getSeparatedGroupedShoppingList(idsACalcular);
-      } else {
-         listaAgrupada = await shoppingService.getCombinedGroupedShoppingList(idsACalcular);
-      }
+      final listaAgrupada = separarPorFacturable
+          ? await shoppingService.getSeparatedGroupedShoppingList(idsACalcular)
+          : await shoppingService.getCombinedGroupedShoppingList(idsACalcular);
 
-      if (!mounted) { Navigator.pop(context); return; }
-      Navigator.pop(context); // Cerrar indicador
+      closeLoadingDialog();
+
+      if (!mounted) {
+        return;
+      }
 
       if (listaAgrupada.isEmpty) {
         showAppSnackBar(context, "No se encontraron insumos para los eventos seleccionados.");
@@ -149,8 +150,12 @@ mixin EventListActionsMixin<T extends StatefulWidget> on State<T> {
         );
       }
     } catch (e) {
-      if (mounted) Navigator.pop(context);
-      if (mounted) showAppSnackBar(context, "Error al generar la lista de compras: $e", isError: true);
+      debugPrint("[ActionMixin][ERROR] al generar lista de compras: $e");
+      // --- VERIFICACIONES DE SEGURIDAD EN EL CATCH ---
+      closeLoadingDialog();
+      if (mounted) {
+        showAppSnackBar(context, "Error al generar la lista de compras: $e", isError: true);
+      }
     }
   }
   Color colorPorEstado(EstadoEvento estado) {
